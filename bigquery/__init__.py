@@ -14,7 +14,7 @@ BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery.readonly"
 _bq_client = None
 
 
-def get_client(project_id, dataset_id, credentials=None, service_account=None,
+def get_client(project_id, credentials=None, service_account=None,
                private_key=None):
     """Return a singleton instance of BigQueryClient. Either
     AssertionCredentials or a service account and private key combination need
@@ -22,7 +22,6 @@ def get_client(project_id, dataset_id, credentials=None, service_account=None,
 
     Args:
         project_id: the BigQuery project id.
-        dataset_id: the dataset id to query.
         credentials: an AssertionCredentials instance to authenticate requests
                      to BigQuery.
         service_account: the Google API service account name.
@@ -37,14 +36,14 @@ def get_client(project_id, dataset_id, credentials=None, service_account=None,
         raise Exception('AssertionCredentials or service account and private'
                         'key need to be provided')
 
-    # TODO: Hold a dict matching projects/datasets to clients.
+    # TODO: Hold a dict matching projects to clients.
     global _bq_client
     if not _bq_client:
         bq_service = _get_bq_service(credentials=credentials,
                                      service_account=service_account,
                                      private_key=private_key)
 
-        _bq_client = BigQueryClient(bq_service, project_id, dataset_id)
+        _bq_client = BigQueryClient(bq_service, project_id)
 
     return _bq_client
 
@@ -67,10 +66,9 @@ def _get_bq_service(credentials=None, service_account=None, private_key=None):
 
 class BigQueryClient(object):
 
-    def __init__(self, bq_service, project_id, dataset_id):
+    def __init__(self, bq_service, project_id):
         self.bigquery = bq_service
         self.project_id = project_id
-        self.dataset_id = dataset_id
 
     def query(self, query):
         """Submit a query to BigQuery.
@@ -157,11 +155,13 @@ class BigQueryClient(object):
 
         return [self._transform_row(row, schema) for row in rows]
 
-    def get_tables(self, app_id, start_time, end_time):
+    def get_tables(self, dataset_id, app_id, start_time, end_time):
         """Retrieve a list of tables that are related to the given app id
         and are inside the range of start and end times.
+
         Args:
-            app_id: The application id
+            dataset_id: The BigQuery dataset id to consider.
+            app_id: The appspot name
             start_time: The unix time after which records will be fetched.
             end_time: The unix time up to which records will be fetched.
 
@@ -169,22 +169,22 @@ class BigQueryClient(object):
             A list of table names.
         """
 
-        every_table = self._get_all_tables()
+        every_table = self._get_all_tables(dataset_id)
         app_tables = every_table.get(app_id, {})
 
         return self._filter_tables_by_time(app_tables, start_time, end_time)
 
-    def _get_all_tables(self):
+    def _get_all_tables(self, dataset_id):
         """This method calls bigquery for the list of tables and parses the
         response that will be processed.  This parsed response is then
         stored in memcache for faster future processing.
         Returns:
-            a parsed diciotnary of appids and ther table names
+            a parsed dictionary of appids and ther table names
         """
 
         result = self.bigquery.tables().list(
             projectId=self.project_id,
-            datasetId=self.dataset_id).execute()
+            datasetId=dataset_id).execute()
 
         return self._parse_list_response(result)
 

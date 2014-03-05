@@ -15,8 +15,7 @@ class TestGetClient(unittest.TestCase):
 
         self.mock_bq_service.jobs.return_value = self.mock_job_collection
 
-        self.client = bigquery.BigQueryClient(self.mock_bq_service,
-                                              'project', 'dataset')
+        self.client = bigquery.BigQueryClient(self.mock_bq_service, 'project')
 
     def test_no_credentials(self):
         """Ensure an Exception is raised when no credentials are provided."""
@@ -36,11 +35,9 @@ class TestGetClient(unittest.TestCase):
         key = 'key'
         service_account = 'account'
         project_id = 'project'
-        dataset_id = 'dataset'
 
         client = bigquery.get_client(
-            project_id, dataset_id, service_account=service_account,
-            private_key=key)
+            project_id, service_account=service_account, private_key=key)
 
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE)
@@ -48,7 +45,6 @@ class TestGetClient(unittest.TestCase):
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
         self.assertEquals(mock_bq, client.bigquery)
         self.assertEquals(project_id, client.project_id)
-        self.assertEquals(dataset_id, client.dataset_id)
 
     def test_get_client(self):
         """Ensure that the existing BigQueryClient is returned."""
@@ -56,8 +52,7 @@ class TestGetClient(unittest.TestCase):
         mock_client = mock.Mock()
         bigquery._bq_client = mock_client
 
-        actual = bigquery.get_client('project', 'dataset',
-                                     service_account='account',
+        actual = bigquery.get_client('project', service_account='account',
                                      private_key='key')
 
         self.assertEquals(actual, mock_client)
@@ -74,9 +69,8 @@ class TestQuery(unittest.TestCase):
         self.mock_bq_service.jobs.return_value = self.mock_job_collection
 
         self.project_id = 'project'
-        self.dataset_id = 'dataset'
-        self.client = bigquery.BigQueryClient(
-            self.mock_bq_service, self.project_id, self.dataset_id)
+        self.client = bigquery.BigQueryClient(self.mock_bq_service,
+                                              self.project_id)
 
     def test_query(self):
         """Ensure that we retrieve the job id from the query."""
@@ -108,9 +102,8 @@ class TestGetQueryResults(unittest.TestCase):
         self.mock_bq_service.jobs.return_value = self.mock_job_collection
 
         self.project_id = 'project'
-        self.dataset_id = 'dataset'
-        self.client = bigquery.BigQueryClient(
-            self.mock_bq_service, self.project_id, self.dataset_id)
+        self.client = bigquery.BigQueryClient(self.mock_bq_service,
+                                              self.project_id)
 
     def test_get_response(self):
         """Ensure that the query is executed and the query reply is returned.
@@ -149,9 +142,8 @@ class TestTransformRow(unittest.TestCase):
         self.mock_bq_service.jobs.return_value = self.mock_job_collection
 
         self.project_id = 'project'
-        self.dataset_id = 'dataset'
-        self.client = bigquery.BigQueryClient(
-            self.mock_bq_service, self.project_id, self.dataset_id)
+        self.client = bigquery.BigQueryClient(self.mock_bq_service,
+                                              self.project_id)
 
     def test_transform_row(self):
         """Ensure that the row dict is correctly transformed to a log dict."""
@@ -223,9 +215,7 @@ class TestCheckJob(unittest.TestCase):
     def setUp(self):
         bigquery._bq_client = None
         self.project_id = 'project'
-        self.dataset_id = 'dataset'
-        self.client = bigquery.BigQueryClient(
-            mock.Mock(), self.project_id, self.dataset_id)
+        self.client = bigquery.BigQueryClient(mock.Mock(), self.project_id)
 
     def test_job_incomplete(self, mock_exec):
         """Ensure that we return None if the job is not yet complete."""
@@ -266,7 +256,7 @@ class TestFilterTablesByTime(unittest.TestCase):
     def test_empty_tables(self):
         """Ensure we can handle filtering an empty dictionary"""
 
-        bq = bigquery.BigQueryClient(None, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({}, 1370000000, 0)
 
@@ -275,7 +265,7 @@ class TestFilterTablesByTime(unittest.TestCase):
     def test_multi_inside_range(self):
         """Ensure we can correctly filter several application ids"""
 
-        bq = bigquery.BigQueryClient(None, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
             'Spider-Man': 1370002001,
@@ -293,7 +283,7 @@ class TestFilterTablesByTime(unittest.TestCase):
         range we are searching for.
         """
 
-        bq = bigquery.BigQueryClient(None, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
             'John Snow': 9001,
@@ -388,7 +378,7 @@ class TestGetQuerySchema(unittest.TestCase):
         """Ensure that get_query_schema works when a query is complete."""
         from bigquery import BigQueryClient
 
-        bq = BigQueryClient(mock.Mock(), 'project', 'dataset')
+        bq = BigQueryClient(mock.Mock(), 'project')
 
         get_query_mock.return_value = {
             'jobComplete': True,
@@ -405,7 +395,7 @@ class TestGetQuerySchema(unittest.TestCase):
         """
         from bigquery import BigQueryClient
 
-        bq = BigQueryClient(mock.Mock(), 'project', 'dataset')
+        bq = BigQueryClient(mock.Mock(), 'project')
 
         get_query_mock.return_value = {
             'jobComplete': False,
@@ -424,7 +414,7 @@ class TestGetQueryRows(unittest.TestCase):
         """Ensure that get_query_rows works when a query is complete."""
         from bigquery import BigQueryClient
 
-        bq = BigQueryClient(mock.Mock(), 'project', 'dataset')
+        bq = BigQueryClient(mock.Mock(), 'project')
 
         get_query_mock.return_value = {
             'jobComplete': True,
@@ -453,7 +443,7 @@ class TestGetQueryRows(unittest.TestCase):
         """
         from bigquery import BigQueryClient
 
-        bq = BigQueryClient(mock.Mock(), 'project', 'dataset')
+        bq = BigQueryClient(mock.Mock(), 'project')
 
         get_query_mock.return_value = {
             'jobComplete': False,
@@ -481,7 +471,7 @@ class TestParseListReponse(unittest.TestCase):
     def test_full_parse(self):
         """Ensures we can parse a full list response."""
 
-        bq = bigquery.BigQueryClient(None, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(None, 'project')
 
         tables = bq._parse_list_response(FULL_LIST_RESPONSE)
 
@@ -500,7 +490,7 @@ class TestParseListReponse(unittest.TestCase):
     def test_empty_parse(self):
         """Ensures we can parse an empty dictionary."""
 
-        bq = bigquery.BigQueryClient(None, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(None, 'project')
 
         tables = bq._parse_list_response({})
 
@@ -524,7 +514,7 @@ class TestParseListReponse(unittest.TestCase):
                 "message": "Login Required"
             }
         }
-        bq = bigquery.BigQueryClient(None, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(None, 'project')
 
         tables = bq._parse_list_response(error_response)
 
@@ -562,7 +552,7 @@ class TestParseListReponse(unittest.TestCase):
                 }
             ],
         }
-        bq = bigquery.BigQueryClient(None, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(None, 'project')
 
         tables = bq._parse_list_response(list_response)
 
@@ -583,7 +573,7 @@ class TestGetAllTables(unittest.TestCase):
         mock_bq_service = mock.Mock()
         mock_bq_service.tables.return_value = mock_tables
 
-        bq = bigquery.BigQueryClient(mock_bq_service, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(mock_bq_service, 'project')
 
         expected_result = {
             'appspot-3': {'2013_06_appspot_3': 1370062800},
@@ -595,7 +585,7 @@ class TestGetAllTables(unittest.TestCase):
             'appspot': {'2013_05_appspot': 1367384400}
         }
 
-        tables = bq._get_all_tables()
+        tables = bq._get_all_tables('dataset')
         self.assertEquals(expected_result, tables)
 
 
@@ -613,8 +603,8 @@ class TestGetTables(unittest.TestCase):
         mock_bq_service = mock.Mock()
         mock_bq_service.tables.return_value = mock_tables
 
-        bq = bigquery.BigQueryClient(mock_bq_service, 'project', 'dataset')
+        bq = bigquery.BigQueryClient(mock_bq_service, 'project')
 
-        tables = bq.get_tables('appspot-1', 0, 10000000000)
+        tables = bq.get_tables('dataset', 'appspot-1', 0, 10000000000)
         self.assertItemsEqual(tables, ['2013_06_appspot_1'])
 
