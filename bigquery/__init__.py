@@ -96,7 +96,7 @@ class BigQueryClient(object):
         """Retrieve the schema of a query by job id.
 
         Args:
-            job_id: The job_id that references a bigquery query.
+            job_id: The job_id that references a BigQuery query.
         Returns:
             A list of dictionaries that represent the schema.
         """
@@ -133,8 +133,8 @@ class BigQueryClient(object):
         """Retrieve a list of rows from a query table by job id.
 
         Args:
-            job_id: The job id that references a bigquery query.
-            offset: The offset of the rows to pull from bigquery.
+            job_id: The job id that references a BigQuery query.
+            offset: The offset of the rows to pull from BigQuery.
             limit: The number of rows to retrieve from a query table.
 
         Returns:
@@ -175,7 +175,7 @@ class BigQueryClient(object):
         return self._filter_tables_by_time(app_tables, start_time, end_time)
 
     def _get_all_tables(self, dataset_id):
-        """This method calls bigquery for the list of tables and parses the
+        """This method calls BigQuery for the list of tables and parses the
         response that will be processed.  This parsed response is then
         stored in memcache for faster future processing.
         Returns:
