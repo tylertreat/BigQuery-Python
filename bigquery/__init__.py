@@ -175,11 +175,13 @@ class BigQueryClient(object):
         return self._filter_tables_by_time(app_tables, start_time, end_time)
 
     def _get_all_tables(self, dataset_id):
-        """This method calls BigQuery for the list of tables and parses the
-        response that will be processed.  This parsed response is then
-        stored in memcache for faster future processing.
+        """Retrieve a list of all tables for the dataset.
+
+        Args:
+            dataset_id: the dataset to retrieve table names for.
+
         Returns:
-            a parsed dictionary of appids and ther table names
+            a dictionary of app ids mapped to their table names.
         """
 
         result = self.bigquery.tables().list(
