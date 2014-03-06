@@ -373,11 +373,8 @@ class BigQueryClient(object):
 
         # Multiple nested records
         if col_dict['mode'] == 'REPEATED' and isinstance(nested_value, list):
-            row_value = []
-            for record in nested_value:
-                row_value.append(self._transform_row(
-                    record['v'],
-                    col_dict['fields']))
+            row_value = [self._transform_row(record['v'], col_dict['fields'])
+                         for record in nested_value]
 
         # A single nested record
         else:
