@@ -1,3 +1,4 @@
+import calendar
 from collections import defaultdict
 from datetime import datetime
 import logging
@@ -209,7 +210,7 @@ class BigQueryClient(object):
                 continue
 
             table_date = datetime.strptime(year_month, '%Y-%m')
-            unix_seconds = int(time.mktime(table_date.timetuple()))
+            unix_seconds = calendar.timegm(table_date.timetuple())
             tables[app_id].update({table_id: unix_seconds})
 
         # Turn off defualting

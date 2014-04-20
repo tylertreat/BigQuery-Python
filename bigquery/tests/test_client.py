@@ -465,13 +465,13 @@ class TestParseListReponse(unittest.TestCase):
         tables = bq._parse_list_response(FULL_LIST_RESPONSE)
 
         expected_result = {
-            'appspot-3': {'2013_06_appspot_3': 1370062800},
-            'appspot-2': {'2013_06_appspot_2': 1370062800},
-            'appspot-1': {'2013_06_appspot_1': 1370062800},
-            'appspot-6': {'appspot_6_2013_06': 1370062800},
-            'appspot-5': {'2013_06_appspot_5': 1370062800},
-            'appspot-4': {'2013_06_appspot_4': 1370062800},
-            'appspot': {'2013_05_appspot': 1367384400}
+            'appspot-3': {'2013_06_appspot_3': 1370044800},
+            'appspot-2': {'2013_06_appspot_2': 1370044800},
+            'appspot-1': {'2013_06_appspot_1': 1370044800},
+            'appspot-6': {'appspot_6_2013_06': 1370044800},
+            'appspot-5': {'2013_06_appspot_5': 1370044800},
+            'appspot-4': {'2013_06_appspot_4': 1370044800},
+            'appspot': {'2013_05_appspot': 1367366400}
         }
 
         self.assertEquals(expected_result, tables)
@@ -565,13 +565,13 @@ class TestGetAllTables(unittest.TestCase):
         bq = client.BigQueryClient(mock_bq_service, 'project')
 
         expected_result = {
-            'appspot-3': {'2013_06_appspot_3': 1370062800},
-            'appspot-2': {'2013_06_appspot_2': 1370062800},
-            'appspot-1': {'2013_06_appspot_1': 1370062800},
-            'appspot-6': {'appspot_6_2013_06': 1370062800},
-            'appspot-5': {'2013_06_appspot_5': 1370062800},
-            'appspot-4': {'2013_06_appspot_4': 1370062800},
-            'appspot': {'2013_05_appspot': 1367384400}
+            'appspot-3': {'2013_06_appspot_3': 1370044800},
+            'appspot-2': {'2013_06_appspot_2': 1370044800},
+            'appspot-1': {'2013_06_appspot_1': 1370044800},
+            'appspot-6': {'appspot_6_2013_06': 1370044800},
+            'appspot-5': {'2013_06_appspot_5': 1370044800},
+            'appspot-4': {'2013_06_appspot_4': 1370044800},
+            'appspot': {'2013_05_appspot': 1367366400}
         }
 
         tables = bq._get_all_tables('dataset')
