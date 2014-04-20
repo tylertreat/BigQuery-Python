@@ -11,9 +11,6 @@ from oauth2client.client import SignedJwtAssertionCredentials
 BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery.readonly"
 
 
-_bq_client = None
-
-
 def get_client(project_id, credentials=None, service_account=None,
                private_key=None):
     """Return a singleton instance of BigQueryClient. Either
@@ -36,16 +33,11 @@ def get_client(project_id, credentials=None, service_account=None,
         raise Exception('AssertionCredentials or service account and private'
                         'key need to be provided')
 
-    # TODO: Hold a dict matching projects to clients.
-    global _bq_client
-    if not _bq_client:
-        bq_service = _get_bq_service(credentials=credentials,
-                                     service_account=service_account,
-                                     private_key=private_key)
+    bq_service = _get_bq_service(credentials=credentials,
+                                 service_account=service_account,
+                                 private_key=private_key)
 
-        _bq_client = BigQueryClient(bq_service, project_id)
-
-    return _bq_client
+    return BigQueryClient(bq_service, project_id)
 
 
 def _get_bq_service(credentials=None, service_account=None, private_key=None):

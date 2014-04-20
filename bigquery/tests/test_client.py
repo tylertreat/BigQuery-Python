@@ -24,7 +24,7 @@ class TestGetClient(unittest.TestCase):
 
     @mock.patch('bigquery.client.SignedJwtAssertionCredentials')
     @mock.patch('bigquery.client.build')
-    def test_client_not_initialized(self, mock_build, mock_cred):
+    def test_initialize(self, mock_build, mock_cred):
         """Ensure that a BigQueryClient is initialized and returned."""
         from bigquery.client import BIGQUERY_SCOPE
 
@@ -45,17 +45,6 @@ class TestGetClient(unittest.TestCase):
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
-
-    def test_get_client(self):
-        """Ensure that the existing BigQueryClient is returned."""
-
-        mock_client = mock.Mock()
-        client._bq_client = mock_client
-
-        actual = client.get_client('project', service_account='account',
-                                   private_key='key')
-
-        self.assertEquals(actual, mock_client)
 
 
 class TestQuery(unittest.TestCase):
