@@ -24,8 +24,37 @@ class TestGetClient(unittest.TestCase):
 
     @mock.patch('bigquery.client.SignedJwtAssertionCredentials')
     @mock.patch('bigquery.client.build')
-    def test_initialize(self, mock_build, mock_cred):
-        """Ensure that a BigQueryClient is initialized and returned."""
+    def test_initialize_readonly(self, mock_build, mock_cred):
+        """Ensure that a BigQueryClient is initialized and returned with
+        read-only permissions.
+        """
+        from bigquery.client import BIGQUERY_SCOPE_READ_ONLY
+
+        mock_http = mock.Mock()
+        mock_cred.return_value.authorize.return_value = mock_http
+        mock_bq = mock.Mock()
+        mock_build.return_value = mock_bq
+        key = 'key'
+        service_account = 'account'
+        project_id = 'project'
+
+        bq_client = client.get_client(
+            project_id, service_account=service_account, private_key=key,
+            readonly=True)
+
+        mock_cred.assert_called_once_with(service_account, key,
+                                          scope=BIGQUERY_SCOPE_READ_ONLY)
+        mock_cred.authorize.assert_called_once()
+        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
+        self.assertEquals(mock_bq, bq_client.bigquery)
+        self.assertEquals(project_id, bq_client.project_id)
+
+    @mock.patch('bigquery.client.SignedJwtAssertionCredentials')
+    @mock.patch('bigquery.client.build')
+    def test_initialize_read_write(self, mock_build, mock_cred):
+        """Ensure that a BigQueryClient is initialized and returned with
+        read/write permissions.
+        """
         from bigquery.client import BIGQUERY_SCOPE
 
         mock_http = mock.Mock()
@@ -37,7 +66,8 @@ class TestGetClient(unittest.TestCase):
         project_id = 'project'
 
         bq_client = client.get_client(
-            project_id, service_account=service_account, private_key=key)
+            project_id, service_account=service_account, private_key=key,
+            readonly=False)
 
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE)

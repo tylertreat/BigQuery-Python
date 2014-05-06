@@ -2,18 +2,18 @@ import calendar
 from collections import defaultdict
 from datetime import datetime
 import logging
-import time
 
 from apiclient.discovery import build
 import httplib2
 from oauth2client.client import SignedJwtAssertionCredentials
 
 
-BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery.readonly"
+BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
+BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
 
 
 def get_client(project_id, credentials=None, service_account=None,
-               private_key=None):
+               private_key=None, readonly=True):
     """Return a singleton instance of BigQueryClient. Either
     AssertionCredentials or a service account and private key combination need
     to be provided in order to authenticate requests to BigQuery.
@@ -25,6 +25,8 @@ def get_client(project_id, credentials=None, service_account=None,
         service_account: the Google API service account name.
         private_key: the private key associated with the service account in
                      PKCS12 or PEM format.
+        readonly: bool indicating if BigQuery access is read-only. Has no
+                  effect if credentials are provided.
 
     Returns:
         an instance of BigQueryClient.
@@ -36,19 +38,22 @@ def get_client(project_id, credentials=None, service_account=None,
 
     bq_service = _get_bq_service(credentials=credentials,
                                  service_account=service_account,
-                                 private_key=private_key)
+                                 private_key=private_key,
+                                 readonly=readonly)
 
     return BigQueryClient(bq_service, project_id)
 
 
-def _get_bq_service(credentials=None, service_account=None, private_key=None):
+def _get_bq_service(credentials=None, service_account=None, private_key=None,
+                    readonly=True):
     """Construct an authorized BigQuery service object."""
 
     assert credentials or (service_account and private_key)
 
     if not credentials:
+        scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
         credentials = SignedJwtAssertionCredentials(
-            service_account, private_key, scope=BIGQUERY_SCOPE)
+            service_account, private_key, scope=scope)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
