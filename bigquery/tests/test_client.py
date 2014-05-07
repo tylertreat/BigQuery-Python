@@ -662,6 +662,47 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.return_value.execute.assert_called_once_with()
 
 
+class TestDeleteTable(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_tables = mock.Mock()
+        self.mock_bq_service.tables.return_value = self.mock_tables
+        self.table = 'table'
+        self.project = 'project'
+        self.dataset = 'dataset'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+
+    def test_delete_table_fail(self):
+        """Ensure that if deleting table fails, False is returned."""
+
+        self.mock_tables.delete.return_value.execute.side_effect = Exception()
+
+        actual = self.client.delete_table(self.dataset, self.table)
+
+        self.assertFalse(actual)
+
+        self.mock_tables.delete.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, tableId=self.table)
+
+        self.mock_tables.delete.return_value.execute.assert_called_once_with()
+
+    def test_delete_table_success(self):
+        """Ensure that if deleting table succeeds, True is returned."""
+
+        self.mock_tables.delete.return_value.execute.side_effect = {
+            'status': 'foo'}
+
+        actual = self.client.delete_table(self.dataset, self.table)
+
+        self.assertTrue(actual)
+
+        self.mock_tables.delete.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, tableId=self.table)
+
+        self.mock_tables.delete.return_value.execute.assert_called_once_with()
+
+
 class TestParseListReponse(unittest.TestCase):
 
     def test_full_parse(self):

@@ -186,7 +186,7 @@ class BigQueryClient(object):
 
         Args:
             dataset: the dataset to create the table in.
-            table: the name of table.
+            table: the name of table to create.
             schema: table schema dict.
 
         Returns:
@@ -204,12 +204,37 @@ class BigQueryClient(object):
 
         try:
             self.bigquery.tables().insert(
-                projectId=self.project_id, datasetId=dataset, body=body
+                projectId=self.project_id,
+                datasetId=dataset,
+                body=body
             ).execute()
             return True
 
         except:
             logging.error('Cannot create table %s.%s' % (dataset, table))
+            return False
+
+    def delete_table(self, dataset, table):
+        """Delete a table from the dataset.
+
+        Args:
+            dataset: the dataset to delete the table from.
+            table: the name of the table to delete.
+
+        Returns:
+            bool indicating if the table was successfully deleted or not.
+        """
+
+        try:
+            self.bigquery.tables().delete(
+                projectId=self.project_id,
+                datasetId=dataset,
+                tableId=table
+            ).execute()
+            return True
+
+        except:
+            logging.error('Cannot delete table %s.%s' % (dataset, table))
             return False
 
     def get_tables(self, dataset_id, app_id, start_time, end_time):
