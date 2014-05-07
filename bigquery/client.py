@@ -181,6 +181,37 @@ class BigQueryClient(object):
         except:
             return False
 
+    def create_table(self, dataset, table, schema):
+        """Create a new table in the dataset.
+
+        Args:
+            dataset: the dataset to create the table in.
+            table: the name of table.
+            schema: table schema dict.
+
+        Returns:
+            bool indicating if the table was successfully created or not.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        try:
+            self.bigquery.tables().insert(
+                projectId=self.project_id, datasetId=dataset, body=body
+            ).execute()
+            return True
+
+        except:
+            logging.error('Cannot create table %s.%s' % (dataset, table))
+            return False
+
     def get_tables(self, dataset_id, app_id, start_time, end_time):
         """Retrieve a list of tables that are related to the given app id
         and are inside the range of start and end times.
