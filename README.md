@@ -110,9 +110,21 @@ deleted = client.delete_table('dataset', 'my_table')
 exists = client.check_table('dataset', 'my_table')
 ```
 
+There is also functionality for retrieving tables that are associated with a Google App Engine appspot, assuming table names are in the form of appid_YYYY_MM or YYYY_MM_appid. This allows tables between a date range to be selected and queried on.
+
+```python
+# Get appspot tables falling within a start and end time.
+from datetime import datetime, timedelta
+range_end = datetime.utcnow()
+range_start = range_end - timedelta(weeks=12)
+tables = client.get_tables('dataset', 'appid',
+                           calendar.timegm(range_start.timetuple()),
+                           calendar.timegm(range_end.timetuple()))
+```
+
 # Inserting Data
 
-The client also provides an API for inserting data into a BigQuery table.
+The client provides an API for inserting data into a BigQuery table.
 
 ```python
 # Insert data into table.
