@@ -163,8 +163,6 @@ class TestQuery(unittest.TestCase):
         self.assertEquals(actual, 'spiderman')
 
 
-
-
 class TestGetQueryResults(unittest.TestCase):
 
     def setUp(self):
