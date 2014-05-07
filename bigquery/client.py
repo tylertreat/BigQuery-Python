@@ -1,11 +1,12 @@
 import calendar
 from collections import defaultdict
 from datetime import datetime
-import logging
 
 from apiclient.discovery import build
 import httplib2
 from oauth2client.client import SignedJwtAssertionCredentials
+
+from bigquery import logger
 
 
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
@@ -81,7 +82,7 @@ class BigQueryClient(object):
             job id and query rows if query completed.
         """
 
-        logging.debug('Executing query: %s' % query)
+        logger.debug('Executing query: %s' % query)
 
         job_collection = self.bigquery.jobs()
         query_data = {'query': query, 'timeoutMs': timeout * 1000}
@@ -112,7 +113,7 @@ class BigQueryClient(object):
             job_collection, self.project_id, job_id, offset=0, limit=0)
 
         if not query_reply['jobComplete']:
-            logging.warning('BigQuery job %s not complete' % job_id)
+            logger.warning('BigQuery job %s not complete' % job_id)
             return []
 
         return query_reply['schema']['fields']
@@ -153,7 +154,7 @@ class BigQueryClient(object):
             limit=limit)
 
         if not query_reply['jobComplete']:
-            logging.warning('BigQuery job %s not complete' % job_id)
+            logger.warning('BigQuery job %s not complete' % job_id)
             return []
 
         schema = query_reply['schema']['fields']
@@ -211,7 +212,7 @@ class BigQueryClient(object):
             return True
 
         except:
-            logging.error('Cannot create table %s.%s' % (dataset, table))
+            logger.error('Cannot create table %s.%s' % (dataset, table))
             return False
 
     def delete_table(self, dataset, table):
@@ -234,7 +235,7 @@ class BigQueryClient(object):
             return True
 
         except:
-            logging.error('Cannot delete table %s.%s' % (dataset, table))
+            logger.error('Cannot delete table %s.%s' % (dataset, table))
             return False
 
     def get_tables(self, dataset_id, app_id, start_time, end_time):
@@ -287,13 +288,13 @@ class BigQueryClient(object):
             ).execute()
 
             if response.get('insertErrors'):
-                logging.error('BigQuery insert errors: %s' % response)
+                logger.error('BigQuery insert errors: %s' % response)
                 return False
 
             return True
 
         except:
-            logging.error('Problem with BigQuery insertAll')
+            logger.error('Problem with BigQuery insertAll')
             return False
 
     def _get_all_tables(self, dataset_id):
