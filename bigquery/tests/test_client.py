@@ -796,6 +796,92 @@ class TestParseListReponse(unittest.TestCase):
         self.assertEquals(tables, {})
 
 
+class TestPushRows(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_table_data = mock.Mock()
+        self.mock_bq_service.tabledata.return_value = self.mock_table_data
+        self.table = 'table'
+        self.project = 'project'
+        self.dataset = 'dataset'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+        self.rows = [
+            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'}]
+        self.data = {
+            "kind": "bigquery#tableDataInsertAllRequest",
+            "rows": [{'insertId': row['one'], 'json': row} for row in
+                     self.rows]
+        }
+
+    def test_push_failed(self):
+        """Ensure that if insertAll does not raise an exception, but returns
+        insertion errors, False is returned.
+        """
+
+        self.mock_table_data.insertAll.return_value.execute.return_value = {
+            'insertErrors': 'foo'}
+
+        actual = self.client.push_rows(self.rows, 'one', self.dataset,
+                                       self.table)
+
+        self.assertFalse(actual)
+
+        self.mock_bq_service.tabledata.assert_called_once_with()
+
+        self.mock_table_data.insertAll.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, tableId=self.table,
+            body=self.data)
+
+        execute_calls = [mock.call()]
+        self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
+            execute_calls)
+
+    def test_push_exception(self):
+        """Ensure that if insertAll raises an exception, False is returned."""
+
+        self.mock_table_data.insertAll.return_value.execute.side_effect = \
+            Exception()
+
+        actual = self.client.push_rows(self.rows, 'one', self.dataset,
+                                       self.table)
+
+        self.assertFalse(actual)
+
+        self.mock_bq_service.tabledata.assert_called_once_with()
+
+        self.mock_table_data.insertAll.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, tableId=self.table,
+            body=self.data)
+
+        execute_calls = [mock.call()]
+        self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
+            execute_calls)
+
+    def test_push_success(self):
+        """Ensure that if insertAll does not raise an exception, but returns
+        insertion errors, False is returned.
+        """
+
+        self.mock_table_data.insertAll.return_value.execute.return_value = {
+            'status': 'foo'}
+
+        actual = self.client.push_rows(self.rows, 'one', self.dataset,
+                                       self.table)
+
+        self.assertTrue(actual)
+
+        self.mock_bq_service.tabledata.assert_called_once_with()
+
+        self.mock_table_data.insertAll.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, tableId=self.table,
+            body=self.data)
+
+        execute_calls = [mock.call()]
+        self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
+            execute_calls)
+
+
 class TestGetAllTables(unittest.TestCase):
 
     def test_get_tables(self):

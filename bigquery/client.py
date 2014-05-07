@@ -256,6 +256,46 @@ class BigQueryClient(object):
 
         return self._filter_tables_by_time(app_tables, start_time, end_time)
 
+    def push_rows(self, rows, insert_id_key, dataset, table):
+        """Upload rows to BigQuery table.
+
+        Args:
+            rows: list of rows to add to table
+            insert_id_key: key for insertId in row
+            dataset: the dataset to upload to.
+            table: the name of the table to insert rows into.
+
+        Returns:
+            bool indicating if insert succeeded or not.
+        """
+
+        table_data = self.bigquery.tabledata()
+
+        data = {
+            "kind": "bigquery#tableDataInsertAllRequest",
+            "rows": [{
+                'insertId': row[insert_id_key],
+                'json': row
+            } for row in rows]}
+
+        try:
+            response = table_data.insertAll(
+                projectId=self.project_id,
+                datasetId=dataset,
+                tableId=table,
+                body=data
+            ).execute()
+
+            if response.get('insertErrors'):
+                logging.error('BigQuery insert errors: %s' % response)
+                return False
+
+            return True
+
+        except:
+            logging.error('Problem with BigQuery insertAll')
+            return False
+
     def _get_all_tables(self, dataset_id):
         """Retrieve a list of all tables for the dataset.
 
