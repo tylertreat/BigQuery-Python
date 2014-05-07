@@ -51,7 +51,8 @@ def render_query(dataset, tables, select=None, conditions=None,
         _render_sources(dataset, tables),
         _render_conditions(conditions),
         _render_groupings(groupings),
-        _render_order(order_by.get('field'), order_by.get('direction')))
+        _render_order(order_by.get('field'), order_by.get('direction')),
+    )
 
     return query
 
@@ -88,18 +89,37 @@ def _render_select(selections):
 
             formatter = options_dict.get('format')
             if formatter:
-                for caster in formatter.split('-'):
-                    if caster == 'SEC_TO_MICRO':
-                        name = "%s*1000000" % name
-                    elif ':' in caster:
-                        caster, args = caster.split(':')
-                        name = "%s(%s,%s)" % (caster, name, args)
-                    else:
-                        name = "%s(%s)" % (caster, name)
+                name = _format_select(formatter, name)
 
             rendered_selections.append("%s %s" % (name, alias))
 
     return "SELECT " + ", ".join(rendered_selections)
+
+
+def _format_select(formatter, name):
+    """Modify the query selector by applying any formatters to it.
+
+    Args:
+        formatter: hyphen-delimited formatter string where formatters are
+                   applied inside-out, e.g. the formatter string
+                   SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC applied to the selector
+                   foo would result in FORMAT_UTC_USEC(INTEGER(foo*1000000)).
+        name: the name of the selector to apply formatters to.
+
+    Returns:
+        formatted selector.
+    """
+
+    for caster in formatter.split('-'):
+        if caster == 'SEC_TO_MICRO':
+            name = "%s*1000000" % name
+        elif ':' in caster:
+            caster, args = caster.split(':')
+            name = "%s(%s,%s)" % (caster, name, args)
+        else:
+            name = "%s(%s)" % (caster, name)
+
+    return name
 
 
 def _render_sources(dataset, tables):
