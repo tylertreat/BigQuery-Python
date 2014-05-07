@@ -105,13 +105,14 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.return_value = mock_query_job
 
-        actual = self.client.query(self.query)
+        job_id, results = self.client.query(self.query)
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
             body={'query': self.query, 'timeoutMs': 10000}
         )
-        self.assertEquals(actual, 'spiderman')
+        self.assertEquals(job_id, 'spiderman')
+        self.assertEquals(results, [])
 
     def test_query_max_results(self):
         """Ensure that we retrieve the job id from the query and the maxResults
@@ -129,14 +130,16 @@ class TestQuery(unittest.TestCase):
         self.mock_job_collection.query.return_value = mock_query_job
         max_results = 10
 
-        actual = self.client.query(self.query, max_results=max_results)
+        job_id, results = self.client.query(self.query,
+                                            max_results=max_results)
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
             body={'query': self.query, 'timeoutMs': 10000,
                   'maxResults': max_results}
         )
-        self.assertEquals(actual, 'spiderman')
+        self.assertEquals(job_id, 'spiderman')
+        self.assertEquals(results, [])
 
     def test_query_timeout(self):
         """Ensure that we retrieve the job id from the query and the timeoutMs
@@ -154,13 +157,40 @@ class TestQuery(unittest.TestCase):
         self.mock_job_collection.query.return_value = mock_query_job
         timeout = 5
 
-        actual = self.client.query(self.query, timeout=timeout)
+        job_id, results = self.client.query(self.query, timeout=timeout)
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
             body={'query': self.query, 'timeoutMs': timeout * 1000}
         )
-        self.assertEquals(actual, 'spiderman')
+        self.assertEquals(job_id, 'spiderman')
+        self.assertEquals(results, [])
+
+    def test_query_with_results(self):
+        """Ensure that we retrieve the job id from the query and results if
+        they are available.
+        """
+
+        mock_query_job = mock.Mock()
+        expected_job_id = 'spiderman'
+        expected_job_ref = {'jobId': expected_job_id}
+
+        mock_query_job.execute.return_value = {
+            'jobReference': expected_job_ref,
+            'schema': {'fields': [{'name': 'foo', 'type': 'INTEGER'}]},
+            'rows': [{'f': [{'v': 10}]}],
+        }
+
+        self.mock_job_collection.query.return_value = mock_query_job
+
+        job_id, results = self.client.query(self.query)
+
+        self.mock_job_collection.query.assert_called_once_with(
+            projectId=self.project_id,
+            body={'query': self.query, 'timeoutMs': 10000}
+        )
+        self.assertEquals(job_id, 'spiderman')
+        self.assertEquals(results, [{'foo': 10}])
 
 
 class TestGetQueryResults(unittest.TestCase):

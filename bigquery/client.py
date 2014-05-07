@@ -78,7 +78,7 @@ class BigQueryClient(object):
                      before the request times out and returns.
 
         Returns:
-            a job id that acts as a pointer to the query results.
+            job id and query rows if query completed.
         """
 
         logging.debug('Executing query: %s' % query)
@@ -92,9 +92,11 @@ class BigQueryClient(object):
         query_reply = job_collection.query(
             projectId=self.project_id, body=query_data).execute()
 
-        job_reference = query_reply['jobReference']
+        job_id = query_reply['jobReference']['jobId']
+        schema = query_reply.get('schema', {'fields': None})['fields']
+        rows = query_reply.get('rows', [])
 
-        return job_reference['jobId']
+        return job_id, [self._transform_row(row, schema) for row in rows]
 
     def get_query_schema(self, job_id):
         """Retrieve the schema of a query by job id.
