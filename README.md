@@ -90,3 +90,36 @@ query = render_query(
 
 job_id, _ = client.query(query, timeout=0)
 ```
+
+# Managing Tables
+
+The BigQuery client provides facilities to manage dataset tables, including creating, deleting, and checking the existence of tables.
+
+```python
+# Create a new table.
+schema = [
+    {'name': 'foo', 'type': 'STRING', 'mode': 'nullable'},
+    {'name': 'bar', 'type': 'FLOAT', 'mode': 'nullable'}
+]
+created = client.create_table('dataset', 'my_table', schema)
+
+# Delete an existing table.
+deleted = client.delete_table('dataset', 'my_table')
+
+# Check if a table exists.
+exists = client.check_table('dataset', 'my_table')
+```
+
+# Inserting Data
+
+The client also provides an API for inserting data into a BigQuery table.
+
+```python
+# Insert data into table.
+rows =  [
+    {'lang': 'es', 'one': 'uno', 'two': 'dos'},
+    {'lang': 'de', 'one': 'ein', 'two': 'zwei'}
+]
+inserted = client.push_rows(rows, 'lang', 'dataset', 'table')
+```
+
