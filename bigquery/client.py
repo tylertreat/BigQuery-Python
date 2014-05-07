@@ -161,6 +161,26 @@ class BigQueryClient(object):
 
         return [self._transform_row(row, schema) for row in rows]
 
+    def check_table(self, dataset, table):
+        """Check to see if a table exists.
+
+        Args:
+            dataset: the dataset to check.
+            table: the name of the table.
+
+        Returns:
+            bool indicating if the table exists.
+    """
+
+        try:
+            self.bigquery.tables().get(
+                projectId=self.project_id, datasetId=dataset,
+                tableId=table).execute()
+            return True
+
+        except:
+            return False
+
     def get_tables(self, dataset_id, app_id, start_time, end_time):
         """Retrieve a list of tables that are related to the given app id
         and are inside the range of start and end times.
