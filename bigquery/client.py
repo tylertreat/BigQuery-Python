@@ -68,12 +68,14 @@ class BigQueryClient(object):
         self.bigquery = bq_service
         self.project_id = project_id
 
-    def query(self, query, max_results=None):
+    def query(self, query, max_results=None, timeout=10):
         """Submit a query to BigQuery.
 
         Args:
             query: BigQuery query string.
-            max_results: maximum number of rows to return.
+            max_results: maximum number of rows to return per page of results.
+            timeout: how long to wait for the query to complete, in seconds,
+                     before the request times out and returns.
 
         Returns:
             a job id that acts as a pointer to the query results.
@@ -82,7 +84,7 @@ class BigQueryClient(object):
         logging.debug('Executing query: %s' % query)
 
         job_collection = self.bigquery.jobs()
-        query_data = {'query': query, 'timeoutMs': 0}
+        query_data = {'query': query, 'timeoutMs': timeout * 1000}
 
         if max_results:
             query_data['maxResults'] = max_results

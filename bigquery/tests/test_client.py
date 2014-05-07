@@ -109,7 +109,7 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': 0}
+            body={'query': self.query, 'timeoutMs': 10000}
         )
         self.assertEquals(actual, 'spiderman')
 
@@ -133,10 +133,36 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': 0,
+            body={'query': self.query, 'timeoutMs': 10000,
                   'maxResults': max_results}
         )
         self.assertEquals(actual, 'spiderman')
+
+    def test_query_timeout(self):
+        """Ensure that we retrieve the job id from the query and the timeoutMs
+        parameter is set correctly.
+        """
+
+        mock_query_job = mock.Mock()
+        expected_job_id = 'spiderman'
+        expected_job_ref = {'jobId': expected_job_id}
+
+        mock_query_job.execute.return_value = {
+            'jobReference': expected_job_ref
+        }
+
+        self.mock_job_collection.query.return_value = mock_query_job
+        timeout = 5
+
+        actual = self.client.query(self.query, timeout=timeout)
+
+        self.mock_job_collection.query.assert_called_once_with(
+            projectId=self.project_id,
+            body={'query': self.query, 'timeoutMs': timeout * 1000}
+        )
+        self.assertEquals(actual, 'spiderman')
+
+
 
 
 class TestGetQueryResults(unittest.TestCase):
