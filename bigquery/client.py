@@ -245,12 +245,20 @@ class BigQueryClient(object):
         Args:
             dataset_id: The BigQuery dataset id to consider.
             app_id: The appspot name
-            start_time: The unix time after which records will be fetched.
-            end_time: The unix time up to which records will be fetched.
+            start_time: The datetime or unix time after which records will be
+                        fetched.
+            end_time: The datetime or unix time up to which records will be
+                      fetched.
 
         Returns:
             A list of table names.
         """
+
+        if isinstance(start_time, datetime):
+            start_time = calendar.timegm(start_time.utctimetuple())
+
+        if isinstance(end_time, datetime):
+            end_time = calendar.timegm(end_time.utctimetuple())
 
         every_table = self._get_all_tables(dataset_id)
         app_tables = every_table.get(app_id, {})

@@ -931,3 +931,26 @@ class TestGetTables(unittest.TestCase):
         tables = bq.get_tables('dataset', 'appspot-1', 0, 10000000000)
         self.assertItemsEqual(tables, ['2013_06_appspot_1'])
 
+    def test_get_tables_from_datetimes(self):
+        """Ensure tables falling in the time window, specified with datetimes,
+        are returned.
+        """
+        from datetime import datetime
+
+        mock_execute = mock.Mock()
+        mock_execute.execute.return_value = FULL_LIST_RESPONSE
+
+        mock_tables = mock.Mock()
+        mock_tables.list.return_value = mock_execute
+
+        mock_bq_service = mock.Mock()
+        mock_bq_service.tables.return_value = mock_tables
+
+        bq = client.BigQueryClient(mock_bq_service, 'project')
+
+        start = datetime(2013, 5, 10)
+        end = datetime(2013, 7, 10)
+
+        tables = bq.get_tables('dataset', 'appspot-1', start, end)
+        self.assertItemsEqual(tables, ['2013_06_appspot_1'])
+
