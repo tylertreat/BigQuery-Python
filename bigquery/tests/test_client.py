@@ -87,6 +87,7 @@ class TestQuery(unittest.TestCase):
 
         self.mock_bq_service.jobs.return_value = self.mock_job_collection
 
+        self.query = 'foo'
         self.project_id = 'project'
         self.client = client.BigQueryClient(self.mock_bq_service,
                                             self.project_id)
@@ -104,9 +105,37 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.return_value = mock_query_job
 
-        actual = self.client.query('foo')
+        actual = self.client.query(self.query)
 
-        self.mock_job_collection.query.assert_called_once()
+        self.mock_job_collection.query.assert_called_once_with(
+            projectId=self.project_id,
+            body={'query': self.query, 'timeoutMs': 0}
+        )
+        self.assertEquals(actual, 'spiderman')
+
+    def test_query_max_results(self):
+        """Ensure that we retrieve the job id from the query and the maxResults
+        parameter is set.
+        """
+
+        mock_query_job = mock.Mock()
+        expected_job_id = 'spiderman'
+        expected_job_ref = {'jobId': expected_job_id}
+
+        mock_query_job.execute.return_value = {
+            'jobReference': expected_job_ref
+        }
+
+        self.mock_job_collection.query.return_value = mock_query_job
+        max_results = 10
+
+        actual = self.client.query(self.query, max_results=max_results)
+
+        self.mock_job_collection.query.assert_called_once_with(
+            projectId=self.project_id,
+            body={'query': self.query, 'timeoutMs': 0,
+                  'maxResults': max_results}
+        )
         self.assertEquals(actual, 'spiderman')
 
 

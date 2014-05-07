@@ -68,11 +68,12 @@ class BigQueryClient(object):
         self.bigquery = bq_service
         self.project_id = project_id
 
-    def query(self, query):
+    def query(self, query, max_results=None):
         """Submit a query to BigQuery.
 
         Args:
             query: BigQuery query string.
+            max_results: maximum number of rows to return.
 
         Returns:
             a job id that acts as a pointer to the query results.
@@ -82,6 +83,9 @@ class BigQueryClient(object):
 
         job_collection = self.bigquery.jobs()
         query_data = {'query': query, 'timeoutMs': 0}
+
+        if max_results:
+            query_data['maxResults'] = max_results
 
         query_reply = job_collection.query(
             projectId=self.project_id, body=query_data).execute()
