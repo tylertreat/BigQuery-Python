@@ -117,9 +117,7 @@ There is also functionality for retrieving tables that are associated with a Goo
 from datetime import datetime, timedelta
 range_end = datetime.utcnow()
 range_start = range_end - timedelta(weeks=12)
-tables = client.get_tables('dataset', 'appid',
-                           calendar.timegm(range_start.timetuple()),
-                           calendar.timegm(range_end.timetuple()))
+tables = client.get_tables('dataset', 'appid', range_start, range_end)
 ```
 
 # Inserting Data
