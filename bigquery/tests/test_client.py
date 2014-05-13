@@ -22,7 +22,7 @@ class TestGetClient(unittest.TestCase):
 
         self.assertRaises(Exception, client.get_client, 'foo', 'bar')
 
-    @mock.patch('bigquery.client.SignedJwtAssertionCredentials')
+    @mock.patch('bigquery.client._credentials')
     @mock.patch('bigquery.client.build')
     def test_initialize_readonly(self, mock_build, mock_cred):
         """Ensure that a BigQueryClient is initialized and returned with
@@ -49,7 +49,7 @@ class TestGetClient(unittest.TestCase):
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
-    @mock.patch('bigquery.client.SignedJwtAssertionCredentials')
+    @mock.patch('bigquery.client._credentials')
     @mock.patch('bigquery.client.build')
     def test_initialize_read_write(self, mock_build, mock_cred):
         """Ensure that a BigQueryClient is initialized and returned with
