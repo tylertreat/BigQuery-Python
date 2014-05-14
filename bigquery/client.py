@@ -52,7 +52,7 @@ def _get_bq_service(credentials=None, service_account=None, private_key=None,
 
     if not credentials:
         scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
-        credentials = _credentials(service_account, private_key, scope=scope)
+        credentials = _credentials()(service_account, private_key, scope=scope)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
@@ -62,6 +62,7 @@ def _get_bq_service(credentials=None, service_account=None, private_key=None,
 
 
 def _credentials():
+    """Import and return SignedJwtAssertionCredentials class"""
     from oauth2client.client import SignedJwtAssertionCredentials
     return SignedJwtAssertionCredentials
 
