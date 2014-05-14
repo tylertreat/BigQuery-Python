@@ -4,7 +4,6 @@ from datetime import datetime
 
 from apiclient.discovery import build
 import httplib2
-from oauth2client.client import SignedJwtAssertionCredentials
 
 from bigquery import logger
 
@@ -53,14 +52,19 @@ def _get_bq_service(credentials=None, service_account=None, private_key=None,
 
     if not credentials:
         scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
-        credentials = SignedJwtAssertionCredentials(
-            service_account, private_key, scope=scope)
+        credentials = _credentials()(service_account, private_key, scope=scope)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
     service = build('bigquery', 'v2', http=http)
 
     return service
+
+
+def _credentials():
+    """Import and return SignedJwtAssertionCredentials class"""
+    from oauth2client.client import SignedJwtAssertionCredentials
+    return SignedJwtAssertionCredentials
 
 
 class BigQueryClient(object):
