@@ -136,6 +136,31 @@ class BigQueryClient(object):
 
         return query_reply['schema']['fields']
 
+    def get_table_schema(self, dataset, table):
+        """Return the table schema.
+
+        Args:
+            dataset: the dataset containing the table.
+            table: the table to get the schema for.
+
+        Returns:
+            A list of dicts that represent the table schema. If the table
+            doesn't exist, None is returned.
+        """
+
+        try:
+            result = self.bigquery.tables().get(
+                projectId=self.project_id,
+                tableId=table,
+                datasetId=dataset).execute()
+        except HttpError, e:
+            if int(e.resp['status']) == 404:
+                logger.warn('Table %s.%s does not exist', dataset, table)
+                return None
+            raise
+
+        return result['schema']['fields']
+
     def check_job(self, job_id):
         """Return the state and number of results of a query by job id.
 
