@@ -115,8 +115,8 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': 10000, 'maxResults': None,
-                  'dryRun': False}
+            body={'query': self.query, 'timeoutMs': 10000, 'dryRun': False,
+                  'maxResults': None}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
@@ -168,8 +168,8 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': timeout * 1000,
-                  'maxResults': None, 'dryRun': False}
+            body={'query': self.query, 'timeoutMs': timeout * 1000, 'dryRun':
+                  False, 'maxResults': None}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
@@ -241,8 +241,8 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': 10000, 'maxResults': None,
-                  'dryRun': False}
+            body={'query': self.query, 'timeoutMs': 10000, 'dryRun': False,
+                  'maxResults': None}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [{'foo': 10}])
@@ -562,6 +562,49 @@ class TestGetQuerySchema(unittest.TestCase):
         result_schema = bq.get_query_schema(job_id=123)
 
         self.assertEquals(result_schema, [])
+
+
+class TestGetTableSchema(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_tables = mock.Mock()
+        self.mock_bq_service.tables.return_value = self.mock_tables
+        self.table = 'table'
+        self.project = 'project'
+        self.dataset = 'dataset'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+
+    def test_table_exists(self):
+        """Ensure that the table schema is returned if the table exists."""
+
+        expected = [
+            {'type': 'FLOAT', 'name': 'foo', 'mode': 'NULLABLE'},
+            {'type': 'INTEGER', 'name': 'bar', 'mode': 'NULLABLE'},
+            {'type': 'INTEGER', 'name': 'baz', 'mode': 'NULLABLE'},
+        ]
+
+        self.mock_tables.get.return_value.execute.return_value = \
+            {'schema': {'fields': expected}}
+
+        self.assertEqual(
+            expected, self.client.get_table_schema(self.dataset, self.table))
+        self.mock_tables.get.assert_called_once_with(
+            projectId=self.project, tableId=self.table, datasetId=self.dataset)
+        self.mock_tables.get.return_value.execute.assert_called_once_with()
+
+    def test_table_does_not_exist(self):
+        """Ensure that None is returned if the table doesn't exist."""
+        from apiclient.errors import HttpError
+
+        self.mock_tables.get.return_value.execute.side_effect = \
+            HttpError({'status': "404"}, '{}')
+
+        self.assertIsNone(
+            self.client.get_table_schema(self.dataset, self.table))
+        self.mock_tables.get.assert_called_once_with(
+            projectId=self.project, tableId=self.table, datasetId=self.dataset)
+        self.mock_tables.get.return_value.execute.assert_called_once_with()
 
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
