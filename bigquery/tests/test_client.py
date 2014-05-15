@@ -115,7 +115,8 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': 10000}
+            body={'query': self.query, 'timeoutMs': 10000, 'maxResults': None,
+                  'dryRun': False}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
@@ -142,7 +143,7 @@ class TestQuery(unittest.TestCase):
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
             body={'query': self.query, 'timeoutMs': 10000,
-                  'maxResults': max_results}
+                  'maxResults': max_results, 'dryRun': False}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
@@ -167,10 +168,57 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': timeout * 1000}
+            body={'query': self.query, 'timeoutMs': timeout * 1000,
+                  'maxResults': None, 'dryRun': False}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
+
+    def test_query_dry_run_valid(self):
+        """Ensure that None and an empty list is returned from the query when
+        dry_run is True and the query is valid.
+        """
+
+        mock_query_job = mock.Mock()
+
+        mock_query_job.execute.return_value = {'jobReference': {}}
+
+        self.mock_job_collection.query.return_value = mock_query_job
+
+        job_id, results = self.client.query(self.query, dry_run=True)
+
+        self.mock_job_collection.query.assert_called_once_with(
+            projectId=self.project_id,
+            body={'query': self.query, 'timeoutMs': 10000, 'maxResults': None,
+                  'dryRun': True}
+        )
+        self.assertIsNone(job_id)
+        self.assertEqual([], results)
+
+    def test_query_dry_run_invalid(self):
+        """Ensure that None and a dict is returned from the query when dry_run
+        is True and the query is invalid.
+        """
+        from apiclient.errors import HttpError
+
+        mock_query_job = mock.Mock()
+
+        mock_query_job.execute.side_effect = HttpError(
+            'crap', '{"message": "Bad query"}')
+
+        self.mock_job_collection.query.return_value = mock_query_job
+
+        job_id, results = self.client.query('%s blah' % self.query,
+                                            dry_run=True)
+
+        self.mock_job_collection.query.assert_called_once_with(
+            projectId=self.project_id,
+            body={'query': '%s blah' % self.query, 'timeoutMs': 10000,
+                  'maxResults': None,
+                  'dryRun': True}
+        )
+        self.assertIsNone(job_id)
+        self.assertEqual({'message': 'Bad query'}, results)
 
     def test_query_with_results(self):
         """Ensure that we retrieve the job id from the query and results if
@@ -193,7 +241,8 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': 10000}
+            body={'query': self.query, 'timeoutMs': 10000, 'maxResults': None,
+                  'dryRun': False}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [{'foo': 10}])
