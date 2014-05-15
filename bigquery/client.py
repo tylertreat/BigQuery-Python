@@ -1,8 +1,10 @@
 import calendar
 from collections import defaultdict
 from datetime import datetime
+import json
 
 from apiclient.discovery import build
+from apiclient.errors import HttpError
 import httplib2
 
 from bigquery import logger
@@ -73,7 +75,7 @@ class BigQueryClient(object):
         self.bigquery = bq_service
         self.project_id = project_id
 
-    def query(self, query, max_results=None, timeout=10):
+    def query(self, query, max_results=None, timeout=10, dry_run=False):
         """Submit a query to BigQuery.
 
         Args:
@@ -81,23 +83,35 @@ class BigQueryClient(object):
             max_results: maximum number of rows to return per page of results.
             timeout: how long to wait for the query to complete, in seconds,
                      before the request times out and returns.
+            dry_run: if True, the query isn't actually run. A valid query will
+                     return an empty response, while an invalid one will return
+                     the same error message it would if it wasn't a dry run.
 
         Returns:
-            job id and query rows if query completed.
+            job id and query results if query completed. If dry_run is True,
+            job id will be None and results will be empty if the query is valid
+            or a dict containing the response if invalid.
         """
 
         logger.debug('Executing query: %s' % query)
 
         job_collection = self.bigquery.jobs()
-        query_data = {'query': query, 'timeoutMs': timeout * 1000}
+        query_data = {
+            'query': query,
+            'timeoutMs': timeout * 1000,
+            'dryRun': dry_run,
+            'maxResults': max_results,
+        }
 
-        if max_results:
-            query_data['maxResults'] = max_results
+        try:
+            query_reply = job_collection.query(
+                projectId=self.project_id, body=query_data).execute()
+        except HttpError, e:
+            if dry_run:
+                return None, json.loads(e.content)
+            raise
 
-        query_reply = job_collection.query(
-            projectId=self.project_id, body=query_data).execute()
-
-        job_id = query_reply['jobReference']['jobId']
+        job_id = query_reply['jobReference'].get('jobId')
         schema = query_reply.get('schema', {'fields': None})['fields']
         rows = query_reply.get('rows', [])
 
