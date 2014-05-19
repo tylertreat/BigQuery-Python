@@ -14,6 +14,10 @@ BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
 
 
+class UnfinishedQueryException(Exception):
+    pass
+
+
 def get_client(project_id, credentials=None, service_account=None,
                private_key=None, readonly=True):
     """Return a singleton instance of BigQueryClient. Either
@@ -132,7 +136,7 @@ class BigQueryClient(object):
 
         if not query_reply['jobComplete']:
             logger.warning('BigQuery job %s not complete' % job_id)
-            return []
+            raise UnfinishedQueryException()
 
         return query_reply['schema']['fields']
 
@@ -198,7 +202,7 @@ class BigQueryClient(object):
 
         if not query_reply['jobComplete']:
             logger.warning('BigQuery job %s not complete' % job_id)
-            return []
+            raise UnfinishedQueryException()
 
         schema = query_reply['schema']['fields']
         rows = query_reply.get('rows', [])
