@@ -510,9 +510,8 @@ class TestGetQuerySchema(unittest.TestCase):
             'schema': {'fields': 'This is our schema'}
         }
 
-        result_schema = bq.get_query_schema(job_id=123)
-
-        self.assertEquals(result_schema, [])
+        self.assertRaises(client.UnfinishedQueryException, bq.get_query_schema,
+                          job_id=123)
 
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
@@ -568,10 +567,8 @@ class TestGetQueryRows(unittest.TestCase):
             'totalRows': 2
         }
 
-        result_rows = bq.get_query_rows(job_id=123, offset=0, limit=0)
-
-        expected_rows = []
-        self.assertEquals(result_rows, expected_rows)
+        self.assertRaises(client.UnfinishedQueryException, bq.get_query_rows,
+                          job_id=123, offset=0, limit=0)
 
 
 class TestCheckTable(unittest.TestCase):
