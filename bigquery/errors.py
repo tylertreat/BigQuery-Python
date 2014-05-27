@@ -1,0 +1,2 @@
+class UnfinishedQueryException(Exception):
+    pass

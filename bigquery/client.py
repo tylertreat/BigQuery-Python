@@ -8,14 +8,11 @@ from apiclient.errors import HttpError
 import httplib2
 
 from bigquery import logger
+from bigquery.errors import UnfinishedQueryException
 
 
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
-
-
-class UnfinishedQueryException(Exception):
-    pass
 
 
 def get_client(project_id, credentials=None, service_account=None,
