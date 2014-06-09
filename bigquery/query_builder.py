@@ -51,7 +51,7 @@ def render_query(dataset, tables, select=None, conditions=None,
         _render_sources(dataset, tables),
         _render_conditions(conditions),
         _render_groupings(groupings),
-        _render_order(order_by.get('field'), order_by.get('direction')),
+        _render_order(order_by),
     )
 
     return query
@@ -220,11 +220,11 @@ def _render_condition(field, field_type, comparators):
     return "(%s)" % (rendered_normal or rendered_negated)
 
 
-def _render_order(field, direction):
+def _render_order(order):
     """Render the order by part of a query.
 
     Args:
-        order_by: a dictionary with two keys, field and direction.
+        order: a dictionary with two keys, field and direction.
             Such that the dictionary should be formatted as
             {'field':'TimeStamp, 'direction':'desc'}.
 
@@ -232,10 +232,10 @@ def _render_order(field, direction):
         a string that represents the order by part of a query.
     """
 
-    if not field or not direction:
-        return ""
+    if not order or 'field' not in order or 'direction' not in order:
+        return ''
 
-    return "ORDER BY %s %s" % (field, direction)
+    return "ORDER BY %s %s" % (order['field'], order['direction'])
 
 
 def _render_groupings(fields):

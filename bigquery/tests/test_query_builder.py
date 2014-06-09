@@ -159,7 +159,7 @@ class TestRenderOrder(unittest.TestCase):
         """Ensure that render order can work under expected conditions."""
         from bigquery.query_builder import _render_order
 
-        result = _render_order('foo', 'desc')
+        result = _render_order({'field': 'foo', 'direction': 'desc'})
 
         self.assertEqual(result, "ORDER BY foo desc")
 
@@ -167,7 +167,7 @@ class TestRenderOrder(unittest.TestCase):
         """Ensure that render order can work with out any arguments."""
         from bigquery.query_builder import _render_order
 
-        result = _render_order(None, None)
+        result = _render_order(None)
 
         self.assertEqual(result, "")
 
