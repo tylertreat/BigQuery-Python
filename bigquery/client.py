@@ -8,6 +8,7 @@ from apiclient.errors import HttpError
 import httplib2
 
 from bigquery import logger
+from bigquery.errors import UnfinishedQueryException
 
 
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
@@ -132,7 +133,7 @@ class BigQueryClient(object):
 
         if not query_reply['jobComplete']:
             logger.warning('BigQuery job %s not complete' % job_id)
-            return []
+            raise UnfinishedQueryException()
 
         return query_reply['schema']['fields']
 
@@ -198,7 +199,7 @@ class BigQueryClient(object):
 
         if not query_reply['jobComplete']:
             logger.warning('BigQuery job %s not complete' % job_id)
-            return []
+            raise UnfinishedQueryException()
 
         schema = query_reply['schema']['fields']
         rows = query_reply.get('rows', [])
