@@ -309,14 +309,14 @@ class BigQueryClient(object):
 
         return self._filter_tables_by_time(app_tables, start_time, end_time)
 
-    def push_rows(self, rows, insert_id_key, dataset, table):
+    def push_rows(self, dataset, table, rows, insert_id_key=None):
         """Upload rows to BigQuery table.
 
         Args:
-            rows: list of rows to add to table
-            insert_id_key: key for insertId in row
             dataset: the dataset to upload to.
             table: the name of the table to insert rows into.
+            rows: list of rows to add to table
+            insert_id_key: key for insertId in row
 
         Returns:
             bool indicating if insert succeeded or not.
@@ -324,12 +324,18 @@ class BigQueryClient(object):
 
         table_data = self.bigquery.tabledata()
 
+        rows_data = []
+        for row in rows:
+            each_row = {}
+            each_row["json"] = row
+            if insert_id_key in row:
+                each_row["insertId"] = row[insert_id_key]
+            rows_data.append(each_row)
+
         data = {
             "kind": "bigquery#tableDataInsertAllRequest",
-            "rows": [{
-                'insertId': row[insert_id_key],
-                'json': row
-            } for row in rows]}
+            "rows": rows_data
+        }
 
         try:
             response = table_data.insertAll(
@@ -556,4 +562,3 @@ class BigQueryClient(object):
             row_value = self._transform_row(nested_value, col_dict['fields'])
 
         return row_value
-

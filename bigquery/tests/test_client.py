@@ -902,11 +902,12 @@ class TestPushRows(unittest.TestCase):
         self.dataset = 'dataset'
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
         self.rows = [
-            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'}]
+            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'}, {'two': 'kiwi'}]
         self.data = {
             "kind": "bigquery#tableDataInsertAllRequest",
-            "rows": [{'insertId': row['one'], 'json': row} for row in
-                     self.rows]
+            "rows": [{'insertId': "uno", 'json': {'one': 'uno', 'two': 'dos'}},
+                     {'insertId': "ein", 'json': {'one': 'ein', 'two': 'zwei'}},
+                     {'json': {'two': 'kiwi'}}]
         }
 
     def test_push_failed(self):
@@ -917,8 +918,7 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.return_value = {
             'insertErrors': 'foo'}
 
-        actual = self.client.push_rows(self.rows, 'one', self.dataset,
-                                       self.table)
+        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
 
         self.assertFalse(actual)
 
@@ -938,8 +938,7 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.side_effect = \
             Exception()
 
-        actual = self.client.push_rows(self.rows, 'one', self.dataset,
-                                       self.table)
+        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
 
         self.assertFalse(actual)
 
@@ -961,8 +960,7 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.return_value = {
             'status': 'foo'}
 
-        actual = self.client.push_rows(self.rows, 'one', self.dataset,
-                                       self.table)
+        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
 
         self.assertTrue(actual)
 
@@ -1048,4 +1046,3 @@ class TestGetTables(unittest.TestCase):
 
         tables = bq.get_tables('dataset', 'appspot-1', start, end)
         self.assertItemsEqual(tables, ['2013_06_appspot_1'])
-
