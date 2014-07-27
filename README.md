@@ -19,7 +19,7 @@ service_account = 'my_id_123@developer.gserviceaccount.com'
 # PKCS12 or PEM key provided by Google.
 key = 'secret_key'
 
-client = get_client(project_id, service_account=service_account, private_key=key)
+client = get_client(project_id, service_account=service_account, private_key=key, readonly=True)
 
 # Submit a query.
 job_id, results = client.query('SELECT * FROM dataset.my_table LIMIT 1000')
