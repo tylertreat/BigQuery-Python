@@ -122,15 +122,17 @@ tables = client.get_tables('dataset', 'appid', range_start, range_end)
 
 # Inserting Data
 
-The client provides an API for inserting data into a BigQuery table.
+The client provides an API for inserting data into a BigQuery table. The last parameter refers to an optional insert id key used to avoid duplicate entries.
 
 ```python
 # Insert data into table.
 rows =  [
-    {'lang': 'es', 'one': 'uno', 'two': 'dos'},
-    {'lang': 'de', 'one': 'ein', 'two': 'zwei'}
+    {'one': 'ein', 'two': 'zwei'}
+    {'id': 'NzAzYmRiY', 'one': 'uno', 'two': 'dos'},
+    {'id': 'NzAzYmRiY', 'one': 'ein', 'two': 'zwei'} # duplicate entry 
 ]
-inserted = client.push_rows(rows, 'lang', 'dataset', 'table')
+
+inserted = client.push_rows('dataset', 'table', rows, 'id')
 ```
 
 # Caveats
