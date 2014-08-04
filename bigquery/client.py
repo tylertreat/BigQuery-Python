@@ -9,7 +9,7 @@ import httplib2
 
 from bigquery import logger
 from bigquery.errors import UnfinishedQueryException
-
+from bigquery.schema_builder import schema_from_record
 
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
@@ -369,9 +369,9 @@ class BigQueryClient(object):
             projectId=self.project_id,
             datasetId=dataset_id).execute()
 
-        return self._parse_list_response(result)
+        return self._parse_table_list_response(result)
 
-    def _parse_list_response(self, list_response):
+    def _parse_table_list_response(self, list_response):
         """Parse the response received from calling list on tables.
 
         Args:
@@ -562,3 +562,145 @@ class BigQueryClient(object):
             row_value = self._transform_row(nested_value, col_dict['fields'])
 
         return row_value
+
+    #
+    # DataSet manipulation methods
+    #
+
+    def create_dataset(self,dataset_id,friendly_name=None,description=None,access=None):
+        """
+        Args:
+            dataset_id: required unique string identifying the dataset with the project (the referenceId of the dataset, not the integer id of the dataset)
+            friendly_name: optional string providing a human readable name
+            description: optional longer string providing a description
+            access: optional object indicating access permissions (see https://developers.google.com/bigquery/docs/reference/v2/datasets#resource)
+        Returns:
+            success: bool
+        """
+        try:
+            datasets = self.bigquery.datasets()
+            dataset_data= self.dataset_resource(dataset_id,
+                                             friendly_name=friendly_name,
+                                             description=description,
+                                             access=access)
+
+            datasets.insert(projectId = self.project_id,
+                            body = dataset_data).execute()
+            return True
+        except:
+            logger.error('Cannot create dataset %s' % dataset_id)
+            return False
+        return result
+
+    def get_datasets(self):
+        """
+        Lists all datasets in the project
+        Returns:
+            a list of dataset resources
+        """
+        try:
+            datasets = self.bigquery.datasets()
+            request = datasets.list( projectId = self.project_id )
+            result = request.execute()
+            return result
+        except Exception,e:
+            logger.error("Cannot list datasets: %s" % e)
+            return None
+
+    def delete_dataset(self,dataset_id):
+        """
+        Args:
+            dataset_id: required unique string identifying the dataset with the project (the referenceId of the dataset)
+        Returns:
+            nothing
+        Raises:
+            HttpError 404 when dataset with dataset_id does not exist
+        """
+        try:
+            datasets = self.bigquery.datasets()
+            request = datasets.delete( projectId = self.project_id,
+                                    datasetId = dataset_id)
+            request.execute()
+            return True
+        except Exception,e:
+            logger.error('Cannot delete dataset %s: %s' % (dataset_id,e))
+            return None
+
+    def update_dataset(self,dataset_id,friendly_name=None,description=None,access=None):
+        try:
+            datasets = self.bigquery.datasets()
+            body = self.dataset_resource(dataset_id,friendly_name,description,access)
+            request = datasets.update(  projectId = self.project_id,
+                                        datasetId = dataset_id,
+                                        body = body)
+            request.execute()
+            return True
+        except Exception,e:
+            logger.error('Cannot update dataset %s: %s' % (dataset_id,e))
+            return False
+
+    def patch_dataset(self,dataset_id,friendly_name=None,description=None,access=None):
+        """
+        Args:
+            dataset_id:
+            friendly_name:
+            description:
+            access:
+        Returns:
+            success: boolean
+        """
+        try:
+            datasets = self.bigquery.datasets()
+            body = self.dataset_resource(dataset_id,friendly_name,description,access)
+            request = datasets.patch(   projectId = self.project_id,
+                                        datasetId = dataset_id,
+                                        body = body)
+            request.execute()
+            return True
+        except Exception,e:
+            logger.error('Cannot patch dataset %s: %s' % (dataset_id,e))
+            return False
+
+    def dataset_resource(self,ref_id,friendly_name=None,description=None,access=None):
+        """
+        See https://developers.google.com/bigquery/docs/reference/v2/datasets#resource
+        Args:
+            ref_id: string dataset id (the reference id, not the integer id)
+            friendly_name: opt string
+            description: opt string
+            access: opt list
+        Returns: a dictionary representing a BigQuery dataset resource
+        """
+        data = {
+            "datasetReference": {
+                "datasetId": ref_id,
+                "projectId": self.project_id
+            }
+        }
+        if friendly_name:
+            data["friendlyName"] = friendly_name
+        if description:
+            data["description"] = description
+        if access:
+            data["access"] = access
+
+        return data
+
+    def _parse_dataset_list_response(self,response):
+        return response
+
+    @classmethod
+    def schema_from_record(cls,record):
+        """Given a dict representing a record instance to be inserted into BigQuery, calculates the schema.
+         Args:
+            record: dict representing a record to be inserted into big query,
+                        where all keys are strings (representing column names in the record)
+                        and all values are of type int,str,unicode,float,bool, timestamp or dict.
+                        A dict value represents a record, and must conform to the same restrictions
+                        as record
+        Returns:
+            a list representing a BigQuery schema
+        Note: results are undefined if a different value types are provided for a repeated field:
+                    E.g., { rfield: [ { x: 1}, {x: "a string"} ] } # undefined!
+        """
+        return schema_from_record(record)

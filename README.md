@@ -135,6 +135,36 @@ rows =  [
 inserted = client.push_rows('dataset', 'table', rows, 'id')
 ```
 
+# Managing datasets
+
+The client provides an API for listing, creating, deleting, updating and patching datasets.
+
+```python
+# List datasets
+datasets = client.get_datasets()
+
+
+# Create dataset
+dataset = client.create_dataset('mydataset',friendly_name="My Dataset",description="A dataset created by me")
+
+# Get dataset
+client.get_dataset('mydataset')
+
+# Delete dataset
+client.delete_dataset('mydataset')
+
+# Update dataset
+client.update_dataset('mydataset',friendly_name="mon Dataset") # description is deleted
+
+# Patch dataset
+client.patch_dataset('mydataset',friendly_name="mon Dataset") # friendly_name changed; description is preserved
+```
+
+# Creating a schema from a sample record
+```python
+client.schema_from_record({id:123, posts:[ {id:123, text:"tihs is a post"} ], username: "bob"})
+```
+
 # Caveats
 
 BigQuery [flattens](https://developers.google.com/bigquery/docs/data?hl=ja#flatten) results with repeated records, so a result might actually map to multiple rows. This means that the row count may be larger than the actual number of results because BigQuery reports the number of unrolled rows but the returned results are rolled back up.
