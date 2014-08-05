@@ -168,3 +168,14 @@ client.schema_from_record({id:123, posts: [{id:123, text: "tihs is a post"}], us
 # Caveats
 
 BigQuery [flattens](https://developers.google.com/bigquery/docs/data?hl=ja#flatten) results with repeated records, so a result might actually map to multiple rows. This means that the row count may be larger than the actual number of results because BigQuery reports the number of unrolled rows but the returned results are rolled back up.
+
+
+# Contributing
+
+Requirements to commit here:
+  
+  - Branch off master, PR back to master.
+  - Your code should pass [Flake8](http://flake8.readthedocs.org/en/latest/).
+  - Unit test coverage is required.
+  - Good docstrs are required.
+  - Good [commit messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html) are required.
