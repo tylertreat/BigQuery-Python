@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 
 setup_args = dict(
     name='BigQuery-Python',
@@ -11,7 +11,8 @@ setup_args = dict(
     license='Apache',
     packages=find_packages(),
     include_package_data=True,
-    install_requires=['google-api-python-client', 'pyopenssl', 'httplib2'],
+    install_requires=['google-api-python-client', 'pyopenssl', 'httplib2',
+                      'python-dateutil'],
     author='Tyler Treat',
     author_email='ttreat31@gmail.com',
     classifiers=[
