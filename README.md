@@ -5,7 +5,11 @@ Simple Python client for interacting with Google BigQuery.
 
 This client provides an API for retrieving and inserting BigQuery data by wrapping Google's low-level API client library. It also provides facilities that make it convenient to access data that is tied to an App Engine appspot, such as request logs.
 
-# Basic Usage #
+# Installation
+
+`pip install bigquery-python`
+
+# Basic Usage
 
 ```python
 from bigquery.client import get_client
@@ -31,7 +35,7 @@ complete, row_count = client.check_job(job_id)
 results = client.get_query_rows(job_id)
 ```
 
-# Executing Queries #
+# Executing Queries
 
 The BigQuery client allows you to execute raw queries against a dataset. The `query` method inserts a query job into BigQuery. A timeout can be specified to wait for the results, after which the request will return and can later be polled with `check_job`. This timeout defaults to 10 seconds.
 
@@ -51,7 +55,7 @@ if complete:
     results = client.get_query_rows(job_id)
 ```
 
-## Query Builder ##
+## Query Builder
 
 The `query_builder` module provides an API for generating query strings that can be run using the BigQuery client.
 
