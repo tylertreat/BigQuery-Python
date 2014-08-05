@@ -452,7 +452,7 @@ class TestFilterTablesByTime(unittest.TestCase):
         self.assertEqual([], tables)
 
 
-FULL_LIST_RESPONSE = {
+FULL_TABLE_LIST_RESPONSE = {
     "kind": "bigquery#tableList",
     "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lPQc\"",
     "tables": [
@@ -798,14 +798,14 @@ class TestDeleteTable(unittest.TestCase):
         self.mock_tables.delete.return_value.execute.assert_called_once_with()
 
 
-class TestParseListReponse(unittest.TestCase):
+class TestParseTableListReponse(unittest.TestCase):
 
     def test_full_parse(self):
         """Ensures we can parse a full list response."""
 
         bq = client.BigQueryClient(None, 'project')
 
-        tables = bq._parse_list_response(FULL_LIST_RESPONSE)
+        tables = bq._parse_table_list_response(FULL_TABLE_LIST_RESPONSE)
 
         expected_result = {
             'appspot-3': {'2013_06_appspot_3': 1370044800},
@@ -824,7 +824,7 @@ class TestParseListReponse(unittest.TestCase):
 
         bq = client.BigQueryClient(None, 'project')
 
-        tables = bq._parse_list_response({})
+        tables = bq._parse_table_list_response({})
 
         self.assertEquals(tables, {})
 
@@ -848,7 +848,7 @@ class TestParseListReponse(unittest.TestCase):
         }
         bq = client.BigQueryClient(None, 'project')
 
-        tables = bq._parse_list_response(error_response)
+        tables = bq._parse_table_list_response(error_response)
 
         self.assertEquals(tables, {})
 
@@ -886,7 +886,7 @@ class TestParseListReponse(unittest.TestCase):
         }
         bq = client.BigQueryClient(None, 'project')
 
-        tables = bq._parse_list_response(list_response)
+        tables = bq._parse_table_list_response(list_response)
 
         self.assertEquals(tables, {})
 
@@ -902,11 +902,13 @@ class TestPushRows(unittest.TestCase):
         self.dataset = 'dataset'
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
         self.rows = [
-            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'}, {'two': 'kiwi'}]
+            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'},
+            {'two': 'kiwi'}]
         self.data = {
             "kind": "bigquery#tableDataInsertAllRequest",
             "rows": [{'insertId': "uno", 'json': {'one': 'uno', 'two': 'dos'}},
-                     {'insertId': "ein", 'json': {'one': 'ein', 'two': 'zwei'}},
+                     {'insertId': "ein", 'json':
+                         {'one': 'ein', 'two': 'zwei'}},
                      {'json': {'two': 'kiwi'}}]
         }
 
@@ -918,7 +920,8 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.return_value = {
             'insertErrors': 'foo'}
 
-        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
 
         self.assertFalse(actual)
 
@@ -938,7 +941,8 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.side_effect = \
             Exception()
 
-        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
 
         self.assertFalse(actual)
 
@@ -960,7 +964,8 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.return_value = {
             'status': 'foo'}
 
-        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
 
         self.assertTrue(actual)
 
@@ -981,7 +986,7 @@ class TestGetAllTables(unittest.TestCase):
         """Ensure get_all_tables fetches table names from BigQuery."""
 
         mock_execute = mock.Mock()
-        mock_execute.execute.return_value = FULL_LIST_RESPONSE
+        mock_execute.execute.return_value = FULL_TABLE_LIST_RESPONSE
 
         mock_tables = mock.Mock()
         mock_tables.list.return_value = mock_execute
@@ -1011,7 +1016,7 @@ class TestGetTables(unittest.TestCase):
         """Ensure tables falling in the time window are returned."""
 
         mock_execute = mock.Mock()
-        mock_execute.execute.return_value = FULL_LIST_RESPONSE
+        mock_execute.execute.return_value = FULL_TABLE_LIST_RESPONSE
 
         mock_tables = mock.Mock()
         mock_tables.list.return_value = mock_execute
@@ -1031,7 +1036,7 @@ class TestGetTables(unittest.TestCase):
         from datetime import datetime
 
         mock_execute = mock.Mock()
-        mock_execute.execute.return_value = FULL_LIST_RESPONSE
+        mock_execute.execute.return_value = FULL_TABLE_LIST_RESPONSE
 
         mock_tables = mock.Mock()
         mock_tables.list.return_value = mock_execute
@@ -1046,3 +1051,255 @@ class TestGetTables(unittest.TestCase):
 
         tables = bq.get_tables('dataset', 'appspot-1', start, end)
         self.assertItemsEqual(tables, ['2013_06_appspot_1'])
+
+
+#
+# Dataset tests
+#
+class TestCreateDataset(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_datasets = mock.Mock()
+        self.mock_bq_service.datasets.return_value = self.mock_datasets
+        self.dataset = 'dataset'
+        self.project = 'project'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+        self.friendly_name = "friendly name"
+        self.description = "description"
+        self.access = [{'userByEmail': "bob@gmail.com"}]
+        self.body = {
+            'datasetReference': {
+                'datasetId': self.dataset,
+                'projectId': self.project},
+            'friendlyName': self.friendly_name,
+            'description': self.description,
+            'access': self.access
+        }
+
+    def test_dataset_create_failed(self):
+        """Ensure that if creating the table fails, False is returned."""
+
+        self.mock_datasets.insert.return_value.execute.side_effect = \
+            Exception()
+
+        actual = self.client.create_dataset(self.dataset,
+                                            friendly_name=self.friendly_name,
+                                            description=self.description,
+                                            access=self.access)
+        self.assertFalse(actual)
+
+        self.mock_datasets.insert.assert_called_once_with(
+            projectId=self.project, body=self.body)
+
+        self.mock_datasets.insert.return_value.execute.\
+            assert_called_once_with()
+
+    def test_dataset_create_success(self):
+        """Ensure that if creating the table fails, False is returned."""
+
+        self.mock_datasets.insert.return_value.execute.side_effect = {
+            'status': 'foo'}
+
+        actual = self.client.create_dataset(self.dataset,
+                                            self.friendly_name,
+                                            self.description,
+                                            self.access)
+        self.assertTrue(actual)
+
+        self.mock_datasets.insert.assert_called_once_with(
+            projectId=self.project, body=self.body)
+
+        self.mock_datasets.insert.return_value.execute.\
+            assert_called_once_with()
+
+
+class TestDeleteDataset(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_datasets = mock.Mock()
+        self.mock_bq_service.datasets.return_value = self.mock_datasets
+        self.project = 'project'
+        self.dataset = 'dataset'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+
+    def test_delete_datasets_fail(self):
+        """Ensure that if deleting table fails, False is returned."""
+
+        self.mock_datasets.delete.return_value.execute.side_effect = \
+            Exception()
+
+        actual = self.client.delete_dataset(self.dataset)
+
+        self.assertFalse(actual)
+
+        self.mock_datasets.delete.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset)
+
+        self.mock_datasets.delete.return_value.execute. \
+            assert_called_once_with()
+
+    def test_delete_datasets_success(self):
+        """Ensure that if deleting table succeeds, True is returned."""
+
+        self.mock_datasets.delete.return_value.execute.side_effect = {
+            'status': 'foo'}
+
+        actual = self.client.delete_dataset(self.dataset)
+
+        self.assertTrue(actual)
+
+        self.mock_datasets.delete.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset)
+
+        self.mock_datasets.delete.return_value.execute.\
+            assert_called_once_with()
+
+
+FULL_DATASET_LIST_RESPONSE = {
+    "kind": "bigquery#dataseteList",
+    "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lPQc\"",
+    "tables": [
+        {
+            "kind": "bigquery#dataset",
+            "id": "project:dataset1",
+            "datasetReference": {
+                "projectId": "project",
+                "datasetId": "dataset1"
+            }
+        },
+        {
+            "kind": "bigquery#dataset",
+            "id": "project:dataset2",
+            "datasetReference": {
+                "projectId": "project",
+                "datasetId": "dataset2",
+            }
+        },
+        {
+            "kind": "bigquery#dataset",
+            "id": "project:dataset3",
+            "datasetReference": {
+                "projectId": "project",
+                "datasetId": "dataset3"
+            }
+        },
+        {
+            "kind": "bigquery#dataset",
+            "id": "project:dataset4",
+            "datasetReference": {
+                "projectId": "project",
+                "datasetId": "dataset4"
+            }
+        },
+        {
+            "kind": "bigquery#dataset",
+            "id": "project:dataset5",
+            "datasetReference": {
+                "projectId": "project",
+                "datasetId": "dataset5"
+            }
+        },
+        {
+            "kind": "bigquery#dataset",
+            "id": "project:dataset6",
+            "datasetReference": {
+                "projectId": "project",
+                "datasetId": "dataset6"
+            }
+        },
+        {
+            "kind": "bigquery#dataset",
+            "id": "project:dataset7",
+            "datasetReference": {
+                "projectId": "project",
+                "datasetId": "dataset7"
+            }
+        },
+        {
+            "kind": "bigquery#dataset",
+            "id": "bad dataset data"
+        }
+    ],
+    "totalItems": 8
+}
+
+
+class TestGetDatasets(unittest.TestCase):
+
+    def test_get_datasets(self):
+        """Ensure datasets are returned."""
+
+        mock_execute = mock.Mock()
+        mock_execute.execute.return_value = FULL_DATASET_LIST_RESPONSE
+
+        mock_datasets = mock.Mock()
+        mock_datasets.list.return_value = mock_execute
+
+        mock_bq_service = mock.Mock()
+        mock_bq_service.datasets.return_value = mock_datasets
+
+        bq = client.BigQueryClient(mock_bq_service, 'project')
+
+        datasets = bq.get_datasets()
+        self.assertItemsEqual(datasets, FULL_DATASET_LIST_RESPONSE)
+
+
+class TestUpdateDataset(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_datasets = mock.Mock()
+        self.mock_bq_service.datasets.return_value = self.mock_datasets
+        self.dataset = 'dataset'
+        self.project = 'project'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+        self.friendly_name = "friendly name"
+        self.description = "description"
+        self.access = [{'userByEmail': "bob@gmail.com"}]
+        self.body = {
+            'datasetReference': {
+                'datasetId': self.dataset,
+                'projectId': self.project},
+            'friendlyName': self.friendly_name,
+            'description': self.description,
+            'access': self.access
+        }
+
+    def test_dataset_update_failed(self):
+        """Ensure that if creating the table fails, False is returned."""
+
+        self.mock_datasets.update.return_value.execute.side_effect = \
+            Exception()
+
+        actual = self.client.update_dataset(self.dataset,
+                                            friendly_name=self.friendly_name,
+                                            description=self.description,
+                                            access=self.access)
+        self.assertFalse(actual)
+
+        self.mock_datasets.update.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_datasets.update.return_value.execute.\
+            assert_called_once_with()
+
+    def test_dataset_update_success(self):
+        """Ensure that if creating the table fails, False is returned."""
+
+        self.mock_datasets.insert.return_value.execute.side_effect = {
+            'status': 'foo'}
+
+        actual = self.client.update_dataset(self.dataset,
+                                            self.friendly_name,
+                                            self.description,
+                                            self.access)
+        self.assertTrue(actual)
+
+        self.mock_datasets.update.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_datasets.update.return_value.execute.\
+            assert_called_once_with()
+
