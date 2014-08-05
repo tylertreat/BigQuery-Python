@@ -135,7 +135,7 @@ rows =  [
 inserted = client.push_rows('dataset', 'table', rows, 'id')
 ```
 
-# Managing datasets
+# Managing Datasets
 
 The client provides an API for listing, creating, deleting, updating and patching datasets.
 
@@ -145,7 +145,7 @@ datasets = client.get_datasets()
 
 
 # Create dataset
-dataset = client.create_dataset('mydataset',friendly_name="My Dataset",description="A dataset created by me")
+dataset = client.create_dataset('mydataset', friendly_name="My Dataset", description="A dataset created by me")
 
 # Get dataset
 client.get_dataset('mydataset')
@@ -154,15 +154,15 @@ client.get_dataset('mydataset')
 client.delete_dataset('mydataset')
 
 # Update dataset
-client.update_dataset('mydataset',friendly_name="mon Dataset") # description is deleted
+client.update_dataset('mydataset', friendly_name="mon Dataset") # description is deleted
 
 # Patch dataset
-client.patch_dataset('mydataset',friendly_name="mon Dataset") # friendly_name changed; description is preserved
+client.patch_dataset('mydataset', friendly_name="mon Dataset") # friendly_name changed; description is preserved
 ```
 
 # Creating a schema from a sample record
 ```python
-client.schema_from_record({id:123, posts:[ {id:123, text:"tihs is a post"} ], username: "bob"})
+client.schema_from_record({id:123, posts: [{id:123, text: "tihs is a post"}], username: "bob"})
 ```
 
 # Caveats

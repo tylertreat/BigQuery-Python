@@ -902,11 +902,13 @@ class TestPushRows(unittest.TestCase):
         self.dataset = 'dataset'
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
         self.rows = [
-            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'}, {'two': 'kiwi'}]
+            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'},
+            {'two': 'kiwi'}]
         self.data = {
             "kind": "bigquery#tableDataInsertAllRequest",
             "rows": [{'insertId': "uno", 'json': {'one': 'uno', 'two': 'dos'}},
-                     {'insertId': "ein", 'json': {'one': 'ein', 'two': 'zwei'}},
+                     {'insertId': "ein", 'json':
+                         {'one': 'ein', 'two': 'zwei'}},
                      {'json': {'two': 'kiwi'}}]
         }
 
@@ -918,7 +920,8 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.return_value = {
             'insertErrors': 'foo'}
 
-        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
 
         self.assertFalse(actual)
 
@@ -938,7 +941,8 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.side_effect = \
             Exception()
 
-        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
 
         self.assertFalse(actual)
 
@@ -960,7 +964,8 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.return_value = {
             'status': 'foo'}
 
-        actual = self.client.push_rows(self.dataset, self.table, self.rows, 'one')
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
 
         self.assertTrue(actual)
 
@@ -1062,21 +1067,21 @@ class TestCreateDataset(unittest.TestCase):
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
         self.friendly_name = "friendly name"
         self.description = "description"
-        self.access = [{'userByEmail':"bob@gmail.com"}]
+        self.access = [{'userByEmail': "bob@gmail.com"}]
         self.body = {
             'datasetReference': {
                 'datasetId': self.dataset,
-                'projectId': self.project },
+                'projectId': self.project},
             'friendlyName': self.friendly_name,
             'description': self.description,
             'access': self.access
         }
 
-
     def test_dataset_create_failed(self):
         """Ensure that if creating the table fails, False is returned."""
 
-        self.mock_datasets.insert.return_value.execute.side_effect = Exception()
+        self.mock_datasets.insert.return_value.execute.side_effect = \
+            Exception()
 
         actual = self.client.create_dataset(self.dataset,
                                             friendly_name=self.friendly_name,
@@ -1087,7 +1092,8 @@ class TestCreateDataset(unittest.TestCase):
         self.mock_datasets.insert.assert_called_once_with(
             projectId=self.project, body=self.body)
 
-        self.mock_datasets.insert.return_value.execute.assert_called_once_with()
+        self.mock_datasets.insert.return_value.execute.\
+            assert_called_once_with()
 
     def test_dataset_create_success(self):
         """Ensure that if creating the table fails, False is returned."""
@@ -1104,7 +1110,8 @@ class TestCreateDataset(unittest.TestCase):
         self.mock_datasets.insert.assert_called_once_with(
             projectId=self.project, body=self.body)
 
-        self.mock_datasets.insert.return_value.execute.assert_called_once_with()
+        self.mock_datasets.insert.return_value.execute.\
+            assert_called_once_with()
 
 
 class TestDeleteDataset(unittest.TestCase):
@@ -1120,7 +1127,8 @@ class TestDeleteDataset(unittest.TestCase):
     def test_delete_datasets_fail(self):
         """Ensure that if deleting table fails, False is returned."""
 
-        self.mock_datasets.delete.return_value.execute.side_effect = Exception()
+        self.mock_datasets.delete.return_value.execute.side_effect = \
+            Exception()
 
         actual = self.client.delete_dataset(self.dataset)
 
@@ -1129,7 +1137,8 @@ class TestDeleteDataset(unittest.TestCase):
         self.mock_datasets.delete.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset)
 
-        self.mock_datasets.delete.return_value.execute.assert_called_once_with()
+        self.mock_datasets.delete.return_value.execute. \
+            assert_called_once_with()
 
     def test_delete_datasets_success(self):
         """Ensure that if deleting table succeeds, True is returned."""
@@ -1144,8 +1153,8 @@ class TestDeleteDataset(unittest.TestCase):
         self.mock_datasets.delete.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset)
 
-        self.mock_datasets.delete.return_value.execute.assert_called_once_with()
-
+        self.mock_datasets.delete.return_value.execute.\
+            assert_called_once_with()
 
 
 FULL_DATASET_LIST_RESPONSE = {
@@ -1216,6 +1225,7 @@ FULL_DATASET_LIST_RESPONSE = {
     "totalItems": 8
 }
 
+
 class TestGetDatasets(unittest.TestCase):
 
     def test_get_datasets(self):
@@ -1235,6 +1245,7 @@ class TestGetDatasets(unittest.TestCase):
         datasets = bq.get_datasets()
         self.assertItemsEqual(datasets, FULL_DATASET_LIST_RESPONSE)
 
+
 class TestUpdateDataset(unittest.TestCase):
 
     def setUp(self):
@@ -1246,21 +1257,21 @@ class TestUpdateDataset(unittest.TestCase):
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
         self.friendly_name = "friendly name"
         self.description = "description"
-        self.access = [{'userByEmail':"bob@gmail.com"}]
+        self.access = [{'userByEmail': "bob@gmail.com"}]
         self.body = {
             'datasetReference': {
                 'datasetId': self.dataset,
-                'projectId': self.project },
+                'projectId': self.project},
             'friendlyName': self.friendly_name,
             'description': self.description,
             'access': self.access
         }
 
-
     def test_dataset_update_failed(self):
         """Ensure that if creating the table fails, False is returned."""
 
-        self.mock_datasets.update.return_value.execute.side_effect = Exception()
+        self.mock_datasets.update.return_value.execute.side_effect = \
+            Exception()
 
         actual = self.client.update_dataset(self.dataset,
                                             friendly_name=self.friendly_name,
@@ -1271,7 +1282,8 @@ class TestUpdateDataset(unittest.TestCase):
         self.mock_datasets.update.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_datasets.update.return_value.execute.assert_called_once_with()
+        self.mock_datasets.update.return_value.execute.\
+            assert_called_once_with()
 
     def test_dataset_update_success(self):
         """Ensure that if creating the table fails, False is returned."""
@@ -1288,6 +1300,6 @@ class TestUpdateDataset(unittest.TestCase):
         self.mock_datasets.update.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_datasets.update.return_value.execute.assert_called_once_with()
-
+        self.mock_datasets.update.return_value.execute.\
+            assert_called_once_with()
 
