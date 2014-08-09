@@ -404,11 +404,11 @@ class BigQueryClient(object):
                          .format(e))
             return None
 
-    def wait_for_job(self, job_resource, interval=5, timeout=None):
+    def wait_for_job(self, job, interval=5, timeout=None):
         """
         Waits until the job indicated by job_resource is done or has failed
         Args:
-            job_resource: dict, a BigQuery job resource
+            job: dict, representing a BigQuery job resource or jobId
             interval: optional float polling interval in seconds, default = 5
             timeout: optional float timeout in seconds, default = None
         Returns:
@@ -417,8 +417,14 @@ class BigQueryClient(object):
         Raises:
             standard exceptions on http / auth failures (you must retry)
         """
-        complete = job_resource.get('jobComplete')
-        job_id = job_resource['jobReference']['jobId']
+        if isinstance(job,dict): # job is a job resource
+            complete = job.get('jobComplete')
+            job_id = job['jobReference']['jobId']
+        else: # job is the jobId
+            complete = False
+            job_id = job
+            job_resource = None
+
         start_time = time()
         elapsed_time = 0
         while not (complete or (timeout is not None and elapsed_time > timeout)):

@@ -411,7 +411,7 @@ class TestWaitForJob(unittest.TestCase):
         self.client = client.BigQueryClient(self.api_mock, self.project_id)
 
     def test_detects_completion(self):
-        """ Ensure we can detect completed jobs"""
+        """Ensure we can detect completed jobs"""
 
         return_values = [{'jobComplete': False,
                           'jobReference': {'jobId': "testJob"}},
@@ -425,6 +425,24 @@ class TestWaitForJob(unittest.TestCase):
 
         self.client.wait_for_job({'jobComplete': False,
                                   'jobReference': {'jobId': "testJob"}},
+                                 interval=.01,
+                                 timeout=None)
+
+        self.assertEqual(self.api_mock.jobs().get.call_count, 2)
+
+    def test_accepts_job_id(self):
+        """Ensure that a jobId argument is accepted"""
+        return_values = [{'jobComplete': False,
+                          'jobReference': {'jobId': "testJob"}},
+                         {'jobComplete': True,
+                          'jobReference': {'jobId': "testJob"}}]
+
+        def side_effect(*args, **kwargs):
+            return return_values.pop(0)
+
+        self.api_mock.jobs().get.side_effect = side_effect
+
+        self.client.wait_for_job('jobId',
                                  interval=.01,
                                  timeout=None)
 
