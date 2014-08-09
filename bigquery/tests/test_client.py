@@ -6,7 +6,6 @@ from bigquery import client
 
 
 class TestGetClient(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -84,7 +83,6 @@ class TestGetClient(unittest.TestCase):
 
 
 class TestQuery(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -169,7 +167,7 @@ class TestQuery(unittest.TestCase):
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
             body={'query': self.query, 'timeoutMs': timeout * 1000, 'dryRun':
-                  False, 'maxResults': None}
+                False, 'maxResults': None}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
@@ -249,7 +247,6 @@ class TestQuery(unittest.TestCase):
 
 
 class TestGetQueryResults(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -289,7 +286,6 @@ class TestGetQueryResults(unittest.TestCase):
 
 
 class TestTransformRow(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -368,7 +364,6 @@ class TestTransformRow(unittest.TestCase):
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestCheckJob(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
         self.project_id = 'project'
@@ -408,8 +403,156 @@ class TestCheckJob(unittest.TestCase):
         self.assertEquals(total_rows, 2)
 
 
-class TestFilterTablesByTime(unittest.TestCase):
+class TestWaitForJob(unittest.TestCase):
+    def setUp(self):
+        client._bq_client = None
+        self.project_id = 'project'
+        self.api_mock = mock.Mock()
+        self.client = client.BigQueryClient(self.api_mock, self.project_id)
 
+    def test_detects_completion(self):
+        """ Ensure we can detect completed jobs"""
+
+        return_values = [{'jobComplete': False,
+                          'jobReference': {'jobId': "testJob"}},
+                         {'jobComplete': True,
+                          'jobReference': {'jobId': "testJob"}}]
+
+        def side_effect(*args, **kwargs):
+            return return_values.pop(0)
+
+        self.api_mock.jobs().get.side_effect = side_effect
+
+        self.client.wait_for_job({'jobComplete': False,
+                                  'jobReference': {'jobId': "testJob"}},
+                                 interval=.01,
+                                 timeout=None)
+
+        self.assertEqual(self.api_mock.jobs().get.call_count, 2)
+
+    def test_respects_timeout(self):
+        """Ensure that the wait can be timed out"""
+        incomplete_job = {'jobComplete': False,
+                          'jobReference': {'jobId': "testJob"}}
+
+        self.api_mock.jobs().get.return_value = incomplete_job
+
+        job_resource = self.client.wait_for_job(incomplete_job,
+                                                interval=.1,
+                                                timeout=.25)
+
+        self.assertEqual(self.api_mock.jobs().get.call_count, 3)
+        self.assertFalse(job_resource['jobComplete'])
+
+    def test_respects_zero_timeout(self):
+        """Ensure that the wait times out even if timeout is zero"""
+        incomplete_job = {'jobComplete': False,
+                          'jobReference': {'jobId': "testJob"}}
+
+        self.api_mock.jobs().get.return_value = incomplete_job
+
+        job_resource = self.client.wait_for_job(incomplete_job,
+                                                interval=.01,
+                                                timeout=0)
+
+        self.assertEqual(self.api_mock.jobs().get.call_count, 1)
+        self.assertFalse(job_resource['jobComplete'])
+
+
+class TestImportDataFromURIs(unittest.TestCase):
+    def setUp(self):
+        self.body = {
+            "kind": "bigquery#job",
+            "jobReference": {
+                "projectId": "project",
+                "jobId": "job"
+            },
+            "configuration": {
+                "load": {
+                    "sourceUris": ["sourceuri"],
+                    "schema": ["schema"],
+                    "destinationTable": {
+                        "projectId": "project",
+                        "datasetId": "dataset",
+                        "tableId": "table"
+                    },
+                    "createDisposition": "a",
+                    "writeDisposition": "b",
+                    "fieldDelimiter": "c",
+                    "skipLeadingRows": "d",
+                    "encoding": "e",
+                    "quote": "f",
+                    "maxBadRecords": "g",
+                    "allowQuotedNewlines": "h",
+                    "sourceFormat": "i",
+                    "allowJaggedRows": "j",
+                    "ignoreUnknownValues": "k"
+                }
+            }
+        }
+
+    def test_job_body_constructed_correctly(self):
+        mock_api = mock.Mock()
+        bq = client.BigQueryClient(mock_api, "project")
+        bq.import_data_from_uris("job", ["sourceuri"], "dataset", "table", ["schema"],
+                                 create_disposition="a",
+                                 write_disposition="b",
+                                 field_delimiter="c",
+                                 skip_leading_rows="d",
+                                 encoding="e",
+                                 quote="f",
+                                 max_bad_records="g",
+                                 allow_quoted_newlines="h",
+                                 source_format="i",
+                                 allow_jagged_rows="j",
+                                 ignore_unknown_values="k")
+
+        mock_api.jobs().insert.assert_called_once_with(projectId="project",
+                                                       body=self.body)
+        mock_api.jobs().insert(projectId="project", body=self.body) \
+            .execute.called_once_with()
+
+    def test_accepts_single_source_uri(self):
+        """Ensure that a source_uri accepts a non-list"""
+        mock_api = mock.Mock()
+        bq = client.BigQueryClient(mock_api, "project")
+        bq.import_data_from_uris("job",
+                                 "sourceuri",  # not a list!
+                                 "dataset",
+                                 "table",
+                                 ["schema"],
+                                 create_disposition="a",
+                                 write_disposition="b",
+                                 field_delimiter="c",
+                                 skip_leading_rows="d",
+                                 encoding="e",
+                                 quote="f",
+                                 max_bad_records="g",
+                                 allow_quoted_newlines="h",
+                                 source_format="i",
+                                 allow_jagged_rows="j",
+                                 ignore_unknown_values="k")
+
+        mock_api.jobs().insert.assert_called_once_with(projectId="project",
+                                                       body=self.body)
+        mock_api.jobs().insert(projectId="project", body=self.body) \
+            .execute.called_once_with()
+
+    def test_swallows_exception(self):
+        """Ensure that exceptions are handled"""
+        mock_api = mock.Mock()
+        mock_api.jobs().insert.side_effect = Exception
+
+        bq = client.BigQueryClient(mock_api, "project")
+        result = bq.import_data_from_uris("job",
+                                          "sourceuri",  # not a list!
+                                          "dataset",
+                                          "table",
+                                          ["schema"])
+        self.assertEqual(result, None)
+
+
+class TestFilterTablesByTime(unittest.TestCase):
     def test_empty_tables(self):
         """Ensure we can handle filtering an empty dictionary"""
 
@@ -425,15 +568,15 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-            'Spider-Man': 1370002001,
-            'Daenerys Targaryen': 1370001999,
-            'Gordon Freeman': 1369999999,
-            'William Shatner': 1370001000,
-            'Heavy Weapons Guy': 0
-        }, 1370002000, 1370000000)
+                                               'Spider-Man': 1370002001,
+                                               'Daenerys Targaryen': 1370001999,
+                                               'Gordon Freeman': 1369999999,
+                                               'William Shatner': 1370001000,
+                                               'Heavy Weapons Guy': 0
+                                           }, 1370002000, 1370000000)
 
         self.assertEqual([
-            'Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'], tables)
+                             'Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'], tables)
 
     def test_not_inside_range(self):
         """Ensure we can correctly filter several application ids outside the
@@ -443,11 +586,11 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-            'John Snow': 9001,
-            'Adam West': 100000000000000,
-            'Glados': -1,
-            'Potato': 0,
-        }, 1370002000, 1370000000)
+                                               'John Snow': 9001,
+                                               'Adam West': 100000000000000,
+                                               'Glados': -1,
+                                               'Potato': 0,
+                                           }, 1370002000, 1370000000)
 
         self.assertEqual([], tables)
 
@@ -530,7 +673,6 @@ FULL_TABLE_LIST_RESPONSE = {
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestGetQuerySchema(unittest.TestCase):
-
     def test_query_complete(self, get_query_mock):
         """Ensure that get_query_schema works when a query is complete."""
         from bigquery.client import BigQueryClient
@@ -564,7 +706,6 @@ class TestGetQuerySchema(unittest.TestCase):
 
 
 class TestGetTableSchema(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -608,7 +749,6 @@ class TestGetTableSchema(unittest.TestCase):
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestGetQueryRows(unittest.TestCase):
-
     def test_query_complete(self, get_query_mock):
         """Ensure that get_query_rows works when a query is complete."""
         from bigquery.client import BigQueryClient
@@ -664,7 +804,6 @@ class TestGetQueryRows(unittest.TestCase):
 
 
 class TestCheckTable(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -705,7 +844,6 @@ class TestCheckTable(unittest.TestCase):
 
 
 class TestCreateTable(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -758,7 +896,6 @@ class TestCreateTable(unittest.TestCase):
 
 
 class TestDeleteTable(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -799,7 +936,6 @@ class TestDeleteTable(unittest.TestCase):
 
 
 class TestParseTableListReponse(unittest.TestCase):
-
     def test_full_parse(self):
         """Ensures we can parse a full list response."""
 
@@ -892,7 +1028,6 @@ class TestParseTableListReponse(unittest.TestCase):
 
 
 class TestPushRows(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_table_data = mock.Mock()
@@ -981,7 +1116,6 @@ class TestPushRows(unittest.TestCase):
 
 
 class TestGetAllTables(unittest.TestCase):
-
     def test_get_tables(self):
         """Ensure get_all_tables fetches table names from BigQuery."""
 
@@ -1011,7 +1145,6 @@ class TestGetAllTables(unittest.TestCase):
 
 
 class TestGetTables(unittest.TestCase):
-
     def test_get_tables(self):
         """Ensure tables falling in the time window are returned."""
 
@@ -1057,7 +1190,6 @@ class TestGetTables(unittest.TestCase):
 # Dataset tests
 #
 class TestCreateDataset(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
@@ -1092,7 +1224,7 @@ class TestCreateDataset(unittest.TestCase):
         self.mock_datasets.insert.assert_called_once_with(
             projectId=self.project, body=self.body)
 
-        self.mock_datasets.insert.return_value.execute.\
+        self.mock_datasets.insert.return_value.execute. \
             assert_called_once_with()
 
     def test_dataset_create_success(self):
@@ -1110,12 +1242,11 @@ class TestCreateDataset(unittest.TestCase):
         self.mock_datasets.insert.assert_called_once_with(
             projectId=self.project, body=self.body)
 
-        self.mock_datasets.insert.return_value.execute.\
+        self.mock_datasets.insert.return_value.execute. \
             assert_called_once_with()
 
 
 class TestDeleteDataset(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
@@ -1153,7 +1284,7 @@ class TestDeleteDataset(unittest.TestCase):
         self.mock_datasets.delete.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset)
 
-        self.mock_datasets.delete.return_value.execute.\
+        self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
 
 
@@ -1227,7 +1358,6 @@ FULL_DATASET_LIST_RESPONSE = {
 
 
 class TestGetDatasets(unittest.TestCase):
-
     def test_get_datasets(self):
         """Ensure datasets are returned."""
 
@@ -1247,7 +1377,6 @@ class TestGetDatasets(unittest.TestCase):
 
 
 class TestUpdateDataset(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
@@ -1282,7 +1411,7 @@ class TestUpdateDataset(unittest.TestCase):
         self.mock_datasets.update.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_datasets.update.return_value.execute.\
+        self.mock_datasets.update.return_value.execute. \
             assert_called_once_with()
 
     def test_dataset_update_success(self):
@@ -1300,6 +1429,5 @@ class TestUpdateDataset(unittest.TestCase):
         self.mock_datasets.update.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_datasets.update.return_value.execute.\
+        self.mock_datasets.update.return_value.execute. \
             assert_called_once_with()
-

@@ -139,6 +139,20 @@ rows =  [
 inserted = client.push_rows('dataset', 'table', rows, 'id')
 ```
 
+# Import data from Google cloud storage
+```python
+schema = [ {"name": "username", "type": "string", "mode": "nullable"} ]
+job = client.import_data_from_uris('myjob',
+                                    ['gs://mybucket/mydata.json'],
+                                    'dataset',
+                                    'table',
+                                    schema,
+                                    source_format=JOB_SOURCE_FORMAT_JSON)
+
+job = client.wait_for_job(job, timeout=60) # or client.wait_for_job('myjob')
+print(job)
+```
+
 # Managing Datasets
 
 The client provides an API for listing, creating, deleting, updating and patching datasets.

@@ -1,7 +1,7 @@
 import calendar
 from collections import defaultdict
 from datetime import datetime
-from time import sleep
+from time import sleep, time
 import json
 
 from apiclient.discovery import build
@@ -321,26 +321,50 @@ class BigQueryClient(object):
 
         return self._filter_tables_by_time(app_tables, start_time, end_time)
 
-    def import_data_from_uris(self,
-                              job,
-                              source_uris,
-                              dataset,
-                              table,
-                              schema,
-                              wait=False,
-                              allow_jagged_rows=True,
-                              create_disposition=JOB_DISPOSITION_CREATE_IF_NEEDED,
-                              allow_quoted_newlines=True,
-                              ignore_unknown_values=True,
-                              field_delimiter='\t',
-                              max_bad_records=None,
-                              quote='"',
-                              skip_leading_rows=0,
-                              source_format=JOB_SOURCE_FORMAT_JSON,
-                              write_disposition=JOB_DISPOSITION_WRITE_EMPTY,
-                              encoding=JOB_ENCODING_UTF_8):
-
-        source_uris = source_uris if isinstance(source_uris, list) else [source_uris]
+    def import_data_from_uris(
+            self,
+            job,
+            source_uris,
+            dataset,
+            table,
+            schema,
+            allow_jagged_rows=True,
+            create_disposition=JOB_DISPOSITION_CREATE_IF_NEEDED,
+            allow_quoted_newlines=True,
+            ignore_unknown_values=True,
+            field_delimiter='\t',
+            max_bad_records=None,
+            quote='"',
+            skip_leading_rows=0,
+            source_format=JOB_SOURCE_FORMAT_JSON,
+            write_disposition=JOB_DISPOSITION_WRITE_EMPTY,
+            encoding=JOB_ENCODING_UTF_8):
+        """
+        Imports data into a BigQuery table from cloud storage.
+        Args:
+            job: required string identifying the job
+            source_uris: required string or list of strings representing
+                            the uris on cloud storage of the form:
+                             gs://bucket/filename
+            dataset: required string id of the dataset
+            table: required string id of the table
+            schema: required list representing the bigquery schema
+            allow_jagged_rows: optional boolean default True
+            create_disposition: optional string default 'CREATE_IF_NEEDED'
+            allow_quoted_newlines: optional boolean default True
+            ignore_unknown_values: optional boolean default True
+            field_delimiter: optional string default ',' for csv files
+            max_bad_records: optional boolean default None
+            quote: optional string '"'
+            skip_leading_rows: optional int default 0
+            source_format: optional string default 'JSON'
+            write_disposition: optional string default 'WRITE_EMPTY'
+            encoding: optional string default 'utf-8'
+        Returns:
+            dict, a BigQuery job resource or None on failure
+        """
+        source_uris = source_uris if isinstance(source_uris, list) \
+            else [source_uris]
         body = {
             "kind": "bigquery#job",
             "jobReference": {
@@ -370,22 +394,40 @@ class BigQueryClient(object):
                 }
             }
         }
-        job_resource = self.bigquery.jobs() \
-            .insert(projectId=self.project_id, body=body) \
-            .execute()
+        try:
+            job_resource = self.bigquery.jobs() \
+                .insert(projectId=self.project_id, body=body) \
+                .execute()
+            return job_resource
+        except Exception, e:
+            logger.error("Failed while starting uri import job: {0}"
+                         .format(e))
+            return None
+
+    def wait_for_job(self, job_resource, interval=5, timeout=None):
+        """
+        Waits until the job indicated by job_resource is done or has failed
+        Args:
+            job_resource: dict, a BigQuery job resource
+            interval: optional float polling interval in seconds, default = 5
+            timeout: optional float timeout in seconds, default = None
+        Returns:
+            dict, final state of the job_resource, as described here:
+            https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#get
+        Raises:
+            standard exceptions on http / auth failures (you must retry)
+        """
+        complete = job_resource.get('jobComplete')
+        job_id = job_resource['jobReference']['jobId']
+        start_time = time()
+        elapsed_time = 0
+        while not (complete or (timeout is not None and elapsed_time > timeout)):
+            sleep(interval)
+            job_resource = self.bigquery.jobs().get(self.project_id, job_id)
+            complete = job_resource.get('jobComplete')
+            elapsed_time = time() - start_time
 
         return job_resource
-
-    def wait_for_job(self, job_resource):
-        status = job_resource['state']['status'].lower()
-        job_id = job_resource['jobReference']['jobId']
-        while status not in ('done', 'failed'):
-            sleep(5)
-            try:
-                job_resource = self.bigquery.jobs.get(self.project_id, job_id)
-                status = job_resource['state']['status'].lower()
-            except Exception, e:
-                logger("Failed to get job status for job: {0}: {1}".format(job_id, e))
 
     def push_rows(self, dataset, table, rows, insert_id_key=None):
         """Upload rows to BigQuery table.
@@ -818,4 +860,3 @@ class BigQueryClient(object):
               { rfield: [ { x: 1}, {x: "a string"} ] } # undefined!
         """
         return schema_from_record(record)
-
