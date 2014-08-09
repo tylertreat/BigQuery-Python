@@ -1,6 +1,7 @@
 import calendar
 from collections import defaultdict
 from datetime import datetime
+from time import sleep
 import json
 
 from apiclient.discovery import build
@@ -11,8 +12,19 @@ from bigquery import logger
 from bigquery.errors import UnfinishedQueryException
 from bigquery.schema_builder import schema_from_record
 
+
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
+
+JOB_DISPOSITION_CREATE_IF_NEEDED = 'CREATE_IF_NEEDED'
+JOB_DISPOSITION_CREATE_NEVER = 'CREATE_NEVER'
+JOB_SOURCE_FORMAT_JSON = 'json'
+JOB_SOURCE_FORMAT_CSV = 'csv'
+JOB_DISPOSITION_WRITE_TRUNCATE = 'WRITE_TRUNCATE'
+JOB_DISPOSITION_WRITE_APPEND = 'WRITE_APPEND'
+JOB_DISPOSITION_WRITE_EMPTY = 'WRITE_EMPTY'
+JOB_ENCODING_UTF_8 = 'UTF-8'
+JOB_ENCODING_ISO_8859_1 = 'ISO-8859-1'
 
 
 def get_client(project_id, credentials=None, service_account=None,
@@ -67,11 +79,11 @@ def _get_bq_service(credentials=None, service_account=None, private_key=None,
 def _credentials():
     """Import and return SignedJwtAssertionCredentials class"""
     from oauth2client.client import SignedJwtAssertionCredentials
+
     return SignedJwtAssertionCredentials
 
 
 class BigQueryClient(object):
-
     def __init__(self, bq_service, project_id):
         self.bigquery = bq_service
         self.project_id = project_id
@@ -309,6 +321,72 @@ class BigQueryClient(object):
 
         return self._filter_tables_by_time(app_tables, start_time, end_time)
 
+    def import_data_from_uris(self,
+                              job,
+                              source_uris,
+                              dataset,
+                              table,
+                              schema,
+                              wait=False,
+                              allow_jagged_rows=True,
+                              create_disposition=JOB_DISPOSITION_CREATE_IF_NEEDED,
+                              allow_quoted_newlines=True,
+                              ignore_unknown_values=True,
+                              field_delimiter='\t',
+                              max_bad_records=None,
+                              quote='"',
+                              skip_leading_rows=0,
+                              source_format=JOB_SOURCE_FORMAT_JSON,
+                              write_disposition=JOB_DISPOSITION_WRITE_EMPTY,
+                              encoding=JOB_ENCODING_UTF_8):
+
+        source_uris = source_uris if isinstance(source_uris, list) else [source_uris]
+        body = {
+            "kind": "bigquery#job",
+            "jobReference": {
+                "projectId": self.project_id,
+                "jobId": job
+            },
+            "configuration": {
+                "load": {
+                    "sourceUris": source_uris,
+                    "schema": schema,
+                    "destinationTable": {
+                        "projectId": self.project_id,
+                        "datasetId": dataset,
+                        "tableId": table
+                    },
+                    "createDisposition": create_disposition,
+                    "writeDisposition": write_disposition,
+                    "fieldDelimiter": field_delimiter,
+                    "skipLeadingRows": skip_leading_rows,
+                    "encoding": encoding,
+                    "quote": quote,
+                    "maxBadRecords": max_bad_records,
+                    "allowQuotedNewlines": allow_quoted_newlines,
+                    "sourceFormat": source_format,
+                    "allowJaggedRows": allow_jagged_rows,
+                    "ignoreUnknownValues": ignore_unknown_values
+                }
+            }
+        }
+        job_resource = self.bigquery.jobs() \
+            .insert(projectId=self.project_id, body=body) \
+            .execute()
+
+        return job_resource
+
+    def wait_for_job(self, job_resource):
+        status = job_resource['state']['status'].lower()
+        job_id = job_resource['jobReference']['jobId']
+        while status not in ('done', 'failed'):
+            sleep(5)
+            try:
+                job_resource = self.bigquery.jobs.get(self.project_id, job_id)
+                status = job_resource['state']['status'].lower()
+            except Exception, e:
+                logger("Failed to get job status for job: {0}: {1}".format(job_id, e))
+
     def push_rows(self, dataset, table, rows, insert_id_key=None):
         """Upload rows to BigQuery table.
 
@@ -471,8 +549,8 @@ class BigQueryClient(object):
         ONE_MONTH = 2764800  # 32 days
 
         return start_time <= time <= end_time or \
-            time <= start_time <= time + ONE_MONTH or \
-            time <= end_time <= time + ONE_MONTH
+               time <= start_time <= time + ONE_MONTH or \
+               time <= end_time <= time + ONE_MONTH
 
     def _get_query_results(self, job_collection, project_id, job_id,
                            offset=None, limit=None):
@@ -740,3 +818,4 @@ class BigQueryClient(object):
               { rfield: [ { x: 1}, {x: "a string"} ] } # undefined!
         """
         return schema_from_record(record)
+
