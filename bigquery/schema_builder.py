@@ -102,4 +102,3 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     else:
         raise Exception(
             "Invalid object for BigQuery schema: {0} ({1}".format(o, t))
-

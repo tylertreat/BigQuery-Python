@@ -1302,4 +1302,3 @@ class TestUpdateDataset(unittest.TestCase):
 
         self.mock_datasets.update.return_value.execute.\
             assert_called_once_with()
-

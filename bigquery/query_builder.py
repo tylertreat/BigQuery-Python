@@ -252,4 +252,3 @@ def _render_groupings(fields):
         return ""
 
     return "GROUP BY " + ", ".join(fields)
-

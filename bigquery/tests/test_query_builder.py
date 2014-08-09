@@ -2,7 +2,6 @@ import unittest
 
 
 class TestRenderSelect(unittest.TestCase):
-
     def test_multiple_selects(self):
         """Ensure that render select can handle multiple selects."""
         from bigquery.query_builder import _render_select
@@ -30,7 +29,7 @@ class TestRenderSelect(unittest.TestCase):
 
         result = _render_select({
             'start_time': {'alias': 'TimeStamp', 'format':
-                           'SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC'}
+                'SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC'}
         })
 
         self.assertEqual(
@@ -47,7 +46,6 @@ class TestRenderSelect(unittest.TestCase):
 
 
 class TestRenderSources(unittest.TestCase):
-
     def test_multi_tables(self):
         """Ensure that render sources can handle multiple sources."""
         from bigquery.query_builder import _render_sources
@@ -75,7 +73,6 @@ class TestRenderSources(unittest.TestCase):
 
 
 class TestRenderConditions(unittest.TestCase):
-
     def test_single_condition(self):
         """Ensure that render conditions can handle a single condition."""
         from bigquery.query_builder \
@@ -154,7 +151,6 @@ class TestRenderConditions(unittest.TestCase):
 
 
 class TestRenderOrder(unittest.TestCase):
-
     def test_order(self):
         """Ensure that render order can work under expected conditions."""
         from bigquery.query_builder import _render_order
@@ -173,7 +169,6 @@ class TestRenderOrder(unittest.TestCase):
 
 
 class TestGroupings(unittest.TestCase):
-
     def test_mutliple_fields(self):
         """Ensure that render grouping works with multiple fields."""
         from bigquery.query_builder \
@@ -194,7 +189,6 @@ class TestGroupings(unittest.TestCase):
 
 
 class TestRenderQuery(unittest.TestCase):
-
     def test_full_query(self):
         """Ensure that all the render query arguments work together."""
         from bigquery.query_builder import render_query
@@ -278,7 +272,7 @@ class TestRenderQuery(unittest.TestCase):
             },
             conditions=[
                 {'asdfasdfasdf': 'start_time', 'ffd': 1371566954, 'comparator':
-                 '<=', 'type': 'INTEGER'},
+                    '<=', 'type': 'INTEGER'},
                 {'field': 'start_time', 'value': {'value': 1371556954,
                                                   'negate': False},
                  'compoorattor': '>=', 'type': 'INTEGER'}
@@ -526,7 +520,7 @@ class TestRenderQuery(unittest.TestCase):
             tables=['2013_06_appspot_1'],
             select={
                 'start_time': {'alias': 'timestamp', 'format':
-                               'INTEGER-FORMAT_UTC_USEC'},
+                    'INTEGER-FORMAT_UTC_USEC'},
                 'status': {'alias': 'status'},
                 'resource': {'alias': 'url'}
             },
@@ -561,10 +555,10 @@ class TestRenderQuery(unittest.TestCase):
             tables=['2013_06_appspot_1'],
             select={
                 'start_time': [{'alias': 'timestamp', 'format':
-                                'INTEGER-FORMAT_UTC_USEC'},
+                    'INTEGER-FORMAT_UTC_USEC'},
                                {'alias': 'day', 'format':
-                                'SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC-LEFT:10'}
-                               ],
+                                   'SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC-LEFT:10'}
+                ],
                 'status': {'alias': 'status'},
                 'resource': {'alias': 'url'}
             },
@@ -601,7 +595,7 @@ class TestRenderQuery(unittest.TestCase):
             tables=['2013_06_appspot_1'],
             select={
                 'start_time': {'alias': 'timestamp', 'format':
-                               'SEC_TO_MICRO-INTEGER-SEC_TO_TIMESTAMP'},
+                    'SEC_TO_MICRO-INTEGER-SEC_TO_TIMESTAMP'},
                 'status': {'alias': 'status'},
                 'resource': {'alias': 'url'}
             },
