@@ -423,12 +423,13 @@ class TestWaitForJob(unittest.TestCase):
 
         self.api_mock.jobs().get.side_effect = side_effect
 
-        self.client.wait_for_job({'jobComplete': False,
-                                  'jobReference': {'jobId': "testJob"}},
-                                 interval=.01,
-                                 timeout=None)
+        job_resource = self.client.wait_for_job({'jobComplete': False,
+                                                 'jobReference': {'jobId': "testJob"}},
+                                                interval=.01,
+                                                timeout=None)
 
         self.assertEqual(self.api_mock.jobs().get.call_count, 2)
+        self.assertIsInstance(job_resource, dict)
 
     def test_accepts_job_id(self):
         """Ensure that a jobId argument is accepted"""
@@ -455,9 +456,9 @@ class TestWaitForJob(unittest.TestCase):
 
         self.api_mock.jobs().get.return_value = incomplete_job
 
-        job_resource = self.client.wait_for_job(incomplete_job,
-                                                interval=.1,
-                                                timeout=.25)
+        final_state, job_resource = self.client.wait_for_job(incomplete_job,
+                                                             interval=.1,
+                                                             timeout=.25)
 
         self.assertEqual(self.api_mock.jobs().get.call_count, 3)
         self.assertFalse(job_resource['jobComplete'])
