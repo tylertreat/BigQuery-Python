@@ -594,8 +594,8 @@ class BigQueryClient(object):
             datasets.insert(projectId=self.project_id,
                             body=dataset_data).execute()
             return True
-        except:
-            logger.error('Cannot create dataset %s' % dataset_id)
+        except Exception,e:
+            logger.error('Cannot create dataset %s, %s' % (dataset_id, e))
             return False
 
     def get_datasets(self):
