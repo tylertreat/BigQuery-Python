@@ -18,8 +18,9 @@ BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
 
 JOB_DISPOSITION_CREATE_IF_NEEDED = 'CREATE_IF_NEEDED'
 JOB_DISPOSITION_CREATE_NEVER = 'CREATE_NEVER'
-JOB_SOURCE_FORMAT_JSON = 'json'
-JOB_SOURCE_FORMAT_CSV = 'csv'
+JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON = 'NEWLINE_DELIMITED_JSON'
+JOB_SOURCE_FORMAT_DATASTORE_BACKUP = 'DATASTORE_BACKUP'
+JOB_SOURCE_FORMAT_CSV = 'CSV'
 JOB_DISPOSITION_WRITE_TRUNCATE = 'WRITE_TRUNCATE'
 JOB_DISPOSITION_WRITE_APPEND = 'WRITE_APPEND'
 JOB_DISPOSITION_WRITE_EMPTY = 'WRITE_EMPTY'
@@ -336,7 +337,7 @@ class BigQueryClient(object):
             max_bad_records=None,
             quote='"',
             skip_leading_rows=0,
-            source_format=JOB_SOURCE_FORMAT_JSON,
+            source_format=JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON,
             write_disposition=JOB_DISPOSITION_WRITE_EMPTY,
             encoding=JOB_ENCODING_UTF_8):
         """
@@ -357,7 +358,7 @@ class BigQueryClient(object):
             max_bad_records: optional boolean default None
             quote: optional string '"'
             skip_leading_rows: optional int default 0
-            source_format: optional string default 'JSON'
+            source_format: optional string default JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON
             write_disposition: optional string default 'WRITE_EMPTY'
             encoding: optional string default 'utf-8'
         Returns:
@@ -367,9 +368,10 @@ class BigQueryClient(object):
             else [source_uris]
         body = {
             "kind": "bigquery#job",
+            "projectId": self.project_id,
             "jobReference": {
                 "projectId": self.project_id,
-                "jobId": job
+                "jobId": "{0}-{1}".format(job, int(time()))
             },
             "configuration": {
                 "load": {
@@ -382,18 +384,20 @@ class BigQueryClient(object):
                     },
                     "createDisposition": create_disposition,
                     "writeDisposition": write_disposition,
-                    "fieldDelimiter": field_delimiter,
-                    "skipLeadingRows": skip_leading_rows,
                     "encoding": encoding,
-                    "quote": quote,
                     "maxBadRecords": max_bad_records,
-                    "allowQuotedNewlines": allow_quoted_newlines,
                     "sourceFormat": source_format,
-                    "allowJaggedRows": allow_jagged_rows,
                     "ignoreUnknownValues": ignore_unknown_values
                 }
             }
         }
+        if source_format == JOB_SOURCE_FORMAT_CSV:
+            body['fieldDelimiter'] = field_delimiter
+            body['allowJaggedRows'] = allow_jagged_rows
+            body['allowQuotedNewlines'] = allow_quoted_newlines
+            body['quote'] = quote
+            body['skipLeadingRows'] = skip_leading_rows
+
         try:
             job_resource = self.bigquery.jobs() \
                 .insert(projectId=self.project_id, body=body) \
@@ -417,10 +421,10 @@ class BigQueryClient(object):
         Raises:
             standard exceptions on http / auth failures (you must retry)
         """
-        if isinstance(job,dict): # job is a job resource
+        if isinstance(job, dict):  # job is a job resource
             complete = job.get('jobComplete')
             job_id = job['jobReference']['jobId']
-        else: # job is the jobId
+        else:  # job is the jobId
             complete = False
             job_id = job
             job_resource = None
@@ -429,8 +433,8 @@ class BigQueryClient(object):
         elapsed_time = 0
         while not (complete or (timeout is not None and elapsed_time > timeout)):
             sleep(interval)
-            job_resource = self.bigquery.jobs().get(self.project_id, job_id)
-            complete = job_resource.get('jobComplete')
+            job_resource = self.bigquery.jobs().get(projectId=self.project_id, jobId=job_id).execute()
+            complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
 
         return job_resource
@@ -720,7 +724,7 @@ class BigQueryClient(object):
             datasets.insert(projectId=self.project_id,
                             body=dataset_data).execute()
             return True
-        except Exception,e:
+        except Exception, e:
             logger.error('Cannot create dataset %s, %s' % (dataset_id, e))
             return False
 
