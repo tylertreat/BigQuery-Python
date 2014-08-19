@@ -2,6 +2,7 @@ import calendar
 from collections import defaultdict
 from datetime import datetime
 from time import sleep, time
+from hashlib import sha256
 import json
 
 from apiclient.discovery import build
@@ -324,32 +325,33 @@ class BigQueryClient(object):
 
     def import_data_from_uris(
             self,
-            job,
             source_uris,
             dataset,
             table,
-            schema,
-            allow_jagged_rows=True,
-            create_disposition=JOB_DISPOSITION_CREATE_IF_NEEDED,
-            allow_quoted_newlines=True,
-            ignore_unknown_values=True,
-            field_delimiter='\t',
+            job=None,
+            schema=None,
+            allow_jagged_rows=None,
+            create_disposition=None,
+            allow_quoted_newlines=None,
+            ignore_unknown_values=None,
+            field_delimiter=None,
             max_bad_records=None,
-            quote='"',
-            skip_leading_rows=0,
-            source_format=JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON,
-            write_disposition=JOB_DISPOSITION_WRITE_EMPTY,
-            encoding=JOB_ENCODING_UTF_8):
+            quote=None,
+            skip_leading_rows=None,
+            source_format=None,
+            write_disposition=None,
+            encoding=None):
         """
         Imports data into a BigQuery table from cloud storage.
         Args:
-            job: required string identifying the job
             source_uris: required string or list of strings representing
                             the uris on cloud storage of the form:
                              gs://bucket/filename
             dataset: required string id of the dataset
             table: required string id of the table
-            schema: required list representing the bigquery schema
+            job: optional string identifying the job (a unique jobid is automatically
+                   generated if not provided)
+            schema: optional list representing the bigquery schema
             allow_jagged_rows: optional boolean default True
             create_disposition: optional string default 'CREATE_IF_NEEDED'
             allow_quoted_newlines: optional boolean default True
@@ -366,39 +368,80 @@ class BigQueryClient(object):
         """
         source_uris = source_uris if isinstance(source_uris, list) \
             else [source_uris]
+
+        configuration = {
+            "destinationTable": {
+                "projectId": self.project_id,
+                "tableId": table,
+                "datasetId": dataset
+            },
+            "sourceUris": source_uris,
+        }
+
+        if max_bad_records:
+            configuration['maxBadRecords'] = max_bad_records
+
+        if ignore_unknown_values:
+            configuration['ignoreUnknownValues'] = ignore_unknown_values
+
+        if create_disposition:
+            configuration['createDisposition'] = create_disposition
+
+        if write_disposition:
+            configuration['writeDisposition'] = write_disposition
+
+        if encoding:
+            configuration['encoding'] = encoding
+
+        if schema:
+            configuration['schema'] = schema
+
+        if source_format:
+            configuration['sourceFormat'] = source_format
+
+        if not job:
+            hex = sha256(":".join(source_uris) + str(time())).hexdigest()
+            job = "{dataset}-{table}-{digest}".format(
+                dataset=dataset,
+                table=table,
+                digest=hex
+            )
+
+        if source_format == JOB_SOURCE_FORMAT_CSV:
+            if field_delimiter:
+                configuration['fieldDelimiter'] = field_delimiter
+
+            if allow_jagged_rows:
+                configuration['allowJaggedRows'] = allow_jagged_rows
+
+            if allow_quoted_newlines:
+                configuration['allowQuotedNewlines'] = allow_quoted_newlines
+
+            if quote:
+                configuration['quote'] = quote
+
+            if skip_leading_rows:
+                configuration['skipLeadingRows'] = skip_leading_rows
+
+        elif field_delimiter or allow_jagged_rows or allow_quoted_newlines or quote or skip_leading_rows:
+            non_null_values = dict((k,v) for k,v in dict(field_delimiter=field_delimiter,allow_jagged_rows=allow_jagged_rows,
+                          allow_quoted_newlines=allow_quoted_newlines,skip_leading_rows=skip_leading_rows,
+                          quote=quote) if v)
+            raise Exception("Parameters field_delimiter, allow_jagged_rows, allow_quoted_newlines, quote \
+            and skip_leading_rows are only allowed when source_format=JOB_SOURCE_FORMAT_CSV: %s" % non_null_values)
+
         body = {
-            "kind": "bigquery#job",
-            "projectId": self.project_id,
+            "configuration": {
+                'load': configuration
+            },
             "jobReference": {
                 "projectId": self.project_id,
-                "jobId": "{0}-{1}".format(job, int(time()))
-            },
-            "configuration": {
-                "load": {
-                    "sourceUris": source_uris,
-                    "schema": schema,
-                    "destinationTable": {
-                        "projectId": self.project_id,
-                        "datasetId": dataset,
-                        "tableId": table
-                    },
-                    "createDisposition": create_disposition,
-                    "writeDisposition": write_disposition,
-                    "encoding": encoding,
-                    "maxBadRecords": max_bad_records,
-                    "sourceFormat": source_format,
-                    "ignoreUnknownValues": ignore_unknown_values
-                }
+                "jobId": job
             }
         }
-        if source_format == JOB_SOURCE_FORMAT_CSV:
-            body['fieldDelimiter'] = field_delimiter
-            body['allowJaggedRows'] = allow_jagged_rows
-            body['allowQuotedNewlines'] = allow_quoted_newlines
-            body['quote'] = quote
-            body['skipLeadingRows'] = skip_leading_rows
 
         try:
+            logger.info("Creating load job %s" % body)
             job_resource = self.bigquery.jobs() \
                 .insert(projectId=self.project_id, body=body) \
                 .execute()
@@ -434,6 +477,9 @@ class BigQueryClient(object):
         while not (complete or (timeout is not None and elapsed_time > timeout)):
             sleep(interval)
             job_resource = self.bigquery.jobs().get(projectId=self.project_id, jobId=job_id).execute()
+            error = job_resource.get('error')
+            if error:
+                raise Exception("{message} ({code}). Errors: {errors}", **error)
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
 
