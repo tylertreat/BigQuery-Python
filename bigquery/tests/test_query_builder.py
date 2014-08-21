@@ -152,6 +152,63 @@ class TestRenderConditions(unittest.TestCase):
                                  "STRING('d') AND NOT foobar == STRING('e') "
                                  "AND NOT foobar <= STRING('f')))")
 
+    def test_boolean_field_type(self):
+        """Ensure that render conditions can handle a boolean field."""
+        from bigquery.query_builder \
+            import _render_conditions
+
+        result = _render_conditions([
+            {
+                'field': 'foobar',
+                'type': 'BOOLEAN',
+                'comparators': [
+                    {'condition': '==', 'negate': False, 'value': True},
+                    {'condition': '!=', 'negate': False, 'value': False},
+                    {'condition': '==', 'negate': False, 'value': 'a'},
+                    {'condition': '!=', 'negate': False, 'value': ''},
+                    {'condition': '==', 'negate': True, 'value': 100},
+                    {'condition': '!=', 'negate': True, 'value': 0},
+                ]
+            }
+        ])
+
+        self.assertEqual(result, "WHERE ((foobar == BOOLEAN(1) AND "
+                                 "foobar != BOOLEAN(0) AND foobar == "
+                                 "BOOLEAN(1) AND foobar != BOOLEAN(0)) AND "
+                                 "(NOT foobar == BOOLEAN(1) AND NOT "
+                                 "foobar != BOOLEAN(0)))")
+
+    def test_in_comparator(self):
+        """Ensure that render conditions can handle "IN" condition."""
+        from bigquery.query_builder \
+            import _render_conditions
+
+        result = _render_conditions([
+            {
+                'field': 'foobar',
+                'type': 'STRING',
+                'comparators': [
+                    {'condition': 'IN', 'negate': False, 'value': ['a', 'b']},
+                    {'condition': 'IN', 'negate': False, 'value': {'c', 'd'}},
+                    {'condition': 'IN', 'negate': False, 'value': ('e', 'f')},
+                    {'condition': 'IN', 'negate': False, 'value': 'g'},
+                    {'condition': 'IN', 'negate': True, 'value': ['h', 'i']},
+                    {'condition': 'IN', 'negate': True, 'value': {'j', 'k'}},
+                    {'condition': 'IN', 'negate': True, 'value': ('l', 'm')},
+                    {'condition': 'IN', 'negate': True, 'value': 'n'},
+                ]
+            }
+        ])
+
+        self.assertEqual(result, "WHERE ((foobar IN (STRING('a'), STRING('b'))"
+                                 " AND foobar IN (STRING('c'), STRING('d')) "
+                                 "AND foobar IN (STRING('e'), STRING('f')) AND"
+                                 " foobar IN (STRING('g'))) AND (NOT foobar IN"
+                                 " (STRING('h'), STRING('i')) AND NOT foobar "
+                                 "IN (STRING('k'), STRING('j')) AND NOT foobar"
+                                 " IN (STRING('l'), STRING('m')) AND NOT "
+                                 "foobar IN (STRING('n'))))")
+
 
 class TestRenderOrder(unittest.TestCase):
 
@@ -707,4 +764,3 @@ class TestRenderQuery(unittest.TestCase):
                           "INTEGER('1371556954')) GROUP BY timestamp, status "
                           "ORDER BY timestamp desc")
         self.assertEqual(result, expected_query)
-

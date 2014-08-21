@@ -197,14 +197,19 @@ def _render_condition(field, field_type, comparators):
         negated = "NOT " if comparator.get("negate") else ""
         value = comparator.get("value")
 
-        # BigQuery cannot cast strings to booleans, convert to ints
-        if field_type == "BOOLEAN":
-            value = 1 if value else 0
-        elif field_type in ("STRING", "INTEGER", "FLOAT"):
-            value = "'%s'" % (value)
+        if condition == "IN":
+            if isinstance(value, (list, tuple, set)):
+                value = ', '.join(
+                    [_render_condition_value(v, field_type) for v in value]
+                )
+            else:
+                value = _render_condition_value(value, field_type)
+            value = "(" + value + ")"
+        else:
+            value = _render_condition_value(value, field_type)
 
-        rendered_sub_condition = "%s%s %s %s(%s)" % (
-            negated, field, condition, field_type, value)
+        rendered_sub_condition = "%s%s %s %s" % (
+            negated, field, condition, value)
 
         if comparator.get("negate"):
             negated_conditions.append(rendered_sub_condition)
@@ -218,6 +223,25 @@ def _render_condition(field, field_type, comparators):
         return "((%s) AND (%s))" % (rendered_normal, rendered_negated)
 
     return "(%s)" % (rendered_normal or rendered_negated)
+
+
+def _render_condition_value(value, field_type):
+    """Render a query condition value.
+
+    Args:
+        value: the value of the condition.
+        field_type: the data type of the field.
+
+    Returns:
+        a value string.
+    """
+
+    # BigQuery cannot cast strings to booleans, convert to ints
+    if field_type == "BOOLEAN":
+        value = 1 if value else 0
+    elif field_type in ("STRING", "INTEGER", "FLOAT"):
+        value = "'%s'" % (value)
+    return "%s(%s)" % (field_type, value)
 
 
 def _render_order(order):
@@ -252,4 +276,3 @@ def _render_groupings(fields):
         return ""
 
     return "GROUP BY " + ", ".join(fields)
-
