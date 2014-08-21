@@ -226,10 +226,10 @@ def _render_condition(field, field_type, comparators):
 
 
 def _render_condition_value(value, field_type):
-    """Render a single query condition.
+    """Render a query condition value.
 
     Args:
-        value: the value.
+        value: the value of the condition.
         field_type: the data type of the field.
 
     Returns:
