@@ -328,8 +328,8 @@ class BigQueryClient(object):
             source_uris,
             dataset,
             table,
-            job=None,
             schema=None,
+            job=None,
             allow_jagged_rows=None,
             create_disposition=None,
             allow_quoted_newlines=None,
@@ -424,9 +424,12 @@ class BigQueryClient(object):
                 configuration['skipLeadingRows'] = skip_leading_rows
 
         elif field_delimiter or allow_jagged_rows or allow_quoted_newlines or quote or skip_leading_rows:
-            non_null_values = dict((k,v) for k,v in dict(field_delimiter=field_delimiter,allow_jagged_rows=allow_jagged_rows,
-                          allow_quoted_newlines=allow_quoted_newlines,skip_leading_rows=skip_leading_rows,
-                          quote=quote) if v)
+            non_null_values = dict((k, v) for k, v in dict(field_delimiter=field_delimiter,
+                                                           allow_jagged_rows=allow_jagged_rows,
+                                                           allow_quoted_newlines=allow_quoted_newlines,
+                                                           skip_leading_rows=skip_leading_rows,
+                                                           quote=quote).items()
+                                   if v)
             raise Exception("Parameters field_delimiter, allow_jagged_rows, allow_quoted_newlines, quote \
             and skip_leading_rows are only allowed when source_format=JOB_SOURCE_FORMAT_CSV: %s" % non_null_values)
 
@@ -476,7 +479,8 @@ class BigQueryClient(object):
         elapsed_time = 0
         while not (complete or (timeout is not None and elapsed_time > timeout)):
             sleep(interval)
-            job_resource = self.bigquery.jobs().get(projectId=self.project_id, jobId=job_id).execute()
+            request = self.bigquery.jobs().get(projectId=self.project_id, jobId=job_id)
+            job_resource = request.execute()
             error = job_resource.get('error')
             if error:
                 raise Exception("{message} ({code}). Errors: {errors}", **error)
