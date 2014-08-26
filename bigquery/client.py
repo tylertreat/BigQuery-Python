@@ -349,8 +349,8 @@ class BigQueryClient(object):
                              gs://bucket/filename
             dataset: required string id of the dataset
             table: required string id of the table
-            job: optional string identifying the job (a unique jobid is automatically
-                   generated if not provided)
+            job: optional string identifying the job (a unique jobid
+                    is automatically generated if not provided)
             schema: optional list representing the bigquery schema
             allow_jagged_rows: optional boolean default True
             create_disposition: optional string default 'CREATE_IF_NEEDED'
@@ -360,7 +360,8 @@ class BigQueryClient(object):
             max_bad_records: optional boolean default None
             quote: optional string '"'
             skip_leading_rows: optional int default 0
-            source_format: optional string default JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON
+            source_format: optional string
+                    default JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON
             write_disposition: optional string default 'WRITE_EMPTY'
             encoding: optional string default 'utf-8'
         Returns:
@@ -423,15 +424,21 @@ class BigQueryClient(object):
             if skip_leading_rows:
                 configuration['skipLeadingRows'] = skip_leading_rows
 
-        elif field_delimiter or allow_jagged_rows or allow_quoted_newlines or quote or skip_leading_rows:
-            non_null_values = dict((k, v) for k, v in dict(field_delimiter=field_delimiter,
-                                                           allow_jagged_rows=allow_jagged_rows,
-                                                           allow_quoted_newlines=allow_quoted_newlines,
-                                                           skip_leading_rows=skip_leading_rows,
-                                                           quote=quote).items()
+        elif field_delimiter or allow_jagged_rows \
+                or allow_quoted_newlines or quote or skip_leading_rows:
+            all_values = dict(field_delimiter=field_delimiter,
+                              allow_jagged_rows=allow_jagged_rows,
+                              allow_quoted_newlines=allow_quoted_newlines,
+                              skip_leading_rows=skip_leading_rows,
+                              quote=quote)
+            non_null_values = dict((k, v) for k, v
+                                   in all_values.items()
                                    if v)
-            raise Exception("Parameters field_delimiter, allow_jagged_rows, allow_quoted_newlines, quote \
-            and skip_leading_rows are only allowed when source_format=JOB_SOURCE_FORMAT_CSV: %s" % non_null_values)
+            raise Exception("Parameters field_delimiter, allow_jagged_rows, "
+                            "allow_quoted_newlines, quote and "
+                            "skip_leading_rows are only allowed when "
+                            "source_format=JOB_SOURCE_FORMAT_CSV: %s"
+                            % non_null_values)
 
         body = {
             "configuration": {
@@ -477,13 +484,16 @@ class BigQueryClient(object):
 
         start_time = time()
         elapsed_time = 0
-        while not (complete or (timeout is not None and elapsed_time > timeout)):
+        while not (complete
+                   or (timeout is not None and elapsed_time > timeout)):
             sleep(interval)
-            request = self.bigquery.jobs().get(projectId=self.project_id, jobId=job_id)
+            request = self.bigquery.jobs().get(projectId=self.project_id,
+                                               jobId=job_id)
             job_resource = request.execute()
             error = job_resource.get('error')
             if error:
-                raise Exception("{message} ({code}). Errors: {errors}", **error)
+                raise Exception("{message} ({code}). Errors: {errors}",
+                                **error)
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
 

@@ -167,8 +167,8 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': timeout * 1000, 'dryRun':
-                False, 'maxResults': None}
+            body={'query': self.query, 'timeoutMs': timeout * 1000,
+                  'dryRun': False, 'maxResults': None}
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
@@ -424,10 +424,11 @@ class TestWaitForJob(unittest.TestCase):
 
         self.api_mock.jobs().get().execute.side_effect = side_effect
 
-        job_resource = self.client.wait_for_job({'jobComplete': False,
-                                                 'jobReference': {'jobId': "testJob"}},
-                                                interval=.01,
-                                                timeout=None)
+        job_resource = self.client.wait_for_job(
+            {'jobComplete': False,
+             'jobReference': {'jobId': "testJob"}},
+            interval=.01,
+            timeout=None)
 
         self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
         self.assertIsInstance(job_resource, dict)
@@ -567,7 +568,7 @@ class TestImportDataFromURIs(unittest.TestCase):
 
     @raises(Exception)
     def test_field_delimiter_exception_if_not_csv(self):
-        """Raise exception if source_format is not csv, but csv-only parameter is set"""
+        """Raise exception if csv-only parameter is set inappropriately"""
         mock_api = mock.Mock()
         bq = client.BigQueryClient(mock_api, "project")
         bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
@@ -577,7 +578,7 @@ class TestImportDataFromURIs(unittest.TestCase):
 
     @raises(Exception)
     def test_allow_jagged_rows_exception_if_not_csv(self):
-        """Raise exception if source_format is not csv, but csv-only parameter is set"""
+        """Raise exception if csv-only parameter is set inappropriately"""
         mock_api = mock.Mock()
         bq = client.BigQueryClient(mock_api, "project")
         bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
@@ -587,7 +588,7 @@ class TestImportDataFromURIs(unittest.TestCase):
 
     @raises(Exception)
     def test_allow_quoted_newlines_exception_if_not_csv(self):
-        """Raise exception if source_format is not csv, but csv-only parameter is set"""
+        """Raise exception if csv-only parameter is set inappropriately"""
         mock_api = mock.Mock()
         bq = client.BigQueryClient(mock_api, "project")
         bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
@@ -597,7 +598,7 @@ class TestImportDataFromURIs(unittest.TestCase):
 
     @raises(Exception)
     def test_quote_exception_if_not_csv(self):
-        """Raise exception if source_format is not csv, but csv-only parameter is set"""
+        """Raise exception if csv-only parameter is set inappropriately"""
         mock_api = mock.Mock()
         bq = client.BigQueryClient(mock_api, "project")
         bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
@@ -607,7 +608,7 @@ class TestImportDataFromURIs(unittest.TestCase):
 
     @raises(Exception)
     def test_skip_leading_rows_exception_if_not_csv(self):
-        """Raise exception if source_format is not csv, but csv-only parameter is set"""
+        """Raise exception if csv-only parameter is set inappropriately"""
         mock_api = mock.Mock()
         bq = client.BigQueryClient(mock_api, "project")
         bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
