@@ -17,14 +17,14 @@ from bigquery.schema_builder import schema_from_record
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
 
-JOB_DISPOSITION_CREATE_IF_NEEDED = 'CREATE_IF_NEEDED'
-JOB_DISPOSITION_CREATE_NEVER = 'CREATE_NEVER'
+JOB_CREATE_IF_NEEDED = 'CREATE_IF_NEEDED'
+JOB_CREATE_NEVER = 'CREATE_NEVER'
 JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON = 'NEWLINE_DELIMITED_JSON'
 JOB_SOURCE_FORMAT_DATASTORE_BACKUP = 'DATASTORE_BACKUP'
 JOB_SOURCE_FORMAT_CSV = 'CSV'
-JOB_DISPOSITION_WRITE_TRUNCATE = 'WRITE_TRUNCATE'
-JOB_DISPOSITION_WRITE_APPEND = 'WRITE_APPEND'
-JOB_DISPOSITION_WRITE_EMPTY = 'WRITE_EMPTY'
+JOB_WRITE_TRUNCATE = 'WRITE_TRUNCATE'
+JOB_WRITE_APPEND = 'WRITE_APPEND'
+JOB_WRITE_EMPTY = 'WRITE_EMPTY'
 JOB_ENCODING_UTF_8 = 'UTF-8'
 JOB_ENCODING_ISO_8859_1 = 'ISO-8859-1'
 
@@ -330,17 +330,18 @@ class BigQueryClient(object):
             table,
             schema=None,
             job=None,
-            allow_jagged_rows=None,
+            source_format=None,
             create_disposition=None,
-            allow_quoted_newlines=None,
+            write_disposition=None,
+            encoding=None,
             ignore_unknown_values=None,
-            field_delimiter=None,
             max_bad_records=None,
+            allow_jagged_rows=None,
+            allow_quoted_newlines=None,
+            field_delimiter=None,
             quote=None,
             skip_leading_rows=None,
-            source_format=None,
-            write_disposition=None,
-            encoding=None):
+    ):
         """
         Imports data into a BigQuery table from cloud storage.
         Args:
@@ -352,18 +353,26 @@ class BigQueryClient(object):
             job: optional string identifying the job (a unique jobid
                     is automatically generated if not provided)
             schema: optional list representing the bigquery schema
-            allow_jagged_rows: optional boolean default True
-            create_disposition: optional string default 'CREATE_IF_NEEDED'
-            allow_quoted_newlines: optional boolean default True
-            ignore_unknown_values: optional boolean default True
-            field_delimiter: optional string default ',' for csv files
-            max_bad_records: optional boolean default None
-            quote: optional string '"'
-            skip_leading_rows: optional int default 0
             source_format: optional string
-                    default JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON
-            write_disposition: optional string default 'WRITE_EMPTY'
-            encoding: optional string default 'utf-8'
+                    (one of the JOB_SOURCE_FORMAT_* constants)
+            create_disposition: optional string
+                    (one of the JOB_CREATE_* constants)
+            write_disposition: optional string
+                    (one of the JOB_WRITE_* constants)
+            encoding: optional string default
+                    (one of the JOB_ENCODING_* constants)
+            ignore_unknown_values: optional boolean
+            max_bad_records: optional boolean
+            allow_jagged_rows: optional boolean for csv only
+            allow_quoted_newlines: optional boolean for csv only
+            field_delimiter: optional string for csv only
+            quote: optional string the quote character for csv only
+            skip_leading_rows: optional int for csv only
+
+            Optional arguments with value None are determined by
+            BigQuery as described:
+            https://developers.google.com/bigquery/docs/reference/v2/jobs
+
         Returns:
             dict, a BigQuery job resource or None on failure
         """
