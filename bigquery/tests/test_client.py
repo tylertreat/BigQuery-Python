@@ -663,6 +663,139 @@ class TestImportDataFromURIs(unittest.TestCase):
         self.assertEqual(result, None)
 
 
+
+class TestExportDataToURIs(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_export(self):
+        """ Ensure that export is working in normal circumstances """
+        mock_api = mock.Mock()
+        bq = client.BigQueryClient(mock_api, "project")
+        bq.export_data_to_uris(["destinationuri"], "dataset", "table",
+                               job="job",
+                               compression="NONE",
+                               destination_format="CSV",
+                               print_header=False,
+                               field_delimiter=",")
+
+        body = {
+            "jobReference": {
+                "projectId": "project",
+                "jobId": "job"
+            },
+            "configuration": {
+                "extract": {
+                    "destinationUris": ["destinationuri"],
+                    "sourceTable": {
+                        "projectId": "project",
+                        "datasetId": "dataset",
+                        "tableId": "table"
+                    },
+                    "compression": "NONE",
+                    "destinationFormat": "CSV",
+                    "printHeader": False,
+                    "fieldDelimiter": ","
+                }
+            }
+        }
+
+        mock_api.jobs().insert.assert_called_once_with(projectId="project",
+                                                       body=body)
+        mock_api.jobs().insert(projectId="project", body=body) \
+            .execute.called_once_with()
+
+    def test_accepts_single_destination_uri(self):
+        """Ensure that a destination_uri accepts a non-list"""
+        mock_api = mock.Mock()
+        bq = client.BigQueryClient(mock_api, "project")
+        bq.export_data_to_uris("destinationuri",  # not a list!
+                               "dataset",
+                               "table",
+                               job="job")
+
+        body = {
+            "jobReference": {
+                "projectId": "project",
+                "jobId": "job"
+            },
+            "configuration": {
+                "extract": {
+                    "destinationUris": ["destinationuri"],
+                    "sourceTable": {
+                        "projectId": "project",
+                        "datasetId": "dataset",
+                        "tableId": "table"
+                    }
+                }
+            }
+        }
+
+        mock_api.jobs().insert.assert_called_once_with(projectId="project",
+                                                       body=body)
+        mock_api.jobs().insert(projectId="project", body=body) \
+            .execute.called_once_with()
+
+    def test_swallows_exception(self):
+        """Ensure that exceptions are handled"""
+        mock_api = mock.Mock()
+        mock_api.jobs().insert.side_effect = Exception
+
+        bq = client.BigQueryClient(mock_api, "project")
+        result = bq.export_data_to_uris("destinationuri", "dataset", "table")
+        self.assertEqual(result, None)
+
+
+class TestWriteToTable(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_write(self):
+        """ Ensure that write is working in normal circumstances."""
+        mock_api = mock.Mock()
+        bq = client.BigQueryClient(mock_api, "project")
+        bq.write_to_table("foo",
+                          "dataset",
+                          "table",
+                          use_query_cache=False,
+                          priority='INTERACTIVE',
+                          create_disposition='CREATE_IF_NEEDED',
+                          write_disposition='WRITE_TRUNCATE')
+
+        body = {
+            "configuration": {
+                "query": {
+                    "destinationTable": {
+                        "projectId": "project",
+                        "datasetId": "dataset",
+                        "tableId": "table"
+                    },
+                    "query": "foo",
+                    "useQueryCache": False,
+                    "priority": "INTERACTIVE",
+                    "createDisposition": "CREATE_IF_NEEDED",
+                    "writeDisposition": "WRITE_TRUNCATE"
+                }
+            }
+        }
+
+        mock_api.jobs().insert.assert_called_once_with(projectId="project",
+                                                       body=body)
+        mock_api.jobs().insert(projectId="project", body=body) \
+            .execute.called_once_with()
+
+    def test_swallows_exception(self):
+        """Ensure that exceptions are handled"""
+        mock_api = mock.Mock()
+        mock_api.jobs().insert.side_effect = Exception
+
+        bq = client.BigQueryClient(mock_api, "project")
+        result = bq.write_to_table("foo", use_query_cache="error")
+        self.assertEqual(result, None)
+        
+
 class TestFilterTablesByTime(unittest.TestCase):
     def test_empty_tables(self):
         """Ensure we can handle filtering an empty dictionary"""
