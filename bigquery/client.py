@@ -388,10 +388,10 @@ class BigQueryClient(object):
             "sourceUris": source_uris,
         }
 
-        if max_bad_records:
+        if max_bad_records is not None:
             configuration['maxBadRecords'] = max_bad_records
 
-        if ignore_unknown_values:
+        if ignore_unknown_values is not None:
             configuration['ignoreUnknownValues'] = ignore_unknown_values
 
         if create_disposition:
@@ -421,10 +421,10 @@ class BigQueryClient(object):
             if field_delimiter:
                 configuration['fieldDelimiter'] = field_delimiter
 
-            if allow_jagged_rows:
+            if allow_jagged_rows is not None:
                 configuration['allowJaggedRows'] = allow_jagged_rows
 
-            if allow_quoted_newlines:
+            if allow_quoted_newlines is not None:
                 configuration['allowQuotedNewlines'] = allow_quoted_newlines
 
             if quote:
