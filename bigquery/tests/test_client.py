@@ -425,8 +425,8 @@ class TestWaitForJob(unittest.TestCase):
         self.api_mock.jobs().get().execute.side_effect = side_effect
 
         job_resource = self.client.wait_for_job(
-            {'jobComplete': False,
-             'jobReference': {'jobId': "testJob"}},
+            {'jobReference': {'jobId': "testJob"},
+             'status': {'state': u'RUNNING'}},
             interval=.01,
             timeout=None)
 
