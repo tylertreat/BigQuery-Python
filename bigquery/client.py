@@ -660,7 +660,7 @@ class BigQueryClient(object):
             standard exceptions on http / auth failures (you must retry)
         """
         if isinstance(job, dict):  # job is a job resource
-            complete = job.get('jobComplete')
+            complete = job.get('status').get('state') == u'DONE'
             job_id = job['jobReference']['jobId']
         else:  # job is the jobId
             complete = False
@@ -675,10 +675,9 @@ class BigQueryClient(object):
             request = self.bigquery.jobs().get(projectId=self.project_id,
                                                jobId=job_id)
             job_resource = request.execute()
-            error = job_resource.get('error')
+            error = job_resource.get('status').get('errorResult')
             if error:
-                raise Exception("{message} ({code}). Errors: {errors}",
-                                **error)
+                raise Exception("Message: {message} Reason: {reason}".format(**error))
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
 
