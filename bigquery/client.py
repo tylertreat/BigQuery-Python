@@ -573,6 +573,7 @@ class BigQueryClient(object):
             query,
             dataset=None,
             table=None,
+            allow_large_results=None,
             use_query_cache=None,
             priority=None,
             create_disposition=None,
@@ -585,6 +586,7 @@ class BigQueryClient(object):
             query: required BigQuery query string.
             dataset: optional string id of the dataset
             table: optional string id of the table
+            allow_large_results: optional boolean
             use_query_cache: optional boolean
             priority: optional string
                     (one of the JOB_PRIORITY_* constants)
@@ -611,6 +613,9 @@ class BigQueryClient(object):
                 "tableId": table,
                 "datasetId": dataset
             }
+
+        if allow_large_results is not None:
+            configuration['allowLargeResults'] = allow_large_results
 
         if use_query_cache is not None:
             configuration['useQueryCache'] = use_query_cache
