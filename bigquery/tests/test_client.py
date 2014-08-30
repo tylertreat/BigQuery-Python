@@ -481,9 +481,6 @@ class TestWaitForJob(unittest.TestCase):
 
 
 class TestImportDataFromURIs(unittest.TestCase):
-    def setUp(self):
-        pass
-
     def test_csv_job_body_constructed_correctly(self):
         mock_api = mock.Mock()
         bq = client.BigQueryClient(mock_api, "project")
@@ -660,15 +657,11 @@ class TestImportDataFromURIs(unittest.TestCase):
                                           "dataset",
                                           "table",
                                           ["schema"])
-        self.assertEqual(result, None)
+        self.assertIsNone(result)
 
 
 
 class TestExportDataToURIs(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
     def test_export(self):
         """ Ensure that export is working in normal circumstances """
         mock_api = mock.Mock()
@@ -744,14 +737,10 @@ class TestExportDataToURIs(unittest.TestCase):
 
         bq = client.BigQueryClient(mock_api, "project")
         result = bq.export_data_to_uris("destinationuri", "dataset", "table")
-        self.assertEqual(result, None)
+        self.assertIsNone(result)
 
 
 class TestWriteToTable(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
     def test_write(self):
         """ Ensure that write is working in normal circumstances."""
         mock_api = mock.Mock()
@@ -793,7 +782,7 @@ class TestWriteToTable(unittest.TestCase):
 
         bq = client.BigQueryClient(mock_api, "project")
         result = bq.write_to_table("foo", use_query_cache="error")
-        self.assertEqual(result, None)
+        self.assertIsNone(result)
         
 
 class TestFilterTablesByTime(unittest.TestCase):
