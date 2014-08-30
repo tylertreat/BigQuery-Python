@@ -133,10 +133,26 @@ The client provides an API for inserting data into a BigQuery table. The last pa
 rows =  [
     {'one': 'ein', 'two': 'zwei'}
     {'id': 'NzAzYmRiY', 'one': 'uno', 'two': 'dos'},
-    {'id': 'NzAzYmRiY', 'one': 'ein', 'two': 'zwei'} # duplicate entry 
+    {'id': 'NzAzYmRiY', 'one': 'ein', 'two': 'zwei'} # duplicate entry
 ]
 
 inserted = client.push_rows('dataset', 'table', rows, 'id')
+```
+
+# Write Query Results to Table
+You can write query results directly to table. When either dataset or table parameter is omitted, query result will be written to temporary table.
+```python
+# write to permanent table
+job = client.write_to_table('SELECT * FROM dataset.original_table LIMIT 100',
+                            'dataset',
+                            'table')
+job = client.wait_for_job(job, timeout=60)
+print(job)
+
+# write to temporary table
+job = client.write_to_table('SELECT * FROM dataset.original_table LIMIT 100')
+job = client.wait_for_job(job, timeout=60)
+print(job)
 ```
 
 # Import data from Google cloud storage
@@ -148,7 +164,17 @@ job = client.import_data_from_uris( ['gs://mybucket/mydata.json'],
                                     schema,
                                     source_format=JOB_SOURCE_FORMAT_JSON)
 
-job = client.wait_for_job(job, timeout=60) 
+job = client.wait_for_job(job, timeout=60)
+print(job)
+```
+
+# Export data to Google cloud storage
+```python
+job = client.export_data_to_uris( ['gs://mybucket/mydata.json'],
+                                   'dataset',
+                                   'table')
+
+job = client.wait_for_job(job, timeout=60)
 print(job)
 ```
 
@@ -190,7 +216,7 @@ BigQuery [flattens](https://developers.google.com/bigquery/docs/data?hl=ja#flatt
 # Contributing
 
 Requirements to commit here:
-  
+
   - Branch off master, PR back to master.
   - Your code should pass [Flake8](http://flake8.readthedocs.org/en/latest/).
   - Unit test coverage is required.
