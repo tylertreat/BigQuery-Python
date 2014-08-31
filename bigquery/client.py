@@ -10,7 +10,10 @@ from apiclient.errors import HttpError
 import httplib2
 
 from bigquery import logger
-from bigquery.errors import UnfinishedQueryException
+from bigquery.errors import (
+    UnfinishedQueryException, JobInsertException,
+    JobExecutingException
+)
 from bigquery.schema_builder import schema_from_record
 
 
@@ -96,6 +99,7 @@ def _credentials():
 
 
 class BigQueryClient(object):
+
     def __init__(self, bq_service, project_id):
         self.bigquery = bq_service
         self.project_id = project_id
@@ -384,7 +388,9 @@ class BigQueryClient(object):
             https://developers.google.com/bigquery/docs/reference/v2/jobs
 
         Returns:
-            dict, a BigQuery job resource or None on failure
+            dict, a BigQuery job resource
+        Raises:
+            JobInsertException on http/auth failures or error in result
         """
         source_uris = source_uris if isinstance(source_uris, list) \
             else [source_uris]
@@ -398,10 +404,10 @@ class BigQueryClient(object):
             "sourceUris": source_uris,
         }
 
-        if max_bad_records is not None:
+        if max_bad_records:
             configuration['maxBadRecords'] = max_bad_records
 
-        if ignore_unknown_values is not None:
+        if ignore_unknown_values:
             configuration['ignoreUnknownValues'] = ignore_unknown_values
 
         if create_disposition:
@@ -431,10 +437,10 @@ class BigQueryClient(object):
             if field_delimiter:
                 configuration['fieldDelimiter'] = field_delimiter
 
-            if allow_jagged_rows is not None:
+            if allow_jagged_rows:
                 configuration['allowJaggedRows'] = allow_jagged_rows
 
-            if allow_quoted_newlines is not None:
+            if allow_quoted_newlines:
                 configuration['allowQuotedNewlines'] = allow_quoted_newlines
 
             if quote:
@@ -469,16 +475,12 @@ class BigQueryClient(object):
             }
         }
 
-        try:
-            logger.info("Creating load job %s" % body)
-            job_resource = self.bigquery.jobs() \
-                .insert(projectId=self.project_id, body=body) \
-                .execute()
-            return job_resource
-        except Exception, e:
-            logger.error("Failed while starting uri import job: {0}"
-                         .format(e))
-            return None
+        logger.info("Creating load job %s" % body)
+        job_resource = self.bigquery.jobs() \
+            .insert(projectId=self.project_id, body=body) \
+            .execute()
+        self._raise_insert_exception_if_error(job_resource)
+        return job_resource
 
     def export_data_to_uris(
             self,
@@ -513,7 +515,9 @@ class BigQueryClient(object):
             https://developers.google.com/bigquery/docs/reference/v2/jobs
 
         Returns:
-            dict, a BigQuery job resource or None on failure
+            dict, a BigQuery job resource
+        Raises:
+            JobInsertException on http/auth failures or error in result
         """
         destination_uris = destination_uris if isinstance(destination_uris, list) \
             else [destination_uris]
@@ -557,22 +561,19 @@ class BigQueryClient(object):
             }
         }
 
-        try:
-            logger.info("Creating export job %s" % body)
-            job_resource = self.bigquery.jobs() \
-                .insert(projectId=self.project_id, body=body) \
-                .execute()
-            return job_resource
-        except Exception, e:
-            logger.error("Failed while starting export job: {0}"
-                         .format(e))
-            return None
+        logger.info("Creating export job %s" % body)
+        job_resource = self.bigquery.jobs() \
+            .insert(projectId=self.project_id, body=body) \
+            .execute()
+        self._raise_insert_exception_if_error(job_resource)
+        return job_resource
 
     def write_to_table(
             self,
             query,
             dataset=None,
             table=None,
+            allow_large_results=None,
             use_query_cache=None,
             priority=None,
             create_disposition=None,
@@ -585,6 +586,7 @@ class BigQueryClient(object):
             query: required BigQuery query string.
             dataset: optional string id of the dataset
             table: optional string id of the table
+            allow_large_results: optional boolean
             use_query_cache: optional boolean
             priority: optional string
                     (one of the JOB_PRIORITY_* constants)
@@ -598,7 +600,9 @@ class BigQueryClient(object):
             https://developers.google.com/bigquery/docs/reference/v2/jobs
 
         Returns:
-            dict, a BigQuery job resource or None on failure
+            dict, a BigQuery job resource
+        Raises:
+            JobInsertException on http/auth failures or error in result
         """
 
         configuration = {
@@ -611,6 +615,9 @@ class BigQueryClient(object):
                 "tableId": table,
                 "datasetId": dataset
             }
+
+        if allow_large_results is not None:
+            configuration['allowLargeResults'] = allow_large_results
 
         if use_query_cache is not None:
             configuration['useQueryCache'] = use_query_cache
@@ -630,50 +637,40 @@ class BigQueryClient(object):
             }
         }
 
-        try:
-            logger.info("Creating write to table job %s" % body)
-            job_resource = self.bigquery.jobs() \
-                .insert(projectId=self.project_id, body=body) \
-                .execute()
-            return job_resource
-        except Exception, e:
-            logger.error("Failed while starting write to table job: {0}"
-                         .format(e))
-            return None
+        logger.info("Creating write to table job %s" % body)
+        job_resource = self.bigquery.jobs() \
+            .insert(projectId=self.project_id, body=body) \
+            .execute()
+        self._raise_insert_exception_if_error(job_resource)
+        return job_resource
 
     def wait_for_job(self, job, interval=5, timeout=None):
         """
         Waits until the job indicated by job_resource is done or has failed
         Args:
-            job: dict, representing a BigQuery job resource or jobId
+            job: dict, representing a BigQuery job resource
             interval: optional float polling interval in seconds, default = 5
             timeout: optional float timeout in seconds, default = None
         Returns:
             dict, final state of the job_resource, as described here:
             https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#get
         Raises:
-            standard exceptions on http / auth failures (you must retry)
+            JobExecutingException on http/auth failures or error in result
         """
-        if isinstance(job, dict):  # job is a job resource
-            complete = job.get('jobComplete')
-            job_id = job['jobReference']['jobId']
-        else:  # job is the jobId
-            complete = False
-            job_id = job
-            job_resource = None
+        complete = False
+        job_id = job['jobReference']['jobId']
+        job_resource = None
 
         start_time = time()
         elapsed_time = 0
         while not (complete
                    or (timeout is not None and elapsed_time > timeout)):
+
             sleep(interval)
             request = self.bigquery.jobs().get(projectId=self.project_id,
                                                jobId=job_id)
             job_resource = request.execute()
-            error = job_resource.get('error')
-            if error:
-                raise Exception("{message} ({code}). Errors: {errors}",
-                                **error)
+            self._raise_executing_exception_if_error(job_resource)
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
 
@@ -841,8 +838,8 @@ class BigQueryClient(object):
         ONE_MONTH = 2764800  # 32 days
 
         return start_time <= time <= end_time or \
-               time <= start_time <= time + ONE_MONTH or \
-               time <= end_time <= time + ONE_MONTH
+            time <= start_time <= time + ONE_MONTH or \
+            time <= end_time <= time + ONE_MONTH
 
     def _get_query_results(self, job_collection, project_id, job_id,
                            offset=None, limit=None):
@@ -943,10 +940,27 @@ class BigQueryClient(object):
         """
         return sha256(":".join(uris) + str(time())).hexdigest()
 
+    def _raise_insert_exception_if_error(self, job):
+        error_http = job.get('error')
+        if error_http:
+            raise JobInsertException("Error in export job API request: {0}".format(error_http))
+        # handle errorResult - API request is successful but error in result
+        error_result = job.get('status').get('errorResult')
+        if error_result:
+            raise JobInsertException("Reason:{reason}. Message:{message}".format(**error_result))
+
+    def _raise_executing_exception_if_error(self, job):
+        error_http = job.get('error')
+        if error_http:
+            raise JobExecutingException("Error in export job API request: {0}".format(error_http))
+        # handle errorResult - API request is successful but error in result
+        error_result = job.get('status').get('errorResult')
+        if error_result:
+            raise JobExecutingException("Reason:{reason}. Message:{message}".format(**error_result))
+
     #
     # DataSet manipulation methods
     #
-
     def create_dataset(self, dataset_id, friendly_name=None, description=None,
                        access=None):
         """Create a new BigQuery dataset.
