@@ -4,9 +4,11 @@ import mock
 from nose.tools import raises
 
 from bigquery import client
+from bigquery.errors import JobInsertException, JobExecutingException
 
 
 class TestGetClient(unittest.TestCase):
+
     def setUp(self):
         client._bq_client = None
 
@@ -84,6 +86,7 @@ class TestGetClient(unittest.TestCase):
 
 
 class TestQuery(unittest.TestCase):
+
     def setUp(self):
         client._bq_client = None
 
@@ -248,6 +251,7 @@ class TestQuery(unittest.TestCase):
 
 
 class TestGetQueryResults(unittest.TestCase):
+
     def setUp(self):
         client._bq_client = None
 
@@ -287,6 +291,7 @@ class TestGetQueryResults(unittest.TestCase):
 
 
 class TestTransformRow(unittest.TestCase):
+
     def setUp(self):
         client._bq_client = None
 
@@ -365,6 +370,7 @@ class TestTransformRow(unittest.TestCase):
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestCheckJob(unittest.TestCase):
+
     def setUp(self):
         client._bq_client = None
         self.project_id = 'project'
@@ -405,6 +411,7 @@ class TestCheckJob(unittest.TestCase):
 
 
 class TestWaitForJob(unittest.TestCase):
+
     def setUp(self):
         client._bq_client = None
         self.project_id = 'project'
@@ -432,24 +439,6 @@ class TestWaitForJob(unittest.TestCase):
 
         self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
         self.assertIsInstance(job_resource, dict)
-
-    def test_accepts_job_id(self):
-        """Ensure that a jobId argument is accepted"""
-        return_values = [{'status': {'state': u'RUNNING'},
-                          'jobReference': {'jobId': "testJob"}},
-                         {'status': {'state': u'DONE'},
-                          'jobReference': {'jobId': "testJob"}}]
-
-        def side_effect(*args, **kwargs):
-            return return_values.pop(0)
-
-        self.api_mock.jobs().get('status').execute.side_effect = side_effect
-
-        self.client.wait_for_job('jobId',
-                                 interval=.01,
-                                 timeout=None)
-
-        self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
 
     def test_respects_timeout(self):
         """Ensure that the wait can be timed out"""
@@ -479,28 +468,75 @@ class TestWaitForJob(unittest.TestCase):
         self.assertEqual(self.api_mock.jobs().get().execute.call_count, 1)
         self.assertEqual(job_resource['status']['state'], u'RUNNING')
 
+    def test_wait_job_http_error(self):
+        """ Test wait job with http error"""
+        job = {'status': {'state': u'RUNNING'},
+               'jobReference': {'jobId': "testJob"}}
+
+        expected_result = {
+            "error": {
+                "errors": [{
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
+                "code": 400,
+                "message": "Required parameter is missing"
+            }
+        }
+
+        self.api_mock.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobExecutingException,
+                          self.client.wait_for_job,
+                          job,
+                          interval=.01,
+                          timeout=None)
+
+    def test_wait_job_error_result(self):
+        """ Test wait job with error result"""
+        job = {'status': {'state': u'RUNNING'},
+               'jobReference': {'jobId': "testJob"}}
+
+        expected_result = {
+            "status": {
+                "state": "DONE",
+                "errorResult": {
+                    "reason": "invalidQuery",
+                    "location": "query",
+                    "message": "Your Error Message Here "
+                },
+            },
+        }
+
+        self.api_mock.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobExecutingException,
+                          self.client.wait_for_job,
+                          job,
+                          interval=.01,
+                          timeout=None)
+
 
 class TestImportDataFromURIs(unittest.TestCase):
+
+    def setUp(self):
+        client._bq_client = None
+        self.mock_api = mock.Mock()
+
+        self.query = 'foo'
+        self.project_id = 'project'
+        self.dataset_id = 'dataset'
+        self.table_id = 'table'
+        self.client = client.BigQueryClient(self.mock_api,
+                                            self.project_id)
+
     def test_csv_job_body_constructed_correctly(self):
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
-                                 job="job",
-                                 create_disposition="a",
-                                 write_disposition="b",
-                                 field_delimiter="c",
-                                 skip_leading_rows="d",
-                                 encoding="e",
-                                 quote="f",
-                                 max_bad_records="g",
-                                 allow_quoted_newlines="h",
-                                 source_format="CSV",
-                                 allow_jagged_rows="j",
-                                 ignore_unknown_values="k")
+        expected_result = {
+            'status': {'state': u'RUNNING'},
+        }
 
         body = {
             "jobReference": {
-                "projectId": "project",
+                "projectId": self.project_id,
                 "jobId": "job"
             },
             "configuration": {
@@ -508,9 +544,9 @@ class TestImportDataFromURIs(unittest.TestCase):
                     "sourceUris": ["sourceuri"],
                     "schema": ["schema"],
                     "destinationTable": {
-                        "projectId": "project",
-                        "datasetId": "dataset",
-                        "tableId": "table"
+                        "projectId": self.project_id,
+                        "datasetId": self.dataset_id,
+                        "tableId": self.table_id
                     },
                     "createDisposition": "a",
                     "writeDisposition": "b",
@@ -527,21 +563,39 @@ class TestImportDataFromURIs(unittest.TestCase):
             }
         }
 
-        mock_api.jobs().insert.assert_called_once_with(projectId="project",
-                                                       body=body)
-        mock_api.jobs().insert(projectId="project", body=body) \
-            .execute.called_once_with()
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        result = self.client.import_data_from_uris(["sourceuri"],
+                                                   self.dataset_id,
+                                                   self.table_id,
+                                                   ["schema"],
+                                                   job="job",
+                                                   create_disposition="a",
+                                                   write_disposition="b",
+                                                   field_delimiter="c",
+                                                   skip_leading_rows="d",
+                                                   encoding="e",
+                                                   quote="f",
+                                                   max_bad_records="g",
+                                                   allow_quoted_newlines="h",
+                                                   source_format="CSV",
+                                                   allow_jagged_rows="j",
+                                                   ignore_unknown_values="k")
+
+        self.mock_api.jobs().insert.assert_called_with(
+            projectId=self.project_id,
+            body=body
+        )
+
+        self.assertEqual(result, expected_result)
 
     def test_json_job_body_constructed_correctly(self):
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
-                                 job="job",
-                                 source_format="JSON")
+        expected_result = {
+            'status': {'state': u'RUNNING'},
+        }
 
         body = {
             "jobReference": {
-                "projectId": "project",
+                "projectId": self.project_id,
                 "jobId": "job"
             },
             "configuration": {
@@ -549,83 +603,94 @@ class TestImportDataFromURIs(unittest.TestCase):
                     "sourceUris": ["sourceuri"],
                     "schema": ["schema"],
                     "destinationTable": {
-                        "projectId": "project",
-                        "datasetId": "dataset",
-                        "tableId": "table"
+                        "projectId": self.project_id,
+                        "datasetId": self.dataset_id,
+                        "tableId": self.table_id
                     },
                     "sourceFormat": "JSON"
                 }
             }
         }
 
-        mock_api.jobs().insert.assert_called_once_with(projectId="project",
-                                                       body=body)
-        mock_api.jobs().insert(projectId="project", body=body) \
-            .execute.called_once_with()
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        result = self.client.import_data_from_uris(["sourceuri"],
+                                                   self.dataset_id,
+                                                   self.table_id,
+                                                   ["schema"],
+                                                   job="job",
+                                                   source_format="JSON")
+
+        self.mock_api.jobs().insert.assert_called_with(
+            projectId=self.project_id,
+            body=body
+        )
+
+        self.assertEqual(result, expected_result)
 
     @raises(Exception)
     def test_field_delimiter_exception_if_not_csv(self):
         """Raise exception if csv-only parameter is set inappropriately"""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
-                                 job="job",
-                                 source_format="JSON",
-                                 field_delimiter=",")
+        self.client.import_data_from_uris(["sourceuri"],
+                                          self.dataset_id,
+                                          self.table_id,
+                                          ["schema"],
+                                          job="job",
+                                          source_format="JSON",
+                                          field_delimiter=",")
 
     @raises(Exception)
     def test_allow_jagged_rows_exception_if_not_csv(self):
         """Raise exception if csv-only parameter is set inappropriately"""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
-                                 job="job",
-                                 source_format="JSON",
-                                 allow_jagged_rows=True)
+        self.client.import_data_from_uris(["sourceuri"],
+                                          self.dataset_id,
+                                          self.table_id,
+                                          ["schema"],
+                                          job="job",
+                                          source_format="JSON",
+                                          allow_jagged_rows=True)
 
     @raises(Exception)
     def test_allow_quoted_newlines_exception_if_not_csv(self):
         """Raise exception if csv-only parameter is set inappropriately"""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
-                                 job="job",
-                                 source_format="JSON",
-                                 allow_quoted_newlines=True)
+        self.client.import_data_from_uris(["sourceuri"],
+                                          self.dataset_id,
+                                          self.table_id,
+                                          ["schema"],
+                                          job="job",
+                                          source_format="JSON",
+                                          allow_quoted_newlines=True)
 
     @raises(Exception)
     def test_quote_exception_if_not_csv(self):
         """Raise exception if csv-only parameter is set inappropriately"""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
-                                 job="job",
-                                 source_format="JSON",
-                                 quote="'")
+        self.client.import_data_from_uris(["sourceuri"],
+                                          self.dataset_id,
+                                          self.table_id,
+                                          ["schema"],
+                                          job="job",
+                                          source_format="JSON",
+                                          quote="'")
 
     @raises(Exception)
     def test_skip_leading_rows_exception_if_not_csv(self):
         """Raise exception if csv-only parameter is set inappropriately"""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris(["sourceuri"], "dataset", "table", ["schema"],
-                                 "job",
-                                 source_format="JSON",
-                                 skip_leading_rows=10)
+        self.client.import_data_from_uris(["sourceuri"],
+                                          self.dataset_id,
+                                          self.table_id,
+                                          ["schema"],
+                                          "job",
+                                          source_format="JSON",
+                                          skip_leading_rows=10)
 
     def test_accepts_single_source_uri(self):
         """Ensure that a source_uri accepts a non-list"""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.import_data_from_uris("sourceuri",  # not a list!
-                                 "dataset",
-                                 "table",
-                                 schema=["schema"],
-                                 job="job")
+        expected_result = {
+            'status': {'state': u'RUNNING'},
+        }
 
         body = {
             "jobReference": {
-                "projectId": "project",
+                "projectId": self.project_id,
                 "jobId": "job"
             },
             "configuration": {
@@ -633,159 +698,253 @@ class TestImportDataFromURIs(unittest.TestCase):
                     "sourceUris": ["sourceuri"],
                     "schema": ["schema"],
                     "destinationTable": {
-                        "projectId": "project",
-                        "datasetId": "dataset",
-                        "tableId": "table"
+                        "projectId": self.project_id,
+                        "datasetId": self.dataset_id,
+                        "tableId": self.table_id
                     }
                 }
             }
         }
 
-        mock_api.jobs().insert.assert_called_once_with(projectId="project",
-                                                       body=body)
-        mock_api.jobs().insert(projectId="project", body=body) \
-            .execute.called_once_with()
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        result = self.client.import_data_from_uris("sourceuri",  # not a list!
+                                                   self.dataset_id,
+                                                   self.table_id,
+                                                   schema=["schema"],
+                                                   job="job")
 
-    def test_swallows_exception(self):
-        """Ensure that exceptions are handled"""
-        mock_api = mock.Mock()
-        mock_api.jobs().insert.side_effect = Exception
+        self.mock_api.jobs().insert.assert_called_with(
+            projectId=self.project_id,
+            body=body
+        )
 
-        bq = client.BigQueryClient(mock_api, "project")
-        result = bq.import_data_from_uris("sourceuri",  # not a list!
-                                          "job",
-                                          "dataset",
-                                          "table",
-                                          ["schema"])
-        self.assertIsNone(result)
+        self.assertEqual(result, expected_result)
 
+    def test_import_http_error(self):
+        """ Test import with http error"""
+        expected_result = {
+            "error": {
+                "errors": [{
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
+                "code": 400,
+                "message": "Required parameter is missing"
+            }
+        }
+
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobInsertException,
+                          self.client.import_data_from_uris,
+                          ["sourceuri"],
+                          self.dataset_id,
+                          self.table_id)
+
+    def test_import_error_result(self):
+        """ Test import with error result"""
+        expected_result = {
+            "status": {
+                "state": "DONE",
+                "errorResult": {
+                    "reason": "invalidQuery",
+                    "location": "query",
+                    "message": "Your Error Message Here "
+                },
+            },
+        }
+
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobInsertException,
+                          self.client.import_data_from_uris,
+                          ["sourceuri"],
+                          self.dataset_id,
+                          self.table_id)
 
 
 class TestExportDataToURIs(unittest.TestCase):
-    def test_export(self):
+
+    def setUp(self):
+        client._bq_client = None
+        self.mock_api = mock.Mock()
+
+        self.project_id = 'project'
+        self.dataset_id = 'dataset'
+        self.table_id = 'table'
+        self.destination_format = "CSV"
+        self.print_header = False
+        self.client = client.BigQueryClient(self.mock_api,
+                                            self.project_id)
+
+    @mock.patch('bigquery.client.BigQueryClient._generate_hex_for_uris')
+    def test_export(self, mock_generate_hex):
         """ Ensure that export is working in normal circumstances """
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.export_data_to_uris(["destinationuri"], "dataset", "table",
-                               job="job",
-                               compression="NONE",
-                               destination_format="CSV",
-                               print_header=False,
-                               field_delimiter=",")
+        expected_result = {
+            'status': {'state': u'RUNNING'},
+        }
 
         body = {
             "jobReference": {
-                "projectId": "project",
-                "jobId": "job"
+                "projectId": self.project_id,
+                "jobId": "%s-%s-destinationuri" % (self.dataset_id, self.table_id)
             },
             "configuration": {
                 "extract": {
                     "destinationUris": ["destinationuri"],
                     "sourceTable": {
-                        "projectId": "project",
-                        "datasetId": "dataset",
-                        "tableId": "table"
+                        "projectId": self.project_id,
+                        "datasetId": self.dataset_id,
+                        "tableId": self.table_id
                     },
-                    "compression": "NONE",
-                    "destinationFormat": "CSV",
-                    "printHeader": False,
-                    "fieldDelimiter": ","
+                    "destinationFormat": self.destination_format,
+                    "printHeader": self.print_header,
                 }
             }
         }
 
-        mock_api.jobs().insert.assert_called_once_with(projectId="project",
-                                                       body=body)
-        mock_api.jobs().insert(projectId="project", body=body) \
-            .execute.called_once_with()
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        mock_generate_hex.return_value = "destinationuri"
+        result = self.client.export_data_to_uris(["destinationuri"],
+                                                 self.dataset_id,
+                                                 self.table_id,
+                                                 destination_format=self.destination_format,
+                                                 print_header=self.print_header)
 
-    def test_accepts_single_destination_uri(self):
-        """Ensure that a destination_uri accepts a non-list"""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.export_data_to_uris("destinationuri",  # not a list!
-                               "dataset",
-                               "table",
-                               job="job")
+        self.mock_api.jobs().insert.assert_called_with(
+            projectId=self.project_id,
+            body=body
+        )
 
-        body = {
-            "jobReference": {
-                "projectId": "project",
-                "jobId": "job"
+        self.assertEqual(result, expected_result)
+
+    def test_export_http_error(self):
+        """ Test export with http error"""
+        expected_result = {
+            "error": {
+                "errors": [{
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
+                "code": 400,
+                "message": "Required parameter is missing"
+            }
+        }
+
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobInsertException,
+                          self.client.export_data_to_uris,
+                          ["destinationuri"],
+                          self.dataset_id,
+                          self.table_id)
+
+    def test_export_error_result(self):
+        """ Test export with error result"""
+        expected_result = {
+            "status": {
+                "state": "DONE",
+                "errorResult": {
+                    "reason": "invalidQuery",
+                    "location": "query",
+                    "message": "Your Error Message Here "
+                },
             },
-            "configuration": {
-                "extract": {
-                    "destinationUris": ["destinationuri"],
-                    "sourceTable": {
-                        "projectId": "project",
-                        "datasetId": "dataset",
-                        "tableId": "table"
-                    }
-                }
-            }
         }
 
-        mock_api.jobs().insert.assert_called_once_with(projectId="project",
-                                                       body=body)
-        mock_api.jobs().insert(projectId="project", body=body) \
-            .execute.called_once_with()
-
-    def test_swallows_exception(self):
-        """Ensure that exceptions are handled"""
-        mock_api = mock.Mock()
-        mock_api.jobs().insert.side_effect = Exception
-
-        bq = client.BigQueryClient(mock_api, "project")
-        result = bq.export_data_to_uris("destinationuri", "dataset", "table")
-        self.assertIsNone(result)
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobInsertException,
+                          self.client.export_data_to_uris,
+                          ["destinationuri"],
+                          self.dataset_id,
+                          self.table_id)
 
 
 class TestWriteToTable(unittest.TestCase):
+
+    def setUp(self):
+        client._bq_client = None
+        self.mock_api = mock.Mock()
+
+        self.query = 'foo'
+        self.project_id = 'project'
+        self.dataset_id = 'dataset'
+        self.table_id = 'table'
+        self.use_query_cache = False
+        self.priority = "INTERACTIVE"
+        self.client = client.BigQueryClient(self.mock_api,
+                                            self.project_id)
+
     def test_write(self):
         """ Ensure that write is working in normal circumstances."""
-        mock_api = mock.Mock()
-        bq = client.BigQueryClient(mock_api, "project")
-        bq.write_to_table("foo",
-                          "dataset",
-                          "table",
-                          use_query_cache=False,
-                          priority='INTERACTIVE',
-                          create_disposition='CREATE_IF_NEEDED',
-                          write_disposition='WRITE_TRUNCATE')
+        expected_result = {
+            'status': {'state': u'RUNNING'},
+        }
 
         body = {
             "configuration": {
                 "query": {
                     "destinationTable": {
-                        "projectId": "project",
-                        "datasetId": "dataset",
-                        "tableId": "table"
+                        "projectId": self.project_id,
+                        "datasetId": self.dataset_id,
+                        "tableId": self.table_id
                     },
-                    "query": "foo",
-                    "useQueryCache": False,
-                    "priority": "INTERACTIVE",
-                    "createDisposition": "CREATE_IF_NEEDED",
-                    "writeDisposition": "WRITE_TRUNCATE"
+                    "query": self.query,
+                    "useQueryCache": self.use_query_cache,
+                    "priority": self.priority,
                 }
             }
         }
 
-        mock_api.jobs().insert.assert_called_once_with(projectId="project",
-                                                       body=body)
-        mock_api.jobs().insert(projectId="project", body=body) \
-            .execute.called_once_with()
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        result = self.client.write_to_table(self.query,
+                                            self.dataset_id,
+                                            self.table_id,
+                                            use_query_cache=False,
+                                            priority=self.priority)
 
-    def test_swallows_exception(self):
-        """Ensure that exceptions are handled"""
-        mock_api = mock.Mock()
-        mock_api.jobs().insert.side_effect = Exception
+        self.mock_api.jobs().insert.assert_called_with(
+            projectId=self.project_id,
+            body=body
+        )
 
-        bq = client.BigQueryClient(mock_api, "project")
-        result = bq.write_to_table("foo", use_query_cache="error")
-        self.assertIsNone(result)
-        
+        self.assertEqual(result, expected_result)
+
+    def test_write_http_error(self):
+        """ Test write with http error"""
+        expected_result = {
+            "error": {
+                "errors": [{
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
+                "code": 400,
+                "message": "Required parameter is missing"
+            }
+        }
+
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobInsertException, self.client.write_to_table, self.query)
+
+    def test_write_error_result(self):
+        """ Test write with error result"""
+        expected_result = {
+            "status": {
+                "state": "DONE",
+                "errorResult": {
+                    "reason": "invalidQuery",
+                    "location": "query",
+                    "message": "Your Error Message Here "
+                },
+            },
+        }
+
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        self.assertRaises(JobInsertException, self.client.write_to_table, self.query)
+
 
 class TestFilterTablesByTime(unittest.TestCase):
+
     def test_empty_tables(self):
         """Ensure we can handle filtering an empty dictionary"""
 
@@ -801,15 +960,15 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-                                               'Spider-Man': 1370002001,
-                                               'Daenerys Targaryen': 1370001999,
-                                               'Gordon Freeman': 1369999999,
-                                               'William Shatner': 1370001000,
-                                               'Heavy Weapons Guy': 0
+                                           'Spider-Man': 1370002001,
+                                           'Daenerys Targaryen': 1370001999,
+                                           'Gordon Freeman': 1369999999,
+                                           'William Shatner': 1370001000,
+                                           'Heavy Weapons Guy': 0
                                            }, 1370002000, 1370000000)
 
         self.assertEqual([
-                             'Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'], tables)
+                         'Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'], tables)
 
     def test_not_inside_range(self):
         """Ensure we can correctly filter several application ids outside the
@@ -819,10 +978,10 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-                                               'John Snow': 9001,
-                                               'Adam West': 100000000000000,
-                                               'Glados': -1,
-                                               'Potato': 0,
+                                           'John Snow': 9001,
+                                           'Adam West': 100000000000000,
+                                           'Glados': -1,
+                                           'Potato': 0,
                                            }, 1370002000, 1370000000)
 
         self.assertEqual([], tables)
@@ -906,6 +1065,7 @@ FULL_TABLE_LIST_RESPONSE = {
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestGetQuerySchema(unittest.TestCase):
+
     def test_query_complete(self, get_query_mock):
         """Ensure that get_query_schema works when a query is complete."""
         from bigquery.client import BigQueryClient
@@ -939,6 +1099,7 @@ class TestGetQuerySchema(unittest.TestCase):
 
 
 class TestGetTableSchema(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -982,6 +1143,7 @@ class TestGetTableSchema(unittest.TestCase):
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestGetQueryRows(unittest.TestCase):
+
     def test_query_complete(self, get_query_mock):
         """Ensure that get_query_rows works when a query is complete."""
         from bigquery.client import BigQueryClient
@@ -1037,6 +1199,7 @@ class TestGetQueryRows(unittest.TestCase):
 
 
 class TestCheckTable(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -1077,6 +1240,7 @@ class TestCheckTable(unittest.TestCase):
 
 
 class TestCreateTable(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -1129,6 +1293,7 @@ class TestCreateTable(unittest.TestCase):
 
 
 class TestDeleteTable(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -1169,6 +1334,7 @@ class TestDeleteTable(unittest.TestCase):
 
 
 class TestParseTableListReponse(unittest.TestCase):
+
     def test_full_parse(self):
         """Ensures we can parse a full list response."""
 
@@ -1261,6 +1427,7 @@ class TestParseTableListReponse(unittest.TestCase):
 
 
 class TestPushRows(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_table_data = mock.Mock()
@@ -1349,6 +1516,7 @@ class TestPushRows(unittest.TestCase):
 
 
 class TestGetAllTables(unittest.TestCase):
+
     def test_get_tables(self):
         """Ensure get_all_tables fetches table names from BigQuery."""
 
@@ -1378,6 +1546,7 @@ class TestGetAllTables(unittest.TestCase):
 
 
 class TestGetTables(unittest.TestCase):
+
     def test_get_tables(self):
         """Ensure tables falling in the time window are returned."""
 
@@ -1423,6 +1592,7 @@ class TestGetTables(unittest.TestCase):
 # Dataset tests
 #
 class TestCreateDataset(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
@@ -1480,6 +1650,7 @@ class TestCreateDataset(unittest.TestCase):
 
 
 class TestDeleteDataset(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
@@ -1591,6 +1762,7 @@ FULL_DATASET_LIST_RESPONSE = {
 
 
 class TestGetDatasets(unittest.TestCase):
+
     def test_get_datasets(self):
         """Ensure datasets are returned."""
 
@@ -1610,6 +1782,7 @@ class TestGetDatasets(unittest.TestCase):
 
 
 class TestUpdateDataset(unittest.TestCase):
+
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
