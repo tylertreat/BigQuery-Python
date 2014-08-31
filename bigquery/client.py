@@ -479,15 +479,7 @@ class BigQueryClient(object):
         job_resource = self.bigquery.jobs() \
             .insert(projectId=self.project_id, body=body) \
             .execute()
-
-        # handle http/auth error - API request is not successful
-        error_http = job_resource.get('error')
-        if error_http:
-            raise JobInsertException("Error in uri import job API request: {0}".format(error_http))
-        # handle errorResult - API request is successful but error in result
-        error_result = job_resource.get('status').get('errorResult')
-        if error_result:
-            raise JobInsertException("Reason:{reason}. Message:{message}".format(**error_result))
+        self._raise_insert_exception_if_error(job_resource)
         return job_resource
 
     def export_data_to_uris(
@@ -573,15 +565,7 @@ class BigQueryClient(object):
         job_resource = self.bigquery.jobs() \
             .insert(projectId=self.project_id, body=body) \
             .execute()
-
-        # handle http/auth error - API request is not successful
-        error_http = job_resource.get('error')
-        if error_http:
-            raise JobInsertException("Error in export job API request: {0}".format(error_http))
-        # handle errorResult - API request is successful but error in result
-        error_result = job_resource.get('status').get('errorResult')
-        if error_result:
-            raise JobInsertException("Reason:{reason}. Message:{message}".format(**error_result))
+        self._raise_insert_exception_if_error(job_resource)
         return job_resource
 
     def write_to_table(
@@ -657,15 +641,7 @@ class BigQueryClient(object):
         job_resource = self.bigquery.jobs() \
             .insert(projectId=self.project_id, body=body) \
             .execute()
-
-        # handle http/auth error - API request is not successful
-        error_http = job_resource.get('error')
-        if error_http:
-            raise JobInsertException("Error in write table job API request: {0}".format(error_http))
-        # handle errorResult - API request is successful but error in result
-        error_result = job_resource.get('status').get('errorResult')
-        if error_result:
-            raise JobInsertException("Reason:{reason}. Message:{message}".format(**error_result))
+        self._raise_insert_exception_if_error(job_resource)
         return job_resource
 
     def wait_for_job(self, job, interval=5, timeout=None):
@@ -694,16 +670,7 @@ class BigQueryClient(object):
             request = self.bigquery.jobs().get(projectId=self.project_id,
                                                jobId=job_id)
             job_resource = request.execute()
-
-            # handle http/auth error - API request is not successful
-            error_http = job_resource.get('error')
-            if error_http:
-                raise JobExecutingException("Error in get job API request: {0}".format(error_http))
-            # handle errorResult - API request is successful but error in result
-            error_result = job_resource.get('status').get('errorResult')
-            if error_result:
-                raise JobExecutingException("Reason:{reason}. Message:{message}".format(**error_result))
-
+            self._raise_executing_exception_if_error(job_resource)
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
 
@@ -973,10 +940,27 @@ class BigQueryClient(object):
         """
         return sha256(":".join(uris) + str(time())).hexdigest()
 
+    def _raise_insert_exception_if_error(self, job):
+        error_http = job.get('error')
+        if error_http:
+            raise JobInsertException("Error in export job API request: {0}".format(error_http))
+        # handle errorResult - API request is successful but error in result
+        error_result = job.get('status').get('errorResult')
+        if error_result:
+            raise JobInsertException("Reason:{reason}. Message:{message}".format(**error_result))
+
+    def _raise_executing_exception_if_error(self, job):
+        error_http = job.get('error')
+        if error_http:
+            raise JobExecutingException("Error in export job API request: {0}".format(error_http))
+        # handle errorResult - API request is successful but error in result
+        error_result = job.get('status').get('errorResult')
+        if error_result:
+            raise JobExecutingException("Reason:{reason}. Message:{message}".format(**error_result))
+
     #
     # DataSet manipulation methods
     #
-
     def create_dataset(self, dataset_id, friendly_name=None, description=None,
                        access=None):
         """Create a new BigQuery dataset.
