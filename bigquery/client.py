@@ -1002,17 +1002,19 @@ class BigQueryClient(object):
             datasets = self.bigquery.datasets()
             request = datasets.list(projectId=self.project_id)
             result = request.execute()
-            return result
+            return result.get('datasets')
         except Exception, e:
             logger.error("Cannot list datasets: %s" % e)
             return None
 
-    def delete_dataset(self, dataset_id):
+    def delete_dataset(self, dataset_id, delete_contents=False):
         """Delete a BigQuery dataset.
 
         Args:
             dataset_id: required unique string identifying the dataset with the
                         project (the referenceId of the dataset)
+            delete_contents: forces deletion of the dataset even when the
+                        dataset contains data
         Returns:
             bool indicating if the delete was successful or not
 
@@ -1022,7 +1024,8 @@ class BigQueryClient(object):
         try:
             datasets = self.bigquery.datasets()
             request = datasets.delete(projectId=self.project_id,
-                                      datasetId=dataset_id)
+                                      datasetId=dataset_id,
+                                      deleteContents=delete_contents)
             request.execute()
             return True
         except Exception, e:
