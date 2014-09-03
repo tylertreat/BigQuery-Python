@@ -169,6 +169,7 @@ client.get_dataset('mydataset')
 
 # Delete dataset
 client.delete_dataset('mydataset')
+client.delete_dataset('mydataset', delete_contents=True) # delete even if it contains data
 
 # Update dataset
 client.update_dataset('mydataset', friendly_name="mon Dataset") # description is deleted
