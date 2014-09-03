@@ -807,7 +807,7 @@ class BigQueryClient(object):
             datasets = self.bigquery.datasets()
             request = datasets.list(projectId=self.project_id)
             result = request.execute()
-            return result
+            return result.get('datasets')
         except Exception, e:
             logger.error("Cannot list datasets: %s" % e)
             return None
@@ -830,7 +830,7 @@ class BigQueryClient(object):
             datasets = self.bigquery.datasets()
             request = datasets.delete(projectId=self.project_id,
                                       datasetId=dataset_id,
-                                      deleteContents=force)
+                                      deleteContents=delete_contents)
             request.execute()
             return True
         except Exception, e:

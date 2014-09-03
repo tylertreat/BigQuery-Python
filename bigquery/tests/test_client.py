@@ -1377,7 +1377,7 @@ class TestDeleteDataset(unittest.TestCase):
         self.assertFalse(actual)
 
         self.mock_datasets.delete.assert_called_once_with(
-            projectId=self.project, datasetId=self.dataset)
+            projectId=self.project, datasetId=self.dataset, deleteContents=False)
 
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
@@ -1393,7 +1393,7 @@ class TestDeleteDataset(unittest.TestCase):
         self.assertTrue(actual)
 
         self.mock_datasets.delete.assert_called_once_with(
-            projectId=self.project, datasetId=self.dataset)
+            projectId=self.project, datasetId=self.dataset, deleteContents=False)
 
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
@@ -1418,7 +1418,7 @@ class TestDeleteDataset(unittest.TestCase):
 FULL_DATASET_LIST_RESPONSE = {
     "kind": "bigquery#dataseteList",
     "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lPQc\"",
-    "tables": [
+    "datasets": [
         {
             "kind": "bigquery#dataset",
             "id": "project:dataset1",
@@ -1500,7 +1500,7 @@ class TestGetDatasets(unittest.TestCase):
         bq = client.BigQueryClient(mock_bq_service, 'project')
 
         datasets = bq.get_datasets()
-        self.assertItemsEqual(datasets, FULL_DATASET_LIST_RESPONSE)
+        self.assertItemsEqual(datasets, FULL_DATASET_LIST_RESPONSE['datasets'])
 
 
 class TestUpdateDataset(unittest.TestCase):
