@@ -1399,6 +1399,22 @@ class TestDeleteDataset(unittest.TestCase):
             assert_called_once_with()
 
 
+    def test_delete_datasets_delete_contents_success(self):
+        """Ensure that if deleting table succeeds, True is returned."""
+
+        self.mock_datasets.delete.return_value.execute.side_effect = {
+            'status': 'foo'}
+
+        actual = self.client.delete_dataset(self.dataset, True)
+
+        self.assertTrue(actual)
+
+        self.mock_datasets.delete.assert_called_once_with(
+            projectId=self.project, datasetId=self.dataset, deleteContents=True)
+
+        self.mock_datasets.delete.return_value.execute. \
+            assert_called_once_with()
+
 FULL_DATASET_LIST_RESPONSE = {
     "kind": "bigquery#dataseteList",
     "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lPQc\"",
