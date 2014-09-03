@@ -460,7 +460,7 @@ class BigQueryClient(object):
         }
 
         try:
-            logger.info("Creating load job %s" % body)
+            logger.debug("Creating load job %s" % body)
             job_resource = self.bigquery.jobs() \
                 .insert(projectId=self.project_id, body=body) \
                 .execute()
