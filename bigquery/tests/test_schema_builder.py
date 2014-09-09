@@ -6,6 +6,7 @@ from nose.tools import raises
 from bigquery.schema_builder import schema_from_record
 from bigquery.schema_builder import describe_field
 from bigquery.schema_builder import bigquery_type
+from bigquery.schema_builder import InvalidBigQueryType
 
 
 class TestBigQueryTypes(unittest.TestCase):
@@ -41,22 +42,20 @@ class TestBigQueryTypes(unittest.TestCase):
 
     def test_timestring_arbitrary_fn_success(self):
         self.assertItemsEqual(bigquery_type("whatever",
-                              timestamp_parser=lambda x: True), 'timestamp')
+                                            timestamp_parser=lambda x: True), 'timestamp')
 
     def test_timestring_arbitrary_fn_fail(self):
         self.assertItemsEqual(bigquery_type("February 20th 1973",
-                              timestamp_parser=lambda x: False), 'string')
+                                            timestamp_parser=lambda x: False), 'string')
 
-    @raises(Exception)
     def test_class_instance_is_invalid_type(self):
         class SomeClass:
             pass
 
-        bigquery_type(SomeClass())
+        self.assertIsNone(bigquery_type(SomeClass()))
 
-    @raises(Exception)
     def test_list_is_invalid_type(self):
-        bigquery_type([1, 2, 3])
+        self.assertIsNone(bigquery_type([1, 2, 3]))
 
     def test_dict_is_record(self):
         self.assertItemsEqual(bigquery_type({"a": 1}), 'record')
@@ -66,7 +65,7 @@ class TestFieldDescription(unittest.TestCase):
     def test_simple_string_field(self):
         self.assertItemsEqual(describe_field("user", "Bob"),
                               {"name": "user", "type": "string", "mode":
-                               "nullable"})
+                                  "nullable"})
 
 
 class TestSchemaGenerator(unittest.TestCase):
@@ -81,8 +80,8 @@ class TestSchemaGenerator(unittest.TestCase):
         record = {"user": {"username": "Bob", "id": 123}}
         schema = [{"name": "user", "type": "record", "mode": "nullable",
                    "fields": [{"name": "username", "type": "string", "mode":
-                               "nullable"}, {"name": "id", "type": "integer",
-                                             "mode": "nullable"}]}]
+                       "nullable"}, {"name": "id", "type": "integer",
+                                     "mode": "nullable"}]}]
 
         self.assertItemsEqual(schema_from_record(record), schema)
 
@@ -91,3 +90,16 @@ class TestSchemaGenerator(unittest.TestCase):
         schema = [{"name": "ids", "type": "integer", "mode": "repeated"}]
 
         self.assertItemsEqual(schema_from_record(record), schema)
+
+    def test_nested_invalid_type_reported_correctly(self):
+        key = "wrong answer"
+        value = "wrong answer"
+
+        try:
+            schema_from_record({"a": {"b": [{"c": None}]}})
+        except InvalidBigQueryType, e:
+            key = e.key
+            value = e.value
+
+        self.assertEqual(key, "a.b.c")
+        self.assertEqual(value, None)
