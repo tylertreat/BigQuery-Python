@@ -12,7 +12,7 @@ This client provides an API for retrieving and inserting BigQuery data by wrappi
 # Basic Usage
 
 ```python
-from bigquery.client import get_client
+from bigquery import get_client
 
 # BigQuery project id as listed in the Google Developers Console.
 project_id = 'project_id'
@@ -206,7 +206,9 @@ client.patch_dataset('mydataset', friendly_name="mon Dataset") # friendly_name c
 
 # Creating a schema from a sample record
 ```python
-client.schema_from_record({id:123, posts: [{id:123, text: "tihs is a post"}], username: "bob"})
+from bigquery import schema_from_record
+
+schema_from_record({id:123, posts: [{id:123, text: "tihs is a post"}], username: "bob"})
 ```
 
 # Caveats
