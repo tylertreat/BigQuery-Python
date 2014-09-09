@@ -835,7 +835,7 @@ class BigQueryClient(object):
             return True
         except Exception, e:
             logger.error('Cannot delete dataset %s: %s' % (dataset_id, e))
-            return None
+            return False
 
     def update_dataset(self, dataset_id, friendly_name=None, description=None,
                        access=None):
