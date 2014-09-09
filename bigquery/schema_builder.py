@@ -5,6 +5,15 @@ from datetime import datetime
 import dateutil.parser
 
 
+class InvalidBigQueryType(Exception):
+    def __init__(self, k, v):
+        self.key = k
+        self.value = v
+
+        message = "Invalid type at key '{key}': {value}".format(
+            value=v, key=k)
+        Exception.__init__(self, message)
+
 def default_timestamp_parser(s):
     try:
         if dateutil.parser.parse(s):
@@ -52,6 +61,7 @@ def describe_field(k, v, timestamp_parser=default_timestamp_parser):
     {"name": "users", "type": "record", "mode": "repeated",
      "fields": [{"name":"username","type":"string","mode":"nullable"}]}
     """
+
     def bq_schema_field(name, bq_type, mode):
         return {"name": name, "type": bq_type, "mode": mode}
 
@@ -65,9 +75,16 @@ def describe_field(k, v, timestamp_parser=default_timestamp_parser):
         mode = "nullable"
 
     bq_type = bigquery_type(v, timestamp_parser=timestamp_parser)
+    if not bq_type:
+        raise InvalidBigQueryType(k, v)
+
     field = bq_schema_field(k, bq_type, mode)
     if bq_type == "record":
-        field['fields'] = schema_from_record(v)
+        try:
+            field['fields'] = schema_from_record(v)
+        except InvalidBigQueryType, e:
+            # recursively construct the key causing the error
+            raise InvalidBigQueryType("%s.%s" % (k, e.key), e.value)
 
     return field
 
@@ -76,6 +93,9 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     """Given a value, return the matching BigQuery type of that value. Must be
     one of str/unicode/int/float/datetime/record, where record is a dict
     containing value which have matching BigQuery types.
+
+    Returns:
+        str or None if no matching type could be found
 
     >>> bigquery_type("abc")
     "string"
@@ -100,5 +120,4 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     elif t == datetime:
         return "timestamp"
     else:
-        raise Exception(
-            "Invalid object for BigQuery schema: {0} ({1}".format(o, t))
+        return None  # failed to find a type
