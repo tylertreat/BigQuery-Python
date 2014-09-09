@@ -10,7 +10,10 @@ from apiclient.errors import HttpError
 import httplib2
 
 from bigquery import logger
-from bigquery.errors import UnfinishedQueryException
+from bigquery.errors import (
+    UnfinishedQueryException, JobInsertException,
+    JobExecutingException
+)
 from bigquery.schema_builder import schema_from_record
 
 
@@ -19,14 +22,24 @@ BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
 
 JOB_CREATE_IF_NEEDED = 'CREATE_IF_NEEDED'
 JOB_CREATE_NEVER = 'CREATE_NEVER'
-JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON = 'NEWLINE_DELIMITED_JSON'
-JOB_SOURCE_FORMAT_DATASTORE_BACKUP = 'DATASTORE_BACKUP'
-JOB_SOURCE_FORMAT_CSV = 'CSV'
 JOB_WRITE_TRUNCATE = 'WRITE_TRUNCATE'
 JOB_WRITE_APPEND = 'WRITE_APPEND'
 JOB_WRITE_EMPTY = 'WRITE_EMPTY'
 JOB_ENCODING_UTF_8 = 'UTF-8'
 JOB_ENCODING_ISO_8859_1 = 'ISO-8859-1'
+JOB_PRIORITY_INTERACTIVE = 'INTERACTIVE'
+JOB_PRIORITY_BATCH = 'BATCH'
+JOB_COMPRESSION_NONE = 'NONE'
+JOB_COMPRESSION_GZIP = 'GZIP'
+
+JOB_FORMAT_CSV = 'CSV'
+JOB_FORMAT_NEWLINE_DELIMITED_JSON = 'NEWLINE_DELIMITED_JSON'
+JOB_SOURCE_FORMAT_DATASTORE_BACKUP = 'DATASTORE_BACKUP'
+JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON = JOB_FORMAT_NEWLINE_DELIMITED_JSON
+JOB_SOURCE_FORMAT_CSV = JOB_FORMAT_CSV
+JOB_DESTINATION_FORMAT_AVRO = 'AVRO'
+JOB_DESTINATION_FORMAT_NEWLINE_DELIMITED_JSON = JOB_FORMAT_NEWLINE_DELIMITED_JSON
+JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 
 def get_client(project_id, credentials=None, service_account=None,
@@ -86,6 +99,7 @@ def _credentials():
 
 
 class BigQueryClient(object):
+
     def __init__(self, bq_service, project_id):
         self.bigquery = bq_service
         self.project_id = project_id
@@ -374,7 +388,9 @@ class BigQueryClient(object):
             https://developers.google.com/bigquery/docs/reference/v2/jobs
 
         Returns:
-            dict, a BigQuery job resource or None on failure
+            dict, a BigQuery job resource
+        Raises:
+            JobInsertException on http/auth failures or error in result
         """
         source_uris = source_uris if isinstance(source_uris, list) \
             else [source_uris]
@@ -410,7 +426,7 @@ class BigQueryClient(object):
             configuration['sourceFormat'] = source_format
 
         if not job:
-            hex = sha256(":".join(source_uris) + str(time())).hexdigest()
+            hex = self._generate_hex_for_uris(source_uris)
             job = "{dataset}-{table}-{digest}".format(
                 dataset=dataset,
                 table=table,
@@ -459,50 +475,202 @@ class BigQueryClient(object):
             }
         }
 
-        try:
-            logger.debug("Creating load job %s" % body)
-            job_resource = self.bigquery.jobs() \
-                .insert(projectId=self.project_id, body=body) \
-                .execute()
-            return job_resource
-        except Exception, e:
-            logger.error("Failed while starting uri import job: {0}"
-                         .format(e))
-            return None
+        logger.debug("Creating load job %s" % body)
+        job_resource = self.bigquery.jobs() \
+            .insert(projectId=self.project_id, body=body) \
+            .execute()
+        self._raise_insert_exception_if_error(job_resource)
+        return job_resource
+
+    def export_data_to_uris(
+            self,
+            destination_uris,
+            dataset,
+            table,
+            job=None,
+            compression=None,
+            destination_format=None,
+            print_header=None,
+            field_delimiter=None,
+    ):
+        """
+        Export data from a BigQuery table to cloud storage.
+        Args:
+            destination_uris: required string or list of strings representing
+                              the uris on cloud storage of the form:
+                              gs://bucket/filename
+            dataset: required string id of the dataset
+            table: required string id of the table
+            job: optional string identifying the job (a unique jobid
+                    is automatically generated if not provided)
+            compression: optional string
+                    (one of the JOB_COMPRESSION_* constants)
+            destination_format: optional string
+                    (one of the JOB_DESTINATION_FORMAT_* constants)
+            print_header: optional boolean
+            field_delimiter: optional string
+
+            Optional arguments with value None are determined by
+            BigQuery as described:
+            https://developers.google.com/bigquery/docs/reference/v2/jobs
+
+        Returns:
+            dict, a BigQuery job resource
+        Raises:
+            JobInsertException on http/auth failures or error in result
+        """
+        destination_uris = destination_uris if isinstance(destination_uris, list) \
+            else [destination_uris]
+
+        configuration = {
+            "sourceTable": {
+                "projectId": self.project_id,
+                "tableId": table,
+                "datasetId": dataset
+            },
+            "destinationUris": destination_uris,
+        }
+
+        if compression:
+            configuration['compression'] = compression
+
+        if destination_format:
+            configuration['destinationFormat'] = destination_format
+
+        if print_header is not None:
+            configuration['printHeader'] = print_header
+
+        if field_delimiter:
+            configuration['fieldDelimiter'] = field_delimiter
+
+        if not job:
+            hex = self._generate_hex_for_uris(destination_uris)
+            job = "{dataset}-{table}-{digest}".format(
+                dataset=dataset,
+                table=table,
+                digest=hex
+            )
+
+        body = {
+            "configuration": {
+                'extract': configuration
+            },
+            "jobReference": {
+                "projectId": self.project_id,
+                "jobId": job
+            }
+        }
+
+        logger.info("Creating export job %s" % body)
+        job_resource = self.bigquery.jobs() \
+            .insert(projectId=self.project_id, body=body) \
+            .execute()
+        self._raise_insert_exception_if_error(job_resource)
+        return job_resource
+
+    def write_to_table(
+            self,
+            query,
+            dataset=None,
+            table=None,
+            allow_large_results=None,
+            use_query_cache=None,
+            priority=None,
+            create_disposition=None,
+            write_disposition=None,
+    ):
+        """
+        Write query result to table. If dataset or table is not provided,
+        Bigquery will write the result to temporary table.
+        Args:
+            query: required BigQuery query string.
+            dataset: optional string id of the dataset
+            table: optional string id of the table
+            allow_large_results: optional boolean
+            use_query_cache: optional boolean
+            priority: optional string
+                    (one of the JOB_PRIORITY_* constants)
+            create_disposition: optional string
+                    (one of the JOB_CREATE_* constants)
+            write_disposition: optional string
+                    (one of the JOB_WRITE_* constants)
+
+            Optional arguments with value None are determined by
+            BigQuery as described:
+            https://developers.google.com/bigquery/docs/reference/v2/jobs
+
+        Returns:
+            dict, a BigQuery job resource
+        Raises:
+            JobInsertException on http/auth failures or error in result
+        """
+
+        configuration = {
+            "query": query,
+        }
+
+        if dataset and table:
+            configuration['destinationTable'] = {
+                "projectId": self.project_id,
+                "tableId": table,
+                "datasetId": dataset
+            }
+
+        if allow_large_results is not None:
+            configuration['allowLargeResults'] = allow_large_results
+
+        if use_query_cache is not None:
+            configuration['useQueryCache'] = use_query_cache
+
+        if priority:
+            configuration['priority'] = priority
+
+        if create_disposition:
+            configuration['createDisposition'] = create_disposition
+
+        if write_disposition:
+            configuration['writeDisposition'] = write_disposition
+
+        body = {
+            "configuration": {
+                'query': configuration
+            }
+        }
+
+        logger.info("Creating write to table job %s" % body)
+        job_resource = self.bigquery.jobs() \
+            .insert(projectId=self.project_id, body=body) \
+            .execute()
+        self._raise_insert_exception_if_error(job_resource)
+        return job_resource
 
     def wait_for_job(self, job, interval=5, timeout=None):
         """
         Waits until the job indicated by job_resource is done or has failed
         Args:
-            job: dict, representing a BigQuery job resource or jobId
+            job: dict, representing a BigQuery job resource
             interval: optional float polling interval in seconds, default = 5
             timeout: optional float timeout in seconds, default = None
         Returns:
             dict, final state of the job_resource, as described here:
             https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#get
         Raises:
-            standard exceptions on http / auth failures (you must retry)
+            JobExecutingException on http/auth failures or error in result
         """
-        if isinstance(job, dict):  # job is a job resource
-            complete = job.get('jobComplete')
-            job_id = job['jobReference']['jobId']
-        else:  # job is the jobId
-            complete = False
-            job_id = job
-            job_resource = None
+        complete = False
+        job_id = job['jobReference']['jobId']
+        job_resource = None
 
         start_time = time()
         elapsed_time = 0
         while not (complete
                    or (timeout is not None and elapsed_time > timeout)):
+
             sleep(interval)
             request = self.bigquery.jobs().get(projectId=self.project_id,
                                                jobId=job_id)
             job_resource = request.execute()
-            error = job_resource.get('error')
-            if error:
-                raise Exception("{message} ({code}). Errors: {errors}",
-                                **error)
+            self._raise_executing_exception_if_error(job_resource)
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
 
@@ -670,8 +838,8 @@ class BigQueryClient(object):
         ONE_MONTH = 2764800  # 32 days
 
         return start_time <= time <= end_time or \
-               time <= start_time <= time + ONE_MONTH or \
-               time <= end_time <= time + ONE_MONTH
+            time <= start_time <= time + ONE_MONTH or \
+            time <= end_time <= time + ONE_MONTH
 
     def _get_query_results(self, job_collection, project_id, job_id,
                            offset=None, limit=None):
@@ -762,10 +930,37 @@ class BigQueryClient(object):
 
         return row_value
 
+    def _generate_hex_for_uris(self, uris):
+        """Given uris, generate and return hex version of it
+
+        Args:
+            uris: A list containing all uris
+        Returns:
+            string of hexed uris
+        """
+        return sha256(":".join(uris) + str(time())).hexdigest()
+
+    def _raise_insert_exception_if_error(self, job):
+        error_http = job.get('error')
+        if error_http:
+            raise JobInsertException("Error in export job API request: {0}".format(error_http))
+        # handle errorResult - API request is successful but error in result
+        error_result = job.get('status').get('errorResult')
+        if error_result:
+            raise JobInsertException("Reason:{reason}. Message:{message}".format(**error_result))
+
+    def _raise_executing_exception_if_error(self, job):
+        error_http = job.get('error')
+        if error_http:
+            raise JobExecutingException("Error in export job API request: {0}".format(error_http))
+        # handle errorResult - API request is successful but error in result
+        error_result = job.get('status').get('errorResult')
+        if error_result:
+            raise JobExecutingException("Reason:{reason}. Message:{message}".format(**error_result))
+
     #
     # DataSet manipulation methods
     #
-
     def create_dataset(self, dataset_id, friendly_name=None, description=None,
                        access=None):
         """Create a new BigQuery dataset.
