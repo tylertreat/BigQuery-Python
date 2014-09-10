@@ -475,7 +475,7 @@ class BigQueryClient(object):
             }
         }
 
-        logger.info("Creating load job %s" % body)
+        logger.debug("Creating load job %s" % body)
         job_resource = self.bigquery.jobs() \
             .insert(projectId=self.project_id, body=body) \
             .execute()
@@ -1030,7 +1030,7 @@ class BigQueryClient(object):
             return True
         except Exception, e:
             logger.error('Cannot delete dataset %s: %s' % (dataset_id, e))
-            return None
+            return False
 
     def update_dataset(self, dataset_id, friendly_name=None, description=None,
                        access=None):

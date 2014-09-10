@@ -4,6 +4,8 @@ from datetime import datetime
 
 import dateutil.parser
 
+from errors import InvalidSchemaType
+
 
 def default_timestamp_parser(s):
     try:
@@ -52,6 +54,7 @@ def describe_field(k, v, timestamp_parser=default_timestamp_parser):
     {"name": "users", "type": "record", "mode": "repeated",
      "fields": [{"name":"username","type":"string","mode":"nullable"}]}
     """
+
     def bq_schema_field(name, bq_type, mode):
         return {"name": name, "type": bq_type, "mode": mode}
 
@@ -65,9 +68,16 @@ def describe_field(k, v, timestamp_parser=default_timestamp_parser):
         mode = "nullable"
 
     bq_type = bigquery_type(v, timestamp_parser=timestamp_parser)
+    if not bq_type:
+        raise InvalidSchemaType(k, v)
+
     field = bq_schema_field(k, bq_type, mode)
     if bq_type == "record":
-        field['fields'] = schema_from_record(v)
+        try:
+            field['fields'] = schema_from_record(v)
+        except InvalidSchemaType, e:
+            # recursively construct the key causing the error
+            raise InvalidSchemaType("%s.%s" % (k, e.key), e.value)
 
     return field
 
@@ -76,6 +86,9 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     """Given a value, return the matching BigQuery type of that value. Must be
     one of str/unicode/int/float/datetime/record, where record is a dict
     containing value which have matching BigQuery types.
+
+    Returns:
+        str or None if no matching type could be found
 
     >>> bigquery_type("abc")
     "string"
@@ -100,5 +113,4 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     elif t == datetime:
         return "timestamp"
     else:
-        raise Exception(
-            "Invalid object for BigQuery schema: {0} ({1}".format(o, t))
+        return None  # failed to find a type
