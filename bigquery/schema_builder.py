@@ -4,15 +4,8 @@ from datetime import datetime
 
 import dateutil.parser
 
+from errors import InvalidSchemaType
 
-class InvalidBigQueryType(Exception):
-    def __init__(self, k, v):
-        self.key = k
-        self.value = v
-
-        message = "Invalid type at key '{key}': {value}".format(
-            value=v, key=k)
-        Exception.__init__(self, message)
 
 def default_timestamp_parser(s):
     try:
@@ -76,15 +69,15 @@ def describe_field(k, v, timestamp_parser=default_timestamp_parser):
 
     bq_type = bigquery_type(v, timestamp_parser=timestamp_parser)
     if not bq_type:
-        raise InvalidBigQueryType(k, v)
+        raise InvalidSchemaType(k, v)
 
     field = bq_schema_field(k, bq_type, mode)
     if bq_type == "record":
         try:
             field['fields'] = schema_from_record(v)
-        except InvalidBigQueryType, e:
+        except InvalidSchemaType, e:
             # recursively construct the key causing the error
-            raise InvalidBigQueryType("%s.%s" % (k, e.key), e.value)
+            raise InvalidSchemaType("%s.%s" % (k, e.key), e.value)
 
     return field
 

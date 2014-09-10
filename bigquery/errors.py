@@ -8,3 +8,12 @@ class JobInsertException(Exception):
 
 class JobExecutingException(Exception):
     pass
+
+class InvalidSchemaType(Exception):
+    def __init__(self, k, v):
+        self.key = k
+        self.value = v
+
+        message = "Invalid type at key '{key}': {value}".format(
+            value=v, key=k)
+        Exception.__init__(self, message)

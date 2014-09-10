@@ -6,7 +6,7 @@ from nose.tools import raises
 from bigquery.schema_builder import schema_from_record
 from bigquery.schema_builder import describe_field
 from bigquery.schema_builder import bigquery_type
-from bigquery.schema_builder import InvalidBigQueryType
+from bigquery.schema_builder import InvalidSchemaType
 
 
 class TestBigQueryTypes(unittest.TestCase):
@@ -97,7 +97,7 @@ class TestSchemaGenerator(unittest.TestCase):
 
         try:
             schema_from_record({"a": {"b": [{"c": None}]}})
-        except InvalidBigQueryType, e:
+        except InvalidSchemaType, e:
             key = e.key
             value = e.value
 
