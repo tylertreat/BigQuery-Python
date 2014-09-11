@@ -1669,7 +1669,6 @@ class TestDeleteDataset(unittest.TestCase):
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
 
-
     def test_delete_datasets_delete_contents_success(self):
         """Ensure that if deleting table succeeds, True is returned."""
 

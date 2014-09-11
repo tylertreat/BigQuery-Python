@@ -836,8 +836,8 @@ class BigQueryClient(object):
         ONE_MONTH = 2764800  # 32 days
 
         return start_time <= time <= end_time or \
-               time <= start_time <= time + ONE_MONTH or \
-               time <= end_time <= time + ONE_MONTH
+            time <= start_time <= time + ONE_MONTH or \
+            time <= end_time <= time + ONE_MONTH
 
     def _get_query_results(self, job_collection, project_id, job_id,
                            offset=None, limit=None):
