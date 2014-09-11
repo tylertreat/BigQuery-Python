@@ -1002,7 +1002,7 @@ class BigQueryClient(object):
             datasets = self.bigquery.datasets()
             request = datasets.list(projectId=self.project_id)
             result = request.execute()
-            return result.get('datasets')
+            return result.get('datasets',[])
         except Exception, e:
             logger.error("Cannot list datasets: %s" % e)
             return None
