@@ -99,7 +99,6 @@ def _credentials():
 
 
 class BigQueryClient(object):
-
     def __init__(self, bq_service, project_id):
         self.bigquery = bq_service
         self.project_id = project_id
@@ -665,7 +664,6 @@ class BigQueryClient(object):
         elapsed_time = 0
         while not (complete
                    or (timeout is not None and elapsed_time > timeout)):
-
             sleep(interval)
             request = self.bigquery.jobs().get(projectId=self.project_id,
                                                jobId=job_id)
@@ -1002,7 +1000,7 @@ class BigQueryClient(object):
             datasets = self.bigquery.datasets()
             request = datasets.list(projectId=self.project_id)
             result = request.execute()
-            return result.get('datasets')
+            return result.get('datasets', [])
         except Exception, e:
             logger.error("Cannot list datasets: %s" % e)
             return None

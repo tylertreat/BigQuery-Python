@@ -9,6 +9,7 @@ class JobInsertException(Exception):
 class JobExecutingException(Exception):
     pass
 
+
 class InvalidTypeException(Exception):
     def __init__(self, k, v):
         self.key = k

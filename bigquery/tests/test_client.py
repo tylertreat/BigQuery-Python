@@ -8,7 +8,6 @@ from bigquery.errors import JobInsertException, JobExecutingException
 
 
 class TestGetClient(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -86,7 +85,6 @@ class TestGetClient(unittest.TestCase):
 
 
 class TestQuery(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -251,7 +249,6 @@ class TestQuery(unittest.TestCase):
 
 
 class TestGetQueryResults(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -291,7 +288,6 @@ class TestGetQueryResults(unittest.TestCase):
 
 
 class TestTransformRow(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -370,7 +366,6 @@ class TestTransformRow(unittest.TestCase):
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestCheckJob(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
         self.project_id = 'project'
@@ -411,7 +406,6 @@ class TestCheckJob(unittest.TestCase):
 
 
 class TestWaitForJob(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
         self.project_id = 'project'
@@ -476,10 +470,10 @@ class TestWaitForJob(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -517,7 +511,6 @@ class TestWaitForJob(unittest.TestCase):
 
 
 class TestImportDataFromURIs(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
         self.mock_api = mock.Mock()
@@ -725,10 +718,10 @@ class TestImportDataFromURIs(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -763,7 +756,6 @@ class TestImportDataFromURIs(unittest.TestCase):
 
 
 class TestExportDataToURIs(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
         self.mock_api = mock.Mock()
@@ -822,10 +814,10 @@ class TestExportDataToURIs(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -860,7 +852,6 @@ class TestExportDataToURIs(unittest.TestCase):
 
 
 class TestWriteToTable(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
         self.mock_api = mock.Mock()
@@ -914,10 +905,10 @@ class TestWriteToTable(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -944,7 +935,6 @@ class TestWriteToTable(unittest.TestCase):
 
 
 class TestFilterTablesByTime(unittest.TestCase):
-
     def test_empty_tables(self):
         """Ensure we can handle filtering an empty dictionary"""
 
@@ -960,15 +950,15 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-                                           'Spider-Man': 1370002001,
-                                           'Daenerys Targaryen': 1370001999,
-                                           'Gordon Freeman': 1369999999,
-                                           'William Shatner': 1370001000,
-                                           'Heavy Weapons Guy': 0
+                                               'Spider-Man': 1370002001,
+                                               'Daenerys Targaryen': 1370001999,
+                                               'Gordon Freeman': 1369999999,
+                                               'William Shatner': 1370001000,
+                                               'Heavy Weapons Guy': 0
                                            }, 1370002000, 1370000000)
 
         self.assertEqual([
-                         'Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'], tables)
+                             'Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'], tables)
 
     def test_not_inside_range(self):
         """Ensure we can correctly filter several application ids outside the
@@ -978,10 +968,10 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-                                           'John Snow': 9001,
-                                           'Adam West': 100000000000000,
-                                           'Glados': -1,
-                                           'Potato': 0,
+                                               'John Snow': 9001,
+                                               'Adam West': 100000000000000,
+                                               'Glados': -1,
+                                               'Potato': 0,
                                            }, 1370002000, 1370000000)
 
         self.assertEqual([], tables)
@@ -1065,7 +1055,6 @@ FULL_TABLE_LIST_RESPONSE = {
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestGetQuerySchema(unittest.TestCase):
-
     def test_query_complete(self, get_query_mock):
         """Ensure that get_query_schema works when a query is complete."""
         from bigquery.client import BigQueryClient
@@ -1099,7 +1088,6 @@ class TestGetQuerySchema(unittest.TestCase):
 
 
 class TestGetTableSchema(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -1143,7 +1131,6 @@ class TestGetTableSchema(unittest.TestCase):
 
 @mock.patch('bigquery.client.BigQueryClient._get_query_results')
 class TestGetQueryRows(unittest.TestCase):
-
     def test_query_complete(self, get_query_mock):
         """Ensure that get_query_rows works when a query is complete."""
         from bigquery.client import BigQueryClient
@@ -1199,7 +1186,6 @@ class TestGetQueryRows(unittest.TestCase):
 
 
 class TestCheckTable(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -1240,7 +1226,6 @@ class TestCheckTable(unittest.TestCase):
 
 
 class TestCreateTable(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -1293,7 +1278,6 @@ class TestCreateTable(unittest.TestCase):
 
 
 class TestDeleteTable(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_tables = mock.Mock()
@@ -1334,7 +1318,6 @@ class TestDeleteTable(unittest.TestCase):
 
 
 class TestParseTableListReponse(unittest.TestCase):
-
     def test_full_parse(self):
         """Ensures we can parse a full list response."""
 
@@ -1427,7 +1410,6 @@ class TestParseTableListReponse(unittest.TestCase):
 
 
 class TestPushRows(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_table_data = mock.Mock()
@@ -1516,7 +1498,6 @@ class TestPushRows(unittest.TestCase):
 
 
 class TestGetAllTables(unittest.TestCase):
-
     def test_get_tables(self):
         """Ensure get_all_tables fetches table names from BigQuery."""
 
@@ -1546,7 +1527,6 @@ class TestGetAllTables(unittest.TestCase):
 
 
 class TestGetTables(unittest.TestCase):
-
     def test_get_tables(self):
         """Ensure tables falling in the time window are returned."""
 
@@ -1592,7 +1572,6 @@ class TestGetTables(unittest.TestCase):
 # Dataset tests
 #
 class TestCreateDataset(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
@@ -1650,7 +1629,6 @@ class TestCreateDataset(unittest.TestCase):
 
 
 class TestDeleteDataset(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
@@ -1691,7 +1669,6 @@ class TestDeleteDataset(unittest.TestCase):
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
 
-
     def test_delete_datasets_delete_contents_success(self):
         """Ensure that if deleting table succeeds, True is returned."""
 
@@ -1707,6 +1684,7 @@ class TestDeleteDataset(unittest.TestCase):
 
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
+
 
 FULL_DATASET_LIST_RESPONSE = {
     "kind": "bigquery#dataseteList",
@@ -1778,7 +1756,6 @@ FULL_DATASET_LIST_RESPONSE = {
 
 
 class TestGetDatasets(unittest.TestCase):
-
     def test_get_datasets(self):
         """Ensure datasets are returned."""
 
@@ -1796,9 +1773,27 @@ class TestGetDatasets(unittest.TestCase):
         datasets = bq.get_datasets()
         self.assertItemsEqual(datasets, FULL_DATASET_LIST_RESPONSE['datasets'])
 
+    def test_get_datasets_returns_no_list(self):
+        """Ensure we handle the no datasets case"""
+        mock_execute = mock.Mock()
+        mock_execute.execute.return_value = {
+            "kind": "bigquery#dataseteList",
+            "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lPQc\""
+        }
+
+        mock_datasets = mock.Mock()
+        mock_datasets.list.return_value = mock_execute
+
+        mock_bq_service = mock.Mock()
+        mock_bq_service.datasets.return_value = mock_datasets
+
+        bq = client.BigQueryClient(mock_bq_service, 'project')
+
+        datasets = bq.get_datasets()
+        self.assertItemsEqual(datasets, [])
+
 
 class TestUpdateDataset(unittest.TestCase):
-
     def setUp(self):
         self.mock_bq_service = mock.Mock()
         self.mock_datasets = mock.Mock()
