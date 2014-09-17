@@ -38,7 +38,8 @@ JOB_SOURCE_FORMAT_DATASTORE_BACKUP = 'DATASTORE_BACKUP'
 JOB_SOURCE_FORMAT_NEWLINE_DELIMITED_JSON = JOB_FORMAT_NEWLINE_DELIMITED_JSON
 JOB_SOURCE_FORMAT_CSV = JOB_FORMAT_CSV
 JOB_DESTINATION_FORMAT_AVRO = 'AVRO'
-JOB_DESTINATION_FORMAT_NEWLINE_DELIMITED_JSON = JOB_FORMAT_NEWLINE_DELIMITED_JSON
+JOB_DESTINATION_FORMAT_NEWLINE_DELIMITED_JSON = \
+    JOB_FORMAT_NEWLINE_DELIMITED_JSON
 JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 
@@ -518,8 +519,8 @@ class BigQueryClient(object):
         Raises:
             JobInsertException on http/auth failures or error in result
         """
-        destination_uris = destination_uris if isinstance(destination_uris, list) \
-            else [destination_uris]
+        destination_uris = destination_uris \
+            if isinstance(destination_uris, list) else [destination_uris]
 
         configuration = {
             "sourceTable": {
@@ -652,7 +653,8 @@ class BigQueryClient(object):
             timeout: optional float timeout in seconds, default = None
         Returns:
             dict, final state of the job_resource, as described here:
-            https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#get
+            https://developers.google.com/resources/api-libraries/documentation
+            /bigquery/v2/python/latest/bigquery_v2.jobs.html#get
         Raises:
             JobExecutingException on http/auth failures or error in result
         """
@@ -941,20 +943,24 @@ class BigQueryClient(object):
     def _raise_insert_exception_if_error(self, job):
         error_http = job.get('error')
         if error_http:
-            raise JobInsertException("Error in export job API request: {0}".format(error_http))
+            raise JobInsertException(
+                "Error in export job API request: {0}".format(error_http))
         # handle errorResult - API request is successful but error in result
         error_result = job.get('status').get('errorResult')
         if error_result:
-            raise JobInsertException("Reason:{reason}. Message:{message}".format(**error_result))
+            raise JobInsertException(
+                "Reason:{reason}. Message:{message}".format(**error_result))
 
     def _raise_executing_exception_if_error(self, job):
         error_http = job.get('error')
         if error_http:
-            raise JobExecutingException("Error in export job API request: {0}".format(error_http))
+            raise JobExecutingException(
+                "Error in export job API request: {0}".format(error_http))
         # handle errorResult - API request is successful but error in result
         error_result = job.get('status').get('errorResult')
         if error_result:
-            raise JobExecutingException("Reason:{reason}. Message:{message}".format(**error_result))
+            raise JobExecutingException(
+                "Reason:{reason}. Message:{message}".format(**error_result))
 
     #
     # DataSet manipulation methods
