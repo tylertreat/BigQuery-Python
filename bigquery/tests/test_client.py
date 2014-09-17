@@ -470,10 +470,10 @@ class TestWaitForJob(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                               "domain": "global",
-                               "reason": "required",
-                               "message": "Required parameter is missing"
-                           }],
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -718,10 +718,10 @@ class TestImportDataFromURIs(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                               "domain": "global",
-                               "reason": "required",
-                               "message": "Required parameter is missing"
-                           }],
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -778,7 +778,8 @@ class TestExportDataToURIs(unittest.TestCase):
         body = {
             "jobReference": {
                 "projectId": self.project_id,
-                "jobId": "%s-%s-destinationuri" % (self.dataset_id, self.table_id)
+                "jobId": "%s-%s-destinationuri" %
+                (self.dataset_id, self.table_id)
             },
             "configuration": {
                 "extract": {
@@ -796,11 +797,11 @@ class TestExportDataToURIs(unittest.TestCase):
 
         self.mock_api.jobs().insert().execute.return_value = expected_result
         mock_generate_hex.return_value = "destinationuri"
-        result = self.client.export_data_to_uris(["destinationuri"],
-                                                 self.dataset_id,
-                                                 self.table_id,
-                                                 destination_format=self.destination_format,
-                                                 print_header=self.print_header)
+        result = self.client.export_data_to_uris(
+            ["destinationuri"], self.dataset_id, self.table_id,
+            destination_format=self.destination_format,
+            print_header=self.print_header
+        )
 
         self.mock_api.jobs().insert.assert_called_with(
             projectId=self.project_id,
@@ -814,10 +815,10 @@ class TestExportDataToURIs(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                               "domain": "global",
-                               "reason": "required",
-                               "message": "Required parameter is missing"
-                           }],
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -905,17 +906,18 @@ class TestWriteToTable(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                               "domain": "global",
-                               "reason": "required",
-                               "message": "Required parameter is missing"
-                           }],
+                    "domain": "global",
+                    "reason": "required",
+                    "message": "Required parameter is missing"
+                }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
         }
 
         self.mock_api.jobs().insert().execute.return_value = expected_result
-        self.assertRaises(JobInsertException, self.client.write_to_table, self.query)
+        self.assertRaises(JobInsertException, self.client.write_to_table,
+                          self.query)
 
     def test_write_error_result(self):
         """ Test write with error result"""
@@ -931,7 +933,8 @@ class TestWriteToTable(unittest.TestCase):
         }
 
         self.mock_api.jobs().insert().execute.return_value = expected_result
-        self.assertRaises(JobInsertException, self.client.write_to_table, self.query)
+        self.assertRaises(JobInsertException, self.client.write_to_table,
+                          self.query)
 
 
 class TestFilterTablesByTime(unittest.TestCase):
@@ -950,15 +953,17 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-                                               'Spider-Man': 1370002001,
-                                               'Daenerys Targaryen': 1370001999,
-                                               'Gordon Freeman': 1369999999,
-                                               'William Shatner': 1370001000,
-                                               'Heavy Weapons Guy': 0
-                                           }, 1370002000, 1370000000)
+            'Spider-Man': 1370002001,
+            'Daenerys Targaryen': 1370001999,
+            'Gordon Freeman': 1369999999,
+            'William Shatner': 1370001000,
+            'Heavy Weapons Guy': 0
+        }, 1370002000, 1370000000)
 
-        self.assertEqual([
-                             'Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'], tables)
+        self.assertEqual(
+            ['Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'],
+            tables
+        )
 
     def test_not_inside_range(self):
         """Ensure we can correctly filter several application ids outside the
@@ -968,11 +973,11 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-                                               'John Snow': 9001,
-                                               'Adam West': 100000000000000,
-                                               'Glados': -1,
-                                               'Potato': 0,
-                                           }, 1370002000, 1370000000)
+            'John Snow': 9001,
+            'Adam West': 100000000000000,
+            'Glados': -1,
+            'Potato': 0,
+        }, 1370002000, 1370000000)
 
         self.assertEqual([], tables)
 
@@ -1648,7 +1653,8 @@ class TestDeleteDataset(unittest.TestCase):
         self.assertFalse(actual)
 
         self.mock_datasets.delete.assert_called_once_with(
-            projectId=self.project, datasetId=self.dataset, deleteContents=False)
+            projectId=self.project, datasetId=self.dataset,
+            deleteContents=False)
 
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
@@ -1664,7 +1670,8 @@ class TestDeleteDataset(unittest.TestCase):
         self.assertTrue(actual)
 
         self.mock_datasets.delete.assert_called_once_with(
-            projectId=self.project, datasetId=self.dataset, deleteContents=False)
+            projectId=self.project, datasetId=self.dataset,
+            deleteContents=False)
 
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
@@ -1680,7 +1687,8 @@ class TestDeleteDataset(unittest.TestCase):
         self.assertTrue(actual)
 
         self.mock_datasets.delete.assert_called_once_with(
-            projectId=self.project, datasetId=self.dataset, deleteContents=True)
+            projectId=self.project, datasetId=self.dataset,
+            deleteContents=True)
 
         self.mock_datasets.delete.return_value.execute. \
             assert_called_once_with()
@@ -1778,7 +1786,7 @@ class TestGetDatasets(unittest.TestCase):
         mock_execute = mock.Mock()
         mock_execute.execute.return_value = {
             "kind": "bigquery#dataseteList",
-            "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lPQc\""
+            "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lP\""
         }
 
         mock_datasets = mock.Mock()

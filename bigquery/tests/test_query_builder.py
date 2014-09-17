@@ -28,8 +28,10 @@ class TestRenderSelect(unittest.TestCase):
         from bigquery.query_builder import _render_select
 
         result = _render_select({
-            'start_time': {'alias': 'TimeStamp', 'format':
-                'SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC'}
+            'start_time': {
+                'alias': 'TimeStamp',
+                'format': 'SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC'
+            }
         })
 
         self.assertEqual(
@@ -576,8 +578,10 @@ class TestRenderQuery(unittest.TestCase):
             dataset='dataset',
             tables=['2013_06_appspot_1'],
             select={
-                'start_time': {'alias': 'timestamp', 'format':
-                    'INTEGER-FORMAT_UTC_USEC'},
+                'start_time': {
+                    'alias': 'timestamp',
+                    'format': 'INTEGER-FORMAT_UTC_USEC'
+                },
                 'status': {'alias': 'status'},
                 'resource': {'alias': 'url'}
             },
@@ -611,10 +615,16 @@ class TestRenderQuery(unittest.TestCase):
             dataset='dataset',
             tables=['2013_06_appspot_1'],
             select={
-                'start_time': [{'alias': 'timestamp', 'format':
-                    'INTEGER-FORMAT_UTC_USEC'},
-                               {'alias': 'day', 'format':
-                                   'SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC-LEFT:10'}
+                'start_time': [
+                    {
+                        'alias': 'timestamp',
+                        'format': 'INTEGER-FORMAT_UTC_USEC'
+                    },
+                    {
+                        'alias': 'day',
+                        'format': ('SEC_TO_MICRO-INTEGER-'
+                                   'FORMAT_UTC_USEC-LEFT:10')
+                    }
                 ],
                 'status': {'alias': 'status'},
                 'resource': {'alias': 'url'}
@@ -651,8 +661,10 @@ class TestRenderQuery(unittest.TestCase):
             dataset='dataset',
             tables=['2013_06_appspot_1'],
             select={
-                'start_time': {'alias': 'timestamp', 'format':
-                    'SEC_TO_MICRO-INTEGER-SEC_TO_TIMESTAMP'},
+                'start_time': {
+                    'alias': 'timestamp',
+                    'format': 'SEC_TO_MICRO-INTEGER-SEC_TO_TIMESTAMP'
+                },
                 'status': {'alias': 'status'},
                 'resource': {'alias': 'url'}
             },

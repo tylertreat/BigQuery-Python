@@ -1,7 +1,6 @@
 from datetime import datetime
 import unittest
 
-from nose.tools import raises
 
 from bigquery.schema_builder import schema_from_record
 from bigquery.schema_builder import describe_field
@@ -41,12 +40,15 @@ class TestBigQueryTypes(unittest.TestCase):
         self.assertItemsEqual(bigquery_type("February 20th 1973"), 'timestamp')
 
     def test_timestring_arbitrary_fn_success(self):
-        self.assertItemsEqual(bigquery_type("whatever",
-                                            timestamp_parser=lambda x: True), 'timestamp')
+        self.assertItemsEqual(
+            bigquery_type("whatever", timestamp_parser=lambda x: True),
+            'timestamp')
 
     def test_timestring_arbitrary_fn_fail(self):
-        self.assertItemsEqual(bigquery_type("February 20th 1973",
-                                            timestamp_parser=lambda x: False), 'string')
+        self.assertItemsEqual(
+            bigquery_type("February 20th 1973",
+                          timestamp_parser=lambda x: False),
+            'string')
 
     def test_class_instance_is_invalid_type(self):
         class SomeClass:
@@ -80,8 +82,8 @@ class TestSchemaGenerator(unittest.TestCase):
         record = {"user": {"username": "Bob", "id": 123}}
         schema = [{"name": "user", "type": "record", "mode": "nullable",
                    "fields": [{"name": "username", "type": "string", "mode":
-                       "nullable"}, {"name": "id", "type": "integer",
-                                     "mode": "nullable"}]}]
+                               "nullable"}, {"name": "id", "type": "integer",
+                                             "mode": "nullable"}]}]
 
         self.assertItemsEqual(schema_from_record(record), schema)
 
