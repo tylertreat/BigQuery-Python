@@ -206,7 +206,7 @@ class BigQueryClient(object):
             job_collection, self.project_id, job_id, offset=0, limit=0)
 
         return (query_reply.get('jobComplete', False),
-                query_reply.get('totalRows', 0))
+                int(query_reply.get('totalRows', 0)))
 
     def get_query_rows(self, job_id, offset=None, limit=None):
         """Retrieve a list of rows from a query table by job id.

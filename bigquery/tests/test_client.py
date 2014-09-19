@@ -396,7 +396,7 @@ class TestCheckJob(unittest.TestCase):
                     {'name': 'spider', 'type': 'STRING'}
                 ]
             },
-            'totalRows': 2
+            'totalRows': '2'
         }
 
         is_completed, total_rows = self.client.check_job(1)
