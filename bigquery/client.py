@@ -660,7 +660,8 @@ class BigQueryClient(object):
             JobExecutingException on http/auth failures or error in result
         """
         complete = False
-        job_id = job if isinstance(job, (str,unicode)) else job['jobReference']['jobId']
+        job_id = job if isinstance(job, (str, unicode)) else \
+            job['jobReference']['jobId']
         job_resource = None
 
         start_time = time()
