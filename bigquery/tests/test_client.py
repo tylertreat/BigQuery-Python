@@ -434,6 +434,26 @@ class TestWaitForJob(unittest.TestCase):
         self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
         self.assertIsInstance(job_resource, dict)
 
+    def test_accepts_job_id(self):
+        """Ensure it accepts a job Id rather than a full job resource"""
+
+        return_values = [{'status': {'state': u'RUNNING'},
+                          'jobReference': {'jobId': "testJob"}},
+                         {'status': {'state': u'DONE'},
+                          'jobReference': {'jobId': "testJob"}}]
+
+        def side_effect(*args, **kwargs):
+            return return_values.pop(0)
+
+        self.api_mock.jobs().get().execute.side_effect = side_effect
+
+        job_resource = self.client.wait_for_job("testJob",
+                                                interval=.01,
+                                                timeout=None)
+
+        self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
+        self.assertIsInstance(job_resource, dict)
+
     def test_respects_timeout(self):
         """Ensure that the wait can be timed out"""
         incomplete_job = {'status': {'state': u'RUNNING'},
@@ -470,10 +490,10 @@ class TestWaitForJob(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -718,10 +738,10 @@ class TestImportDataFromURIs(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -779,7 +799,7 @@ class TestExportDataToURIs(unittest.TestCase):
             "jobReference": {
                 "projectId": self.project_id,
                 "jobId": "%s-%s-destinationuri" %
-                (self.dataset_id, self.table_id)
+                         (self.dataset_id, self.table_id)
             },
             "configuration": {
                 "extract": {
@@ -815,10 +835,10 @@ class TestExportDataToURIs(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -906,10 +926,10 @@ class TestWriteToTable(unittest.TestCase):
         expected_result = {
             "error": {
                 "errors": [{
-                    "domain": "global",
-                    "reason": "required",
-                    "message": "Required parameter is missing"
-                }],
+                               "domain": "global",
+                               "reason": "required",
+                               "message": "Required parameter is missing"
+                           }],
                 "code": 400,
                 "message": "Required parameter is missing"
             }
@@ -953,12 +973,12 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-            'Spider-Man': 1370002001,
-            'Daenerys Targaryen': 1370001999,
-            'Gordon Freeman': 1369999999,
-            'William Shatner': 1370001000,
-            'Heavy Weapons Guy': 0
-        }, 1370002000, 1370000000)
+                                               'Spider-Man': 1370002001,
+                                               'Daenerys Targaryen': 1370001999,
+                                               'Gordon Freeman': 1369999999,
+                                               'William Shatner': 1370001000,
+                                               'Heavy Weapons Guy': 0
+                                           }, 1370002000, 1370000000)
 
         self.assertEqual(
             ['Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'],
@@ -973,11 +993,11 @@ class TestFilterTablesByTime(unittest.TestCase):
         bq = client.BigQueryClient(None, 'project')
 
         tables = bq._filter_tables_by_time({
-            'John Snow': 9001,
-            'Adam West': 100000000000000,
-            'Glados': -1,
-            'Potato': 0,
-        }, 1370002000, 1370000000)
+                                               'John Snow': 9001,
+                                               'Adam West': 100000000000000,
+                                               'Glados': -1,
+                                               'Potato': 0,
+                                           }, 1370002000, 1370000000)
 
         self.assertEqual([], tables)
 
