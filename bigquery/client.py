@@ -666,11 +666,11 @@ class BigQueryClient(object):
 
         start_time = time()
         elapsed_time = 0
-        while not (complete
-                   or (timeout is not None and elapsed_time > timeout)):
+        while not (complete or (timeout is not None
+                                and elapsed_time > timeout)):
             sleep(interval)
-            request = self.bigquery.jobs().get(projectId=self.project_id,
-                                               jobId=job_id)
+            request = self.bigquery.jobs().get(
+                projectId=self.project_id, jobId=job_id)
             job_resource = request.execute()
             self._raise_executing_exception_if_error(job_resource)
             complete = job_resource.get('status').get('state') == u'DONE'
