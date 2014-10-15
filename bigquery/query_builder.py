@@ -1,4 +1,4 @@
-from bigquery import logger
+import logging
 
 
 def render_query(dataset, tables, select=None, conditions=None,
@@ -162,7 +162,7 @@ def _render_conditions(conditions):
         comparators = condition.get('comparators')
 
         if None in (field, field_type, comparators) or not comparators:
-            logger.warn('Invalid condition passed in: %s' % condition)
+            logging.warn('Invalid condition passed in: %s' % condition)
             continue
 
         rendered_conditions.append(

@@ -1,19 +1,19 @@
 import calendar
 from collections import defaultdict
 from datetime import datetime
-from time import sleep, time
+from time import sleep
+from time import time
 from hashlib import sha256
 import json
+import logging
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 import httplib2
 
-from bigquery import logger
-from bigquery.errors import (
-    UnfinishedQueryException, JobInsertException,
-    JobExecutingException
-)
+from bigquery.errors import JobExecutingException
+from bigquery.errors import JobInsertException
+from bigquery.errors import UnfinishedQueryException
 from bigquery.schema_builder import schema_from_record
 
 
@@ -122,7 +122,7 @@ class BigQueryClient(object):
             or a dict containing the response if invalid.
         """
 
-        logger.debug('Executing query: %s' % query)
+        logging.debug('Executing query: %s' % query)
 
         job_collection = self.bigquery.jobs()
         query_data = {
@@ -160,7 +160,7 @@ class BigQueryClient(object):
             job_collection, self.project_id, job_id, offset=0, limit=0)
 
         if not query_reply['jobComplete']:
-            logger.warning('BigQuery job %s not complete' % job_id)
+            logging.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
 
         return query_reply['schema']['fields']
@@ -184,7 +184,7 @@ class BigQueryClient(object):
                 datasetId=dataset).execute()
         except HttpError, e:
             if int(e.resp['status']) == 404:
-                logger.warn('Table %s.%s does not exist', dataset, table)
+                logging.warn('Table %s.%s does not exist', dataset, table)
                 return None
             raise
 
@@ -226,7 +226,7 @@ class BigQueryClient(object):
             limit=limit)
 
         if not query_reply['jobComplete']:
-            logger.warning('BigQuery job %s not complete' % job_id)
+            logging.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
 
         schema = query_reply['schema']['fields']
@@ -284,7 +284,7 @@ class BigQueryClient(object):
             return True
 
         except:
-            logger.error('Cannot create table %s.%s' % (dataset, table))
+            logging.error('Cannot create table %s.%s' % (dataset, table))
             return False
 
     def delete_table(self, dataset, table):
@@ -307,7 +307,7 @@ class BigQueryClient(object):
             return True
 
         except:
-            logger.error('Cannot delete table %s.%s' % (dataset, table))
+            logging.error('Cannot delete table %s.%s' % (dataset, table))
             return False
 
     def get_tables(self, dataset_id, app_id, start_time, end_time):
@@ -475,7 +475,7 @@ class BigQueryClient(object):
             }
         }
 
-        logger.debug("Creating load job %s" % body)
+        logging.debug("Creating load job %s" % body)
         job_resource = self.bigquery.jobs() \
             .insert(projectId=self.project_id, body=body) \
             .execute()
@@ -561,7 +561,7 @@ class BigQueryClient(object):
             }
         }
 
-        logger.info("Creating export job %s" % body)
+        logging.info("Creating export job %s" % body)
         job_resource = self.bigquery.jobs() \
             .insert(projectId=self.project_id, body=body) \
             .execute()
@@ -637,7 +637,7 @@ class BigQueryClient(object):
             }
         }
 
-        logger.info("Creating write to table job %s" % body)
+        logging.info("Creating write to table job %s" % body)
         job_resource = self.bigquery.jobs() \
             .insert(projectId=self.project_id, body=body) \
             .execute()
@@ -713,13 +713,13 @@ class BigQueryClient(object):
             ).execute()
 
             if response.get('insertErrors'):
-                logger.error('BigQuery insert errors: %s' % response)
+                logging.error('BigQuery insert errors: %s' % response)
                 return False
 
             return True
 
         except:
-            logger.error('Problem with BigQuery insertAll')
+            logging.error('Problem with BigQuery insertAll')
             return False
 
     def _get_all_tables(self, dataset_id):
@@ -993,7 +993,7 @@ class BigQueryClient(object):
                             body=dataset_data).execute()
             return True
         except Exception, e:
-            logger.error('Cannot create dataset %s, %s' % (dataset_id, e))
+            logging.error('Cannot create dataset %s, %s' % (dataset_id, e))
             return False
 
     def get_datasets(self):
@@ -1008,7 +1008,7 @@ class BigQueryClient(object):
             result = request.execute()
             return result.get('datasets', [])
         except Exception, e:
-            logger.error("Cannot list datasets: %s" % e)
+            logging.error("Cannot list datasets: %s" % e)
             return None
 
     def delete_dataset(self, dataset_id, delete_contents=False):
@@ -1033,7 +1033,7 @@ class BigQueryClient(object):
             request.execute()
             return True
         except Exception, e:
-            logger.error('Cannot delete dataset %s: %s' % (dataset_id, e))
+            logging.error('Cannot delete dataset %s: %s' % (dataset_id, e))
             return False
 
     def update_dataset(self, dataset_id, friendly_name=None, description=None,
@@ -1062,7 +1062,7 @@ class BigQueryClient(object):
             request.execute()
             return True
         except Exception, e:
-            logger.error('Cannot update dataset %s: %s' % (dataset_id, e))
+            logging.error('Cannot update dataset %s: %s' % (dataset_id, e))
             return False
 
     def patch_dataset(self, dataset_id, friendly_name=None, description=None,
@@ -1089,7 +1089,7 @@ class BigQueryClient(object):
             request.execute()
             return True
         except Exception, e:
-            logger.error('Cannot patch dataset %s: %s' % (dataset_id, e))
+            logging.error('Cannot patch dataset %s: %s' % (dataset_id, e))
             return False
 
     def dataset_resource(self, ref_id, friendly_name=None, description=None,
