@@ -44,7 +44,7 @@ JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 
 def get_client(project_id, credentials=None, service_account=None,
-               private_key=None, readonly=True):
+               private_key=None, readonly=True, swallow_results=True):
     """Return a singleton instance of BigQueryClient. Either
     AssertionCredentials or a service account and private key combination need
     to be provided in order to authenticate requests to BigQuery.
@@ -72,7 +72,7 @@ def get_client(project_id, credentials=None, service_account=None,
                                  private_key=private_key,
                                  readonly=readonly)
 
-    return BigQueryClient(bq_service, project_id)
+    return BigQueryClient(bq_service, project_id, swallow_results)
 
 
 def _get_bq_service(credentials=None, service_account=None, private_key=None,
@@ -100,9 +100,10 @@ def _credentials():
 
 
 class BigQueryClient(object):
-    def __init__(self, bq_service, project_id):
+    def __init__(self, bq_service, project_id, swallow_results=True):
         self.bigquery = bq_service
         self.project_id = project_id
+        self.swallow_results = swallow_results
 
     def query(self, query, max_results=None, timeout=10, dry_run=False):
         """Submit a query to BigQuery.
@@ -243,16 +244,30 @@ class BigQueryClient(object):
 
         Returns:
             bool indicating if the table exists.
-    """
+        """
+        table = self.get_table(dataset, table)
+        return bool(table)
 
+    def get_table(self, dataset, table):
+        """
+        Retrieve a table if it exists, otherwise return an empty dict.
+
+        Args:
+            dataset: the dataset that the table is in
+            table: the name of the table
+
+        Returns:
+            dictionary containing the table object if it exists, otherwise
+            an empty dictionary
+        """
         try:
-            self.bigquery.tables().get(
+            table = self.bigquery.tables().get(
                 projectId=self.project_id, datasetId=dataset,
                 tableId=table).execute()
-            return True
-
         except:
-            return False
+            table = {}
+
+        return table
 
     def create_table(self, dataset, table, schema):
         """Create a new table in the dataset.
@@ -714,13 +729,22 @@ class BigQueryClient(object):
 
             if response.get('insertErrors'):
                 logging.error('BigQuery insert errors: %s' % response)
-                return False
+                if self.swallow_results:
+                    return False
+                else:
+                    return response
 
-            return True
+            if self.swallow_results:
+                return True
+            else:
+                return response
 
         except:
             logging.error('Problem with BigQuery insertAll')
-            return False
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def _get_all_tables(self, dataset_id):
         """Retrieve a list of all tables for the dataset.
