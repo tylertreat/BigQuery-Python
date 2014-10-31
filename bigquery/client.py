@@ -766,8 +766,10 @@ class BigQueryClient(object):
             if self.swallow_results:
                 return False
             else:
-                return {'insertErrors': [{'reason': 'httperror',
-                                          'message': e.message}]}
+                return {'insertErrors': [{
+                    'errors': [{'reason': 'httperror',
+                                'message': e.message}]
+                }]}
 
     def _get_all_tables(self, dataset_id):
         """Retrieve a list of all tables for the dataset.

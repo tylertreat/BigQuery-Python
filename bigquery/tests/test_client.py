@@ -1540,9 +1540,9 @@ class TestPushRows(unittest.TestCase):
         actual = self.client.push_rows(self.dataset, self.table, self.rows,
                                        'one')
 
-        self.assertEqual(actual, {'insertErrors':
-                                  [{'reason': 'httperror',
-                                    'message': ''}]})
+        self.assertEqual(actual, {'insertErrors': [{
+                                  'errors': [{'reason': 'httperror',
+                                              'message': ''}]}]})
 
         self.client.swallow_results = True
 
