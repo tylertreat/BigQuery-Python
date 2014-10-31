@@ -761,8 +761,7 @@ class BigQueryClient(object):
                 return response
 
         except HttpError as e:
-            logging.error('Problem with BigQuery insertAll: {0}'
-                          .format(e.message))
+            logging.exception('Problem with BigQuery insertAll')
             if self.swallow_results:
                 return False
             else:
