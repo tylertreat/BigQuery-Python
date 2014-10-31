@@ -58,6 +58,8 @@ def get_client(project_id, credentials=None, service_account=None,
                      PKCS12 or PEM format.
         readonly: bool indicating if BigQuery access is read-only. Has no
                   effect if credentials are provided.
+        swallow_results: If set to false then return the actual response value
+                         instead of converting to a boolean.
 
     Returns:
         an instance of BigQueryClient.
@@ -136,7 +138,7 @@ class BigQueryClient(object):
         try:
             query_reply = job_collection.query(
                 projectId=self.project_id, body=query_data).execute()
-        except HttpError, e:
+        except HttpError as e:
             if dry_run:
                 return None, json.loads(e.content)
             raise
@@ -264,7 +266,7 @@ class BigQueryClient(object):
             table = self.bigquery.tables().get(
                 projectId=self.project_id, datasetId=dataset,
                 tableId=table).execute()
-        except:
+        except HttpError:
             table = {}
 
         return table
@@ -278,7 +280,8 @@ class BigQueryClient(object):
             schema: table schema dict.
 
         Returns:
-            bool indicating if the table was successfully created or not.
+            bool indicating if the table was successfully created or not,
+            or response from BigQuery if swallow_results is set for False.
         """
 
         body = {
@@ -291,16 +294,24 @@ class BigQueryClient(object):
         }
 
         try:
-            self.bigquery.tables().insert(
+            table = self.bigquery.tables().insert(
                 projectId=self.project_id,
                 datasetId=dataset,
                 body=body
             ).execute()
-            return True
+            if self.swallow_results:
+                return True
+            else:
+                return table
 
-        except:
-            logging.error('Cannot create table %s.%s' % (dataset, table))
-            return False
+        except HttpError as e:
+            logging.error(('Cannot create table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.message))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def delete_table(self, dataset, table):
         """Delete a table from the dataset.
@@ -310,20 +321,29 @@ class BigQueryClient(object):
             table: the name of the table to delete.
 
         Returns:
-            bool indicating if the table was successfully deleted or not.
+            bool indicating if the table was successfully deleted or not,
+            or response from BigQuery if swallow_results is set for False.
         """
 
         try:
-            self.bigquery.tables().delete(
+            response = self.bigquery.tables().delete(
                 projectId=self.project_id,
                 datasetId=dataset,
                 tableId=table
             ).execute()
-            return True
+            if self.swallow_results:
+                return True
+            else:
+                return response
 
-        except:
-            logging.error('Cannot delete table %s.%s' % (dataset, table))
-            return False
+        except HttpError as e:
+            logging.error(('Cannot delete table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.message))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def get_tables(self, dataset_id, app_id, start_time, end_time):
         """Retrieve a list of tables that are related to the given app id
@@ -701,7 +721,8 @@ class BigQueryClient(object):
             insert_id_key: key for insertId in row
 
         Returns:
-            bool indicating if insert succeeded or not.
+            bool indicating if insert succeeded or not, or response
+            from BigQuery if swallow_results is set for False.
         """
 
         table_data = self.bigquery.tabledata()
@@ -739,12 +760,14 @@ class BigQueryClient(object):
             else:
                 return response
 
-        except:
-            logging.error('Problem with BigQuery insertAll')
+        except HttpError as e:
+            logging.error('Problem with BigQuery insertAll: {0}'
+                          .format(e.message))
             if self.swallow_results:
                 return False
             else:
-                return {}
+                return {'insertErrors': [{'reason': 'httperror',
+                                          'message': e.message}]}
 
     def _get_all_tables(self, dataset_id):
         """Retrieve a list of all tables for the dataset.
@@ -1004,7 +1027,8 @@ class BigQueryClient(object):
                     datasets#resource)
 
         Returns:
-            bool indicating if dataset was created or not
+            bool indicating if dataset was created or not, or response
+            from BigQuery if swallow_results is set for False
         """
         try:
             datasets = self.bigquery.datasets()
@@ -1013,12 +1037,19 @@ class BigQueryClient(object):
                                                  description=description,
                                                  access=access)
 
-            datasets.insert(projectId=self.project_id,
+            response = datasets.insert(projectId=self.project_id,
                             body=dataset_data).execute()
-            return True
-        except Exception, e:
-            logging.error('Cannot create dataset %s, %s' % (dataset_id, e))
-            return False
+            if self.swallow_results:
+                return True
+            else:
+                return response
+        except HttpError as e:
+            logging.error('Cannot create dataset {0}, {1}'.format(dataset_id,
+                                                                  e))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def get_datasets(self):
         """List all datasets in the project.
@@ -1031,8 +1062,8 @@ class BigQueryClient(object):
             request = datasets.list(projectId=self.project_id)
             result = request.execute()
             return result.get('datasets', [])
-        except Exception, e:
-            logging.error("Cannot list datasets: %s" % e)
+        except HttpError as e:
+            logging.error("Cannot list datasets: {0}".format(e))
             return None
 
     def delete_dataset(self, dataset_id, delete_contents=False):
@@ -1044,7 +1075,8 @@ class BigQueryClient(object):
             delete_contents: forces deletion of the dataset even when the
                         dataset contains data
         Returns:
-            bool indicating if the delete was successful or not
+            bool indicating if the delete was successful or not, or response
+            from BigQuery if swallow_results is set for False
 
         Raises:
             HttpError 404 when dataset with dataset_id does not exist
@@ -1054,11 +1086,18 @@ class BigQueryClient(object):
             request = datasets.delete(projectId=self.project_id,
                                       datasetId=dataset_id,
                                       deleteContents=delete_contents)
-            request.execute()
-            return True
-        except Exception, e:
-            logging.error('Cannot delete dataset %s: %s' % (dataset_id, e))
-            return False
+            response = request.execute()
+            if self.swallow_results:
+                return True
+            else:
+                return response
+        except HttpError as e:
+            logging.error('Cannot delete dataset {0}: {1}'.format(dataset_id,
+                                                                  e))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def update_dataset(self, dataset_id, friendly_name=None, description=None,
                        access=None):
@@ -1074,7 +1113,8 @@ class BigQueryClient(object):
             access: an optional object indicating access permissions.
 
         Returns:
-            bool indicating if the update was successful or not.
+            bool indicating if the update was successful or not, or response
+            from BigQuery if swallow_results is set for False.
         """
         try:
             datasets = self.bigquery.datasets()
@@ -1083,11 +1123,18 @@ class BigQueryClient(object):
             request = datasets.update(projectId=self.project_id,
                                       datasetId=dataset_id,
                                       body=body)
-            request.execute()
-            return True
-        except Exception, e:
-            logging.error('Cannot update dataset %s: %s' % (dataset_id, e))
-            return False
+            response = request.execute()
+            if self.swallow_results:
+                return True
+            else:
+                return response
+        except HttpError as e:
+            logging.error('Cannot update dataset {0}: {1}'.format(dataset_id,
+                                                                  e))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def patch_dataset(self, dataset_id, friendly_name=None, description=None,
                       access=None):
@@ -1102,7 +1149,8 @@ class BigQueryClient(object):
             description: an optional description of the dataset.
             access: an optional object indicating access permissions.
         Returns:
-            bool indicating if the patch was successful or not.
+            bool indicating if the patch was successful or not, or response
+            from BigQuery if swallow_results is set for False.
         """
         try:
             datasets = self.bigquery.datasets()
@@ -1110,11 +1158,17 @@ class BigQueryClient(object):
                                          description, access)
             request = datasets.patch(projectId=self.project_id,
                                      datasetId=dataset_id, body=body)
-            request.execute()
-            return True
-        except Exception, e:
-            logging.error('Cannot patch dataset %s: %s' % (dataset_id, e))
-            return False
+            response = request.execute()
+            if self.swallow_results:
+                return True
+            else:
+                return response
+        except HttpError as e:
+            logging.error('Cannot patch dataset {0}: {1}'.format(dataset_id, e))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def dataset_resource(self, ref_id, friendly_name=None, description=None,
                          access=None):
