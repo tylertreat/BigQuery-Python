@@ -3,8 +3,19 @@ import unittest
 import mock
 from nose.tools import raises
 
+from apiclient.errors import HttpError
 from bigquery import client
 from bigquery.errors import JobInsertException, JobExecutingException
+
+
+class HttpResponse(object):
+    def __init__(self, status, reason='There was an error'):
+        """
+        Args:
+            :param int status: Integer HTTP response status
+        """
+        self.status = status
+        self.reason = reason
 
 
 class TestGetClient(unittest.TestCase):
@@ -199,7 +210,6 @@ class TestQuery(unittest.TestCase):
         """Ensure that None and a dict is returned from the query when dry_run
         is True and the query is invalid.
         """
-        from apiclient.errors import HttpError
 
         mock_query_job = mock.Mock()
 
@@ -1122,8 +1132,6 @@ class TestGetTableSchema(unittest.TestCase):
 
     def test_table_does_not_exist(self):
         """Ensure that None is returned if the table doesn't exist."""
-        from apiclient.errors import HttpError
-
         self.mock_tables.get.return_value.execute.side_effect = \
             HttpError({'status': "404"}, '{}')
 
@@ -1203,7 +1211,8 @@ class TestCheckTable(unittest.TestCase):
     def test_table_does_not_exist(self):
         """Ensure that if the table does not exist, False is returned."""
 
-        self.mock_tables.get.return_value.execute.side_effect = Exception()
+        self.mock_tables.get.return_value.execute.side_effect = (
+            HttpError(HttpResponse(404), 'There was an error'))
 
         actual = self.client.check_table(self.dataset, self.table)
 
@@ -1251,35 +1260,56 @@ class TestCreateTable(unittest.TestCase):
         }
 
     def test_table_create_failed(self):
-        """Ensure that if creating the table fails, False is returned."""
+        """Ensure that if creating the table fails, False is returned,
+        or if swallow_results is False an empty dict is returned."""
 
-        self.mock_tables.insert.return_value.execute.side_effect = Exception()
+        self.mock_tables.insert.return_value.execute.side_effect = (
+            HttpError(HttpResponse(404), 'There was an error'))
 
         actual = self.client.create_table(self.dataset, self.table,
                                           self.schema)
 
         self.assertFalse(actual)
 
-        self.mock_tables.insert.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.create_table(self.dataset, self.table,
+                                          self.schema)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_once_with()
+        self.mock_tables.insert.return_value.execute.assert_called_with()
 
     def test_table_create_success(self):
-        """Ensure that if creating the table fails, False is returned."""
+        """Ensure that if creating the table succeeds, True is returned,
+        or if swallow_results is False the actual response is returned."""
 
-        self.mock_tables.insert.return_value.execute.side_effect = {
-            'status': 'foo'}
+        self.mock_tables.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
 
         actual = self.client.create_table(self.dataset, self.table,
                                           self.schema)
 
         self.assertTrue(actual)
 
-        self.mock_tables.insert.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.create_table(self.dataset, self.table,
+                                          self.schema)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_once_with()
+        self.mock_tables.insert.return_value.execute.assert_called_with()
 
 
 class TestDeleteTable(unittest.TestCase):
@@ -1293,33 +1323,52 @@ class TestDeleteTable(unittest.TestCase):
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
 
     def test_delete_table_fail(self):
-        """Ensure that if deleting table fails, False is returned."""
+        """Ensure that if deleting table fails, False is returned,
+        or the actual response is swallow_results is False."""
 
-        self.mock_tables.delete.return_value.execute.side_effect = Exception()
+        self.mock_tables.delete.return_value.execute.side_effect = (
+            HttpError(HttpResponse(404), 'There was an error'))
 
         actual = self.client.delete_table(self.dataset, self.table)
 
         self.assertFalse(actual)
 
-        self.mock_tables.delete.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.delete_table(self.dataset, self.table)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.delete.assert_called_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table)
 
-        self.mock_tables.delete.return_value.execute.assert_called_once_with()
+        self.mock_tables.delete.return_value.execute.assert_called_with()
 
     def test_delete_table_success(self):
-        """Ensure that if deleting table succeeds, True is returned."""
+        """Ensure that if deleting table succeeds, True is returned,
+        or the actual response if swallow_results is False."""
 
-        self.mock_tables.delete.return_value.execute.side_effect = {
-            'status': 'foo'}
+        self.mock_tables.delete.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
 
         actual = self.client.delete_table(self.dataset, self.table)
 
         self.assertTrue(actual)
 
-        self.mock_tables.delete.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.delete_table(self.dataset, self.table)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.delete.assert_called_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table)
 
-        self.mock_tables.delete.return_value.execute.assert_called_once_with()
+        self.mock_tables.delete.return_value.execute.assert_called_with()
 
 
 class TestParseTableListReponse(unittest.TestCase):
@@ -1457,20 +1506,49 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
             execute_calls)
 
+    def test_push_failed_swallow_results_false(self):
+        """
+        Ensure that if insertAll returns insertion errors and swallow_results
+        is false that you get an empty dictionary.
+        """
+        self.mock_table_data.insertAll.return_value.execute.return_value = {
+            'insertErrors': 'foo'}
+        self.client.swallow_results = False
+
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
+
+        self.client.swallow_results = True  # Reset for other tests
+
+        self.assertEqual(
+            actual,
+            self.mock_table_data.insertAll.return_value.execute.return_value)
+
     def test_push_exception(self):
         """Ensure that if insertAll raises an exception, False is returned."""
 
         self.mock_table_data.insertAll.return_value.execute.side_effect = \
-            Exception()
+            HttpError(HttpResponse(404), 'There was an error')
 
         actual = self.client.push_rows(self.dataset, self.table, self.rows,
                                        'one')
 
         self.assertFalse(actual)
 
-        self.mock_bq_service.tabledata.assert_called_once_with()
+        self.client.swallow_results = False
 
-        self.mock_table_data.insertAll.assert_called_once_with(
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
+
+        self.assertEqual(actual, {'insertErrors': [{
+                                  'errors': [{'reason': 'httperror',
+                                              'message': ''}]}]})
+
+        self.client.swallow_results = True
+
+        self.mock_bq_service.tabledata.assert_called_with()
+
+        self.mock_table_data.insertAll.assert_called_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table,
             body=self.data)
 
@@ -1491,9 +1569,18 @@ class TestPushRows(unittest.TestCase):
 
         self.assertTrue(actual)
 
-        self.mock_bq_service.tabledata.assert_called_once_with()
+        self.client.swallow_results = False
 
-        self.mock_table_data.insertAll.assert_called_once_with(
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
+
+        self.assertEqual(actual, {'status': 'foo'})
+
+        self.client.swallow_results = True
+
+        self.mock_bq_service.tabledata.assert_called_with()
+
+        self.mock_table_data.insertAll.assert_called_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table,
             body=self.data)
 
@@ -1600,7 +1687,7 @@ class TestCreateDataset(unittest.TestCase):
         """Ensure that if creating the table fails, False is returned."""
 
         self.mock_datasets.insert.return_value.execute.side_effect = \
-            Exception()
+            HttpError(HttpResponse(404), 'There was an error')
 
         actual = self.client.create_dataset(self.dataset,
                                             friendly_name=self.friendly_name,
@@ -1608,17 +1695,28 @@ class TestCreateDataset(unittest.TestCase):
                                             access=self.access)
         self.assertFalse(actual)
 
-        self.mock_datasets.insert.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.create_dataset(self.dataset,
+                                            friendly_name=self.friendly_name,
+                                            description=self.description,
+                                            access=self.access)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
+        self.mock_datasets.insert.assert_called_with(
             projectId=self.project, body=self.body)
 
         self.mock_datasets.insert.return_value.execute. \
-            assert_called_once_with()
+            assert_called_with()
 
     def test_dataset_create_success(self):
         """Ensure that if creating the table fails, False is returned."""
 
-        self.mock_datasets.insert.return_value.execute.side_effect = {
-            'status': 'foo'}
+        self.mock_datasets.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
 
         actual = self.client.create_dataset(self.dataset,
                                             self.friendly_name,
@@ -1626,11 +1724,22 @@ class TestCreateDataset(unittest.TestCase):
                                             self.access)
         self.assertTrue(actual)
 
-        self.mock_datasets.insert.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.create_dataset(self.dataset,
+                                            self.friendly_name,
+                                            self.description,
+                                            self.access)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_datasets.insert.assert_called_with(
             projectId=self.project, body=self.body)
 
         self.mock_datasets.insert.return_value.execute. \
-            assert_called_once_with()
+            assert_called_with()
 
 
 class TestDeleteDataset(unittest.TestCase):
@@ -1646,7 +1755,7 @@ class TestDeleteDataset(unittest.TestCase):
         """Ensure that if deleting table fails, False is returned."""
 
         self.mock_datasets.delete.return_value.execute.side_effect = \
-            Exception()
+            HttpError(HttpResponse(404), 'There was an error')
 
         actual = self.client.delete_dataset(self.dataset)
 
@@ -1656,42 +1765,66 @@ class TestDeleteDataset(unittest.TestCase):
             projectId=self.project, datasetId=self.dataset,
             deleteContents=False)
 
+        self.client.swallow_results = False
+
+        actual = self.client.delete_dataset(self.dataset)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
         self.mock_datasets.delete.return_value.execute. \
-            assert_called_once_with()
+            assert_called_with()
 
     def test_delete_datasets_success(self):
         """Ensure that if deleting table succeeds, True is returned."""
 
-        self.mock_datasets.delete.return_value.execute.side_effect = {
-            'status': 'foo'}
+        self.mock_datasets.delete.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
 
         actual = self.client.delete_dataset(self.dataset)
 
         self.assertTrue(actual)
 
-        self.mock_datasets.delete.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.delete_dataset(self.dataset)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_datasets.delete.assert_called_with(
             projectId=self.project, datasetId=self.dataset,
             deleteContents=False)
 
         self.mock_datasets.delete.return_value.execute. \
-            assert_called_once_with()
+            assert_called_with()
 
     def test_delete_datasets_delete_contents_success(self):
         """Ensure that if deleting table succeeds, True is returned."""
 
-        self.mock_datasets.delete.return_value.execute.side_effect = {
-            'status': 'foo'}
+        self.mock_datasets.delete.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
 
         actual = self.client.delete_dataset(self.dataset, True)
 
         self.assertTrue(actual)
 
-        self.mock_datasets.delete.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.delete_dataset(self.dataset, True)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_datasets.delete.assert_called_with(
             projectId=self.project, datasetId=self.dataset,
             deleteContents=True)
 
         self.mock_datasets.delete.return_value.execute. \
-            assert_called_once_with()
+            assert_called_with()
 
 
 FULL_DATASET_LIST_RESPONSE = {
@@ -1825,7 +1958,7 @@ class TestUpdateDataset(unittest.TestCase):
         """Ensure that if creating the table fails, False is returned."""
 
         self.mock_datasets.update.return_value.execute.side_effect = \
-            Exception()
+            HttpError(HttpResponse(404), 'There was an error')
 
         actual = self.client.update_dataset(self.dataset,
                                             friendly_name=self.friendly_name,
@@ -1833,17 +1966,28 @@ class TestUpdateDataset(unittest.TestCase):
                                             access=self.access)
         self.assertFalse(actual)
 
-        self.mock_datasets.update.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.update_dataset(self.dataset,
+                                            friendly_name=self.friendly_name,
+                                            description=self.description,
+                                            access=self.access)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
+        self.mock_datasets.update.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
         self.mock_datasets.update.return_value.execute. \
-            assert_called_once_with()
+            assert_called_with()
 
     def test_dataset_update_success(self):
         """Ensure that if creating the table fails, False is returned."""
 
-        self.mock_datasets.insert.return_value.execute.side_effect = {
-            'status': 'foo'}
+        self.mock_datasets.update.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
 
         actual = self.client.update_dataset(self.dataset,
                                             self.friendly_name,
@@ -1851,8 +1995,19 @@ class TestUpdateDataset(unittest.TestCase):
                                             self.access)
         self.assertTrue(actual)
 
-        self.mock_datasets.update.assert_called_once_with(
+        self.client.swallow_results = False
+
+        actual = self.client.update_dataset(self.dataset,
+                                            self.friendly_name,
+                                            self.description,
+                                            self.access)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_datasets.update.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
         self.mock_datasets.update.return_value.execute. \
-            assert_called_once_with()
+            assert_called_with()
