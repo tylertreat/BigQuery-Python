@@ -1527,8 +1527,8 @@ class TestPushRows(unittest.TestCase):
     def test_push_exception(self):
         """Ensure that if insertAll raises an exception, False is returned."""
 
-        self.mock_table_data.insertAll.return_value.execute.side_effect = \
-            HttpError(HttpResponse(404), 'There was an error')
+        e = HttpError(HttpResponse(404), 'There was an error')
+        self.mock_table_data.insertAll.return_value.execute.side_effect = e
 
         actual = self.client.push_rows(self.dataset, self.table, self.rows,
                                        'one')
@@ -1540,9 +1540,13 @@ class TestPushRows(unittest.TestCase):
         actual = self.client.push_rows(self.dataset, self.table, self.rows,
                                        'one')
 
-        self.assertEqual(actual, {'insertErrors': [{
-                                  'errors': [{'reason': 'httperror',
-                                              'message': ''}]}]})
+        self.assertEqual(actual, {
+            'insertErrors': [{
+                'errors': [{
+                    'reason': 'httperror',
+                    'message': e
+                }]
+            }]})
 
         self.client.swallow_results = True
 
