@@ -684,6 +684,7 @@ class BigQueryClient(object):
         Waits until the job indicated by job_resource is done or has failed
         Args:
             job: dict, representing a BigQuery job resource
+                 or str, representing a BigQuery job id
             interval: optional float polling interval in seconds, default = 5
             timeout: optional float timeout in seconds, default = None
         Returns:
@@ -694,16 +695,17 @@ class BigQueryClient(object):
             JobExecutingException on http/auth failures or error in result
         """
         complete = False
-        job_id = job['jobReference']['jobId']
+        job_id = job if isinstance(job, (str, unicode)) else \
+            job['jobReference']['jobId']
         job_resource = None
 
         start_time = time()
         elapsed_time = 0
-        while not (complete
-                   or (timeout is not None and elapsed_time > timeout)):
+        while not (complete or (timeout is not None
+                                and elapsed_time > timeout)):
             sleep(interval)
-            request = self.bigquery.jobs().get(projectId=self.project_id,
-                                               jobId=job_id)
+            request = self.bigquery.jobs().get(
+                projectId=self.project_id, jobId=job_id)
             job_resource = request.execute()
             self._raise_executing_exception_if_error(job_resource)
             complete = job_resource.get('status').get('state') == u'DONE'
