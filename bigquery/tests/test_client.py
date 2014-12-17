@@ -208,10 +208,12 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.return_value = mock_query_job
         timeout = 5
-        self.assertRaises(BigQueryTimeoutException, self.client.query, self.query, None, timeout)
+        self.assertRaises(BigQueryTimeoutException, self.client.query,
+                          self.query, None, timeout)
 
     def test_async_query_timeout(self):
-        """Ensure that exception is not raise on timeout for asynchronous query"""
+        """Ensure that exception is not raise on timeout
+        for asynchronous query"""
 
         mock_query_job = mock.Mock()
         expected_job_id = 'spiderman'
@@ -235,7 +237,8 @@ class TestQuery(unittest.TestCase):
 
         mock_query_job = mock.Mock()
 
-        mock_query_job.execute.return_value = {'jobReference': {}, 'jobComplete': True}
+        mock_query_job.execute.return_value = {'jobReference': {},
+                                               'jobComplete': True}
 
         self.mock_job_collection.query.return_value = mock_query_job
 
@@ -498,7 +501,8 @@ class TestWaitForJob(unittest.TestCase):
                           'jobReference': {'jobId': "testJob"}}
 
         self.api_mock.jobs().get().execute.return_value = incomplete_job
-        self.assertRaises(BigQueryTimeoutException, self.client.wait_for_job, incomplete_job, .1, .25)
+        self.assertRaises(BigQueryTimeoutException, self.client.wait_for_job,
+                          incomplete_job, .1, .25)
 
     def test_wait_job_http_error(self):
         """ Test wait job with http error"""

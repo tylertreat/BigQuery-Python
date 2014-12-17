@@ -2,6 +2,7 @@ import unittest
 
 
 class TestRenderSelect(unittest.TestCase):
+
     def test_multiple_selects(self):
         """Ensure that render select can handle multiple selects."""
         from bigquery.query_builder import _render_select
@@ -48,6 +49,7 @@ class TestRenderSelect(unittest.TestCase):
 
 
 class TestRenderSources(unittest.TestCase):
+
     def test_multi_tables(self):
         """Ensure that render sources can handle multiple sources."""
         from bigquery.query_builder import _render_sources
@@ -75,6 +77,7 @@ class TestRenderSources(unittest.TestCase):
 
 
 class TestRenderConditions(unittest.TestCase):
+
     def test_single_condition(self):
         """Ensure that render conditions can handle a single condition."""
         from bigquery.query_builder \
@@ -210,6 +213,7 @@ class TestRenderConditions(unittest.TestCase):
 
 
 class TestRenderOrder(unittest.TestCase):
+
     def test_order(self):
         """Ensure that render order can work under expected conditions."""
         from bigquery.query_builder import _render_order
@@ -228,6 +232,7 @@ class TestRenderOrder(unittest.TestCase):
 
 
 class TestGroupings(unittest.TestCase):
+
     def test_mutliple_fields(self):
         """Ensure that render grouping works with multiple fields."""
         from bigquery.query_builder \
@@ -248,6 +253,7 @@ class TestGroupings(unittest.TestCase):
 
 
 class TestRenderQuery(unittest.TestCase):
+
     def test_full_query(self):
         """Ensure that all the render query arguments work together."""
         from bigquery.query_builder import render_query

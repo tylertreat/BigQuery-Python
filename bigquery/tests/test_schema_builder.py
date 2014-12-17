@@ -9,6 +9,7 @@ from bigquery.schema_builder import InvalidTypeException
 
 
 class TestBigQueryTypes(unittest.TestCase):
+
     def test_str_is_string(self):
         self.assertItemsEqual(bigquery_type("Bob"), 'string')
 
@@ -64,6 +65,7 @@ class TestBigQueryTypes(unittest.TestCase):
 
 
 class TestFieldDescription(unittest.TestCase):
+
     def test_simple_string_field(self):
         self.assertItemsEqual(describe_field("user", "Bob"),
                               {"name": "user", "type": "string", "mode":
@@ -71,6 +73,7 @@ class TestFieldDescription(unittest.TestCase):
 
 
 class TestSchemaGenerator(unittest.TestCase):
+
     def test_simple_record(self):
         record = {"username": "Bob", "id": 123}
         schema = [{"name": "username", "type": "string", "mode": "nullable"},

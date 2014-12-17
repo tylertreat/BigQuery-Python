@@ -152,7 +152,8 @@ class BigQueryClient(object):
         rows = query_reply.get('rows', [])
         job_complete = query_reply.get('jobComplete', False)
 
-        # raise exceptions if it's not an async query and job is not completed after timeout
+        # raise exceptions if it's not an async query
+        # and job is not completed after timeout
         if not job_complete and timeout:
             logging.error('BigQuery job %s timeout' % job_id)
             raise BigQueryTimeoutException()
@@ -1184,7 +1185,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot patch dataset {0}: {1}'.format(dataset_id, e))
+            logging.error('Cannot patch dataset {0}: {1}'.format(dataset_id,
+                                                                 e))
             if self.swallow_results:
                 return False
             else:
