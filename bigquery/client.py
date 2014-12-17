@@ -11,11 +11,11 @@ from apiclient.discovery import build
 from apiclient.errors import HttpError
 import httplib2
 
-from bigquery.errors import JobExecutingException
-from bigquery.errors import JobInsertException
-from bigquery.errors import UnfinishedQueryException
 from bigquery.schema_builder import schema_from_record
-
+from bigquery.errors import (
+    JobExecutingException, JobInsertException,
+    UnfinishedQueryException, BigQueryTimeoutException
+)
 
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
@@ -102,12 +102,13 @@ def _credentials():
 
 
 class BigQueryClient(object):
+
     def __init__(self, bq_service, project_id, swallow_results=True):
         self.bigquery = bq_service
         self.project_id = project_id
         self.swallow_results = swallow_results
 
-    def query(self, query, max_results=None, timeout=10, dry_run=False):
+    def query(self, query, max_results=None, timeout=0, dry_run=False):
         """Submit a query to BigQuery.
 
         Args:
@@ -123,6 +124,9 @@ class BigQueryClient(object):
             job id and query results if query completed. If dry_run is True,
             job id will be None and results will be empty if the query is valid
             or a dict containing the response if invalid.
+
+        Raises:
+            BigQueryTimeoutException on timeout
         """
 
         logging.debug('Executing query: %s' % query)
@@ -146,6 +150,13 @@ class BigQueryClient(object):
         job_id = query_reply['jobReference'].get('jobId')
         schema = query_reply.get('schema', {'fields': None})['fields']
         rows = query_reply.get('rows', [])
+        job_complete = query_reply.get('jobComplete', False)
+
+        # raise exceptions if it's not an async query
+        # and job is not completed after timeout
+        if not job_complete and timeout:
+            logging.error('BigQuery job %s timeout' % job_id)
+            raise BigQueryTimeoutException()
 
         return job_id, [self._transform_row(row, schema) for row in rows]
 
@@ -679,19 +690,20 @@ class BigQueryClient(object):
         self._raise_insert_exception_if_error(job_resource)
         return job_resource
 
-    def wait_for_job(self, job, interval=5, timeout=None):
+    def wait_for_job(self, job, interval=5, timeout=60):
         """
         Waits until the job indicated by job_resource is done or has failed
         Args:
             job: dict, representing a BigQuery job resource
             interval: optional float polling interval in seconds, default = 5
-            timeout: optional float timeout in seconds, default = None
+            timeout: optional float timeout in seconds, default = 60
         Returns:
             dict, final state of the job_resource, as described here:
             https://developers.google.com/resources/api-libraries/documentation
             /bigquery/v2/python/latest/bigquery_v2.jobs.html#get
         Raises:
             JobExecutingException on http/auth failures or error in result
+            BigQueryTimeoutException on timeout
         """
         complete = False
         job_id = job['jobReference']['jobId']
@@ -699,8 +711,7 @@ class BigQueryClient(object):
 
         start_time = time()
         elapsed_time = 0
-        while not (complete
-                   or (timeout is not None and elapsed_time > timeout)):
+        while not (complete or elapsed_time > timeout):
             sleep(interval)
             request = self.bigquery.jobs().get(projectId=self.project_id,
                                                jobId=job_id)
@@ -708,6 +719,11 @@ class BigQueryClient(object):
             self._raise_executing_exception_if_error(job_resource)
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
+
+        # raise exceptions if timeout
+        if not complete:
+            logging.error('BigQuery job %s timeout' % job_id)
+            raise BigQueryTimeoutException()
 
         return job_resource
 
@@ -1043,7 +1059,7 @@ class BigQueryClient(object):
                                                  access=access)
 
             response = datasets.insert(projectId=self.project_id,
-                            body=dataset_data).execute()
+                                       body=dataset_data).execute()
             if self.swallow_results:
                 return True
             else:
@@ -1169,7 +1185,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot patch dataset {0}: {1}'.format(dataset_id, e))
+            logging.error('Cannot patch dataset {0}: {1}'.format(dataset_id,
+                                                                 e))
             if self.swallow_results:
                 return False
             else:

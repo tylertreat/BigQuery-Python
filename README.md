@@ -25,8 +25,8 @@ key = 'secret_key'
 
 client = get_client(project_id, service_account=service_account, private_key=key, readonly=True)
 
-# Submit a query.
-job_id, results = client.query('SELECT * FROM dataset.my_table LIMIT 1000')
+# Submit an async query.
+job_id, _results = client.query('SELECT * FROM dataset.my_table LIMIT 1000')
 
 # Check if the query has finished running.
 complete, row_count = client.check_job(job_id)
@@ -37,22 +37,32 @@ results = client.get_query_rows(job_id)
 
 # Executing Queries
 
-The BigQuery client allows you to execute raw queries against a dataset. The `query` method inserts a query job into BigQuery. A timeout can be specified to wait for the results, after which the request will return and can later be polled with `check_job`. This timeout defaults to 10 seconds.
+The BigQuery client allows you to execute raw queries against a dataset. The `query` method inserts a query job into BigQuery. By default, `query` method runs asynchronously with `0` for `timeout`. When a non-zero timeout value is specified, the job will wait for the results, and throws an exception on timeout.
+
+When you run an async query, you can use the returned `job_id` to poll for job status later with `check_job`.
 
 ```python
-# Submit query and wait 5 seconds for results.
-job_id, results = client.query('SELECT * FROM dataset.my_table LIMIT 1000', timeout=5)
-```
+# Submit an async query
+job_id, _results = client.query('SELECT * FROM dataset.my_table LIMIT 1000')
 
-If results are not available before the timeout expires, the job id can be used to poll for them.
+# Do other stuffs
 
-```python
 # Poll for query completion.
 complete, row_count = client.check_job(job_id)
 
 # Retrieve the results.
 if complete:
     results = client.get_query_rows(job_id)
+```
+
+You can also specify a non-zero timeout value if you want your query to be synchronous.
+
+```python
+# Submit a synchronous query
+try:
+    _job_id, results = client.query('SELECT * FROM dataset.my_table LIMIT 1000', timeout=10)
+except BigQueryTimeoutException:
+    print "Timeout"
 ```
 
 ## Query Builder
@@ -92,7 +102,7 @@ query = render_query(
     order_by={'field': 'Timestamp', 'direction': 'desc'}
 )
 
-job_id, _ = client.query(query, timeout=0)
+job_id, _ = client.query(query)
 ```
 
 # Managing Tables
@@ -146,13 +156,20 @@ You can write query results directly to table. When either dataset or table para
 job = client.write_to_table('SELECT * FROM dataset.original_table LIMIT 100',
                             'dataset',
                             'table')
-job = client.wait_for_job(job, timeout=60)
-print(job)
+try:
+    job_resource = client.wait_for_job(job, timeout=60)
+    print job_resource
+except BigQueryTimeoutException:
+    print "Timeout"
+
 
 # write to temporary table
 job = client.write_to_table('SELECT * FROM dataset.original_table LIMIT 100')
-job = client.wait_for_job(job, timeout=60)
-print(job)
+try:
+    job_resource = client.wait_for_job(job, timeout=60)
+    print job_resource
+except BigQueryTimeoutException:
+    print "Timeout"
 ```
 
 # Import data from Google cloud storage
@@ -164,8 +181,11 @@ job = client.import_data_from_uris( ['gs://mybucket/mydata.json'],
                                     schema,
                                     source_format=JOB_SOURCE_FORMAT_JSON)
 
-job = client.wait_for_job(job, timeout=60)
-print(job)
+try:
+    job_resource = client.wait_for_job(job, timeout=60)
+    print job_resource
+except BigQueryTimeoutException:
+    print "Timeout"
 ```
 
 # Export data to Google cloud storage
@@ -173,9 +193,11 @@ print(job)
 job = client.export_data_to_uris( ['gs://mybucket/mydata.json'],
                                    'dataset',
                                    'table')
-
-job = client.wait_for_job(job, timeout=60)
-print(job)
+try:
+    job_resource = client.wait_for_job(job, timeout=60)
+    print job_resource
+except BigQueryTimeoutException:
+    print "Timeout"
 ```
 
 # Managing Datasets
