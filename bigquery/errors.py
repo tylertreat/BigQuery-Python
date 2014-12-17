@@ -2,6 +2,10 @@ class UnfinishedQueryException(Exception):
     pass
 
 
+class BigQueryTimeoutException(Exception):
+    pass
+
+
 class JobInsertException(Exception):
     pass
 
@@ -11,6 +15,7 @@ class JobExecutingException(Exception):
 
 
 class InvalidTypeException(Exception):
+
     def __init__(self, k, v):
         self.key = k
         self.value = v
