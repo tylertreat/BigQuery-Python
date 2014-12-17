@@ -181,8 +181,11 @@ job = client.import_data_from_uris( ['gs://mybucket/mydata.json'],
                                     schema,
                                     source_format=JOB_SOURCE_FORMAT_JSON)
 
-job = client.wait_for_job(job, timeout=60)
-print(job)
+try:
+    job_resource = client.wait_for_job(job, timeout=60)
+    print job_resource
+except BigQueryTimeoutException:
+    print "Timeout"
 ```
 
 # Export data to Google cloud storage
