@@ -804,24 +804,24 @@ class BigQueryClient(object):
             a dictionary of app ids mapped to their table names.
         """
         do_fetch = True
-        if cache is True and self.cache.get(dataset_id) is not None:
+        if cache and self.cache.get(dataset_id):
             time, result = self.cache.get(dataset_id)
             if datetime.now() - time < CACHE_TIMEOUT:
                 do_fetch = False
 
-        if do_fetch is True:
+        if do_fetch:
             result = self.bigquery.tables().list(
                 projectId=self.project_id,
                 datasetId=dataset_id).execute()
 
-            page_token = result.get('nextPageToken', '')
-            while len(page_token) > 0:
+            page_token = result.get('nextPageToken')
+            while page_token:
                 res = self.bigquery.tables().list(
                     projectId=self.project_id,
                     datasetId=dataset_id,
                     pageToken=page_token
                     ).execute()
-                page_token = res.get('nextPageToekn', '')
+                page_token = res.get('nextPageToken')
                 result['tables'] += res.get('tables', [])
             self.cache[dataset_id] = (datetime.now(), result)
 
