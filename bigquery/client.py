@@ -1,6 +1,6 @@
 import calendar
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 from time import time
 from hashlib import sha256
@@ -19,6 +19,8 @@ from bigquery.errors import (
 
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
+
+CACHE_TIMEOUT = timedelta(seconds=30)
 
 JOB_CREATE_IF_NEEDED = 'CREATE_IF_NEEDED'
 JOB_CREATE_NEVER = 'CREATE_NEVER'
@@ -107,6 +109,7 @@ class BigQueryClient(object):
         self.bigquery = bq_service
         self.project_id = project_id
         self.swallow_results = swallow_results
+        self.cache = {}
 
     def query(self, query, max_results=None, timeout=0, dry_run=False):
         """Submit a query to BigQuery.
@@ -790,19 +793,37 @@ class BigQueryClient(object):
                     }]
                 }
 
-    def _get_all_tables(self, dataset_id):
+    def _get_all_tables(self, dataset_id, cache=False):
         """Retrieve a list of all tables for the dataset.
 
         Args:
             dataset_id: the dataset to retrieve table names for.
-
+            cache: To use cached value or not. Timeout value
+                   equals CACHE_TIMEOUT.
         Returns:
             a dictionary of app ids mapped to their table names.
         """
+        do_fetch = True
+        if cache is True and self.cache.get(dataset_id) is not None:
+            time, result = self.cache.get(dataset_id)
+            if datetime.now() - time < CACHE_TIMEOUT:
+                do_fetch = False
 
-        result = self.bigquery.tables().list(
-            projectId=self.project_id,
-            datasetId=dataset_id).execute()
+        if do_fetch is True:
+            result = self.bigquery.tables().list(
+                projectId=self.project_id,
+                datasetId=dataset_id).execute()
+
+            page_token = result.get('nextPageToken', '')
+            while len(page_token) > 0:
+                res = self.bigquery.tables().list(
+                    projectId=self.project_id,
+                    datasetId=dataset_id,
+                    pageToken=page_token
+                    ).execute()
+                page_token = res.get('nextPageToekn', '')
+                result['tables'] += res.get('tables', [])
+            self.cache[dataset_id] = (datetime.now(), result)
 
         return self._parse_table_list_response(result)
 

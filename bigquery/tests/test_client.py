@@ -1028,6 +1028,42 @@ class TestFilterTablesByTime(unittest.TestCase):
         self.assertEqual([], tables)
 
 
+NEXT_TABLE_LIST_RESPONSE = {
+    "kind": "bigquery#tableList",
+    "etag": "\"t_UlB9a9mrx5sjQInRGzeDrLrS0/TsIP_i4gAeLegj84WzkPzBPIkjo\"",
+    "nextPageToken": "2013_05_appspot_1",
+    "tables": [
+        {
+            "kind": "bigquery#table",
+            "id": "project:dataset.2013_06_appspot_10",
+            "tableReference": {
+                "projectId": "project",
+                "datasetId": "dataset",
+                "tableId": "2013_06_appspot_10"
+            }
+        },
+        {
+            "kind": "bigquery#table",
+            "id": "project:dataset.2013_06_appspot_11",
+            "tableReference": {
+                "projectId": "project",
+                "datasetId": "dataset",
+                "tableId": "2013_06_appspot_11"
+            }
+        },
+        {
+            "kind": "bigquery#table",
+            "id": "project:dataset.2013_06_appspot_12",
+            "tableReference": {
+                "projectId": "project",
+                "datasetId": "dataset",
+                "tableId": "2013_06_appspot_12"
+            }
+        },
+    ],
+    "totalItems": 3
+}
+
 FULL_TABLE_LIST_RESPONSE = {
     "kind": "bigquery#tableList",
     "etag": "\"GSclnjk0zID1ucM3F-xYinOm1oE/cn58Rpu8v8pB4eoJQaiTe11lPQc\"",
@@ -1663,7 +1699,83 @@ class TestGetAllTables(unittest.TestCase):
             'appspot': {'2013_05_appspot': 1367366400}
         }
 
-        tables = bq._get_all_tables('dataset')
+        tables = bq._get_all_tables('dataset', cache=False)
+        self.assertEquals(expected_result, tables)
+
+    def test_get_all_tables_with_page_token(self):
+        """Ensure get_all_tables fetches all tables names from BigQuery"""
+
+        mock_execute = mock.Mock()
+        mock_execute.execute.side_effect = [NEXT_TABLE_LIST_RESPONSE,
+                                            FULL_TABLE_LIST_RESPONSE]
+
+        mock_tables = mock.Mock()
+        mock_tables.list.return_value = mock_execute
+
+        mock_bq_service = mock.Mock()
+        mock_bq_service.tables.return_value = mock_tables
+
+        bq = client.BigQueryClient(mock_bq_service, 'project')
+
+        expected_result = {
+            'appspot-3': {'2013_06_appspot_3': 1370044800},
+            'appspot-2': {'2013_06_appspot_2': 1370044800},
+            'appspot-1': {'2013_06_appspot_1': 1370044800},
+            'appspot-6': {'appspot_6_2013_06': 1370044800},
+            'appspot-5': {'2013_06_appspot_5': 1370044800},
+            'appspot-4': {'2013_06_appspot_4': 1370044800},
+            'appspot': {'2013_05_appspot': 1367366400},
+            'appspot-10': {'2013_06_appspot_10': 1370044800},
+            'appspot-12': {'2013_06_appspot_12': 1370044800},
+            'appspot-11': {'2013_06_appspot_11': 1370044800},
+        }
+        tables = bq._get_all_tables('dataset', cache=False)
+        self.assertEquals(expected_result, tables)
+
+    def test_get_all_tables_with_cache(self):
+        """Ensure get_all_tables uses cache when fetching"""
+        mock_execute = mock.Mock()
+        mock_execute.execute.return_value = FULL_TABLE_LIST_RESPONSE
+
+        mock_tables = mock.Mock()
+        mock_tables.list.return_value = mock_execute
+
+        mock_bq_service = mock.Mock()
+        mock_bq_service.tables.return_value = mock_tables
+
+        bq = client.BigQueryClient(mock_bq_service, 'project')
+
+        expected_result = {
+            'appspot-3': {'2013_06_appspot_3': 1370044800},
+            'appspot-2': {'2013_06_appspot_2': 1370044800},
+            'appspot-1': {'2013_06_appspot_1': 1370044800},
+            'appspot-6': {'appspot_6_2013_06': 1370044800},
+            'appspot-5': {'2013_06_appspot_5': 1370044800},
+            'appspot-4': {'2013_06_appspot_4': 1370044800},
+            'appspot': {'2013_05_appspot': 1367366400}
+        }
+
+        tables = bq._get_all_tables('dataset', cache=True)
+        self.assertEquals(expected_result, tables)
+
+        mock_execute.execute.side_effect = [NEXT_TABLE_LIST_RESPONSE,
+                                            FULL_TABLE_LIST_RESPONSE]
+        tables = bq._get_all_tables('dataset', cache=True)
+        self.assertEquals(expected_result, tables)
+
+        expected_result = {
+            'appspot-3': {'2013_06_appspot_3': 1370044800},
+            'appspot-2': {'2013_06_appspot_2': 1370044800},
+            'appspot-1': {'2013_06_appspot_1': 1370044800},
+            'appspot-6': {'appspot_6_2013_06': 1370044800},
+            'appspot-5': {'2013_06_appspot_5': 1370044800},
+            'appspot-4': {'2013_06_appspot_4': 1370044800},
+            'appspot': {'2013_05_appspot': 1367366400},
+            'appspot-10': {'2013_06_appspot_10': 1370044800},
+            'appspot-12': {'2013_06_appspot_12': 1370044800},
+            'appspot-11': {'2013_06_appspot_11': 1370044800},
+        }
+        tables = bq._get_all_tables('dataset', cache=False)
         self.assertEquals(expected_result, tables)
 
 
