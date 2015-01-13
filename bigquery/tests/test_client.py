@@ -578,7 +578,7 @@ class TestImportDataFromURIs(unittest.TestCase):
             "configuration": {
                 "load": {
                     "sourceUris": ["sourceuri"],
-                    "schema": ["schema"],
+                    "schema": {"fields": ["schema"]},
                     "destinationTable": {
                         "projectId": self.project_id,
                         "datasetId": self.dataset_id,
@@ -637,7 +637,7 @@ class TestImportDataFromURIs(unittest.TestCase):
             "configuration": {
                 "load": {
                     "sourceUris": ["sourceuri"],
-                    "schema": ["schema"],
+                    "schema": {"fields": ["schema"]},
                     "destinationTable": {
                         "projectId": self.project_id,
                         "datasetId": self.dataset_id,
@@ -732,7 +732,7 @@ class TestImportDataFromURIs(unittest.TestCase):
             "configuration": {
                 "load": {
                     "sourceUris": ["sourceuri"],
-                    "schema": ["schema"],
+                    "schema": {"fields": ["schema"]},
                     "destinationTable": {
                         "projectId": self.project_id,
                         "datasetId": self.dataset_id,

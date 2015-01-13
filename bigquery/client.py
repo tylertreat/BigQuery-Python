@@ -469,7 +469,7 @@ class BigQueryClient(object):
             configuration['encoding'] = encoding
 
         if schema:
-            configuration['schema'] = schema
+            configuration['schema'] = {'fields': schema}
 
         if source_format:
             configuration['sourceFormat'] = source_format
