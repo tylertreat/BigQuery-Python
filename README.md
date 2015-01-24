@@ -21,9 +21,10 @@ project_id = 'project_id'
 service_account = 'my_id_123@developer.gserviceaccount.com'
 
 # PKCS12 or PEM key provided by Google.
-key = 'secret_key'
+key = 'key.pem'
 
-client = get_client(project_id, service_account=service_account, private_key=key, readonly=True)
+client = get_client(project_id, service_account=service_account,
+                    private_key_file=key, readonly=True)
 
 # Submit an async query.
 job_id, _results = client.query('SELECT * FROM dataset.my_table LIMIT 1000')

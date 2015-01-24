@@ -46,7 +46,8 @@ JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 
 def get_client(project_id, credentials=None, service_account=None,
-               private_key=None, readonly=True, swallow_results=True):
+               private_key=None, private_key_file=None, readonly=True,
+               swallow_results=True):
     """Return a singleton instance of BigQueryClient. Either
     AssertionCredentials or a service account and private key combination need
     to be provided in order to authenticate requests to BigQuery.
@@ -58,6 +59,9 @@ def get_client(project_id, credentials=None, service_account=None,
         service_account: the Google API service account name.
         private_key: the private key associated with the service account in
                      PKCS12 or PEM format.
+        private_key_file: the name of the file containing the private key
+                          associated with the service account in PKCS12 or PEM
+                          format.
         readonly: bool indicating if BigQuery access is read-only. Has no
                   effect if credentials are provided.
         swallow_results: If set to false then return the actual response value
@@ -67,9 +71,13 @@ def get_client(project_id, credentials=None, service_account=None,
         an instance of BigQueryClient.
     """
 
-    if not credentials and not (service_account and private_key):
-        raise Exception('AssertionCredentials or service account and private'
-                        'key need to be provided')
+    if not credentials:
+        assert service_account and (private_key or private_key_file), \
+            'Must provide AssertionCredentials or service account and key'
+
+    if private_key_file:
+        with open(private_key_file, 'rb') as key_file:
+            private_key = key_file.read()
 
     bq_service = _get_bq_service(credentials=credentials,
                                  service_account=service_account,
@@ -83,7 +91,8 @@ def _get_bq_service(credentials=None, service_account=None, private_key=None,
                     readonly=True):
     """Construct an authorized BigQuery service object."""
 
-    assert credentials or (service_account and private_key)
+    assert credentials or (service_account and private_key), \
+        'Must provide AssertionCredentials or service account and key'
 
     if not credentials:
         scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
@@ -820,7 +829,7 @@ class BigQueryClient(object):
                     projectId=self.project_id,
                     datasetId=dataset_id,
                     pageToken=page_token
-                    ).execute()
+                ).execute()
                 page_token = res.get('nextPageToken')
                 result['tables'] += res.get('tables', [])
             self.cache[dataset_id] = (datetime.now(), result)

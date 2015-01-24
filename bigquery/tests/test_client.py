@@ -37,7 +37,7 @@ class TestGetClient(unittest.TestCase):
     def test_no_credentials(self):
         """Ensure an Exception is raised when no credentials are provided."""
 
-        self.assertRaises(Exception, client.get_client, 'foo', 'bar')
+        self.assertRaises(AssertionError, client.get_client, 'foo')
 
     @mock.patch('bigquery.client._credentials')
     @mock.patch('bigquery.client.build')
@@ -91,6 +91,41 @@ class TestGetClient(unittest.TestCase):
             project_id, service_account=service_account, private_key=key,
             readonly=False)
 
+        mock_return_cred.assert_called_once_with()
+        mock_cred.assert_called_once_with(service_account, key,
+                                          scope=BIGQUERY_SCOPE)
+        mock_cred.authorize.assert_called_once()
+        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
+        self.assertEquals(mock_bq, bq_client.bigquery)
+        self.assertEquals(project_id, bq_client.project_id)
+
+    @mock.patch('bigquery.client._credentials')
+    @mock.patch('bigquery.client.build')
+    @mock.patch('__builtin__.open')
+    def test_initialize_key_file(self, mock_open, mock_build,
+                                 mock_return_cred):
+        """Ensure that a BigQueryClient is initialized and returned with
+        read/write permissions using a private key file.
+        """
+        from bigquery.client import BIGQUERY_SCOPE
+
+        mock_cred = mock.Mock()
+        mock_http = mock.Mock()
+        mock_cred.return_value.authorize.return_value = mock_http
+        mock_bq = mock.Mock()
+        mock_build.return_value = mock_bq
+        key_file = 'key.pem'
+        key = 'key'
+        mock_open.return_value.__enter__.return_value.read.return_value = key
+        service_account = 'account'
+        project_id = 'project'
+        mock_return_cred.return_value = mock_cred
+
+        bq_client = client.get_client(
+            project_id, service_account=service_account,
+            private_key_file=key_file, readonly=False)
+
+        mock_open.assert_called_once_with(key_file, 'rb')
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE)
