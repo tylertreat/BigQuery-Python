@@ -330,7 +330,7 @@ class BigQueryClient(object):
         except HttpError as e:
             logging.error(('Cannot create table {0}.{1}\n'
                            'Http Error: {2}').format(dataset, table,
-                                                     e.message))
+                                                     e.content))
             if self.swallow_results:
                 return False
             else:
@@ -362,7 +362,7 @@ class BigQueryClient(object):
         except HttpError as e:
             logging.error(('Cannot delete table {0}.{1}\n'
                            'Http Error: {2}').format(dataset, table,
-                                                     e.message))
+                                                     e.content))
             if self.swallow_results:
                 return False
             else:
