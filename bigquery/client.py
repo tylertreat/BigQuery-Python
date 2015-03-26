@@ -120,6 +120,29 @@ class BigQueryClient(object):
         self.swallow_results = swallow_results
         self.cache = {}
 
+    def _submit_job(self, body_object):
+
+        """ Submit a query job to BigQuery
+
+            This is similar to BigQueryClient.query, but gives the user
+
+        Args:
+            body_object: body object as per these docs
+                        https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#insert
+
+        Returns:
+            response of the bigquery.jobs().insert().execute() call
+
+        Raises:
+            BigQueryTimeoutException on timeout
+        """
+
+        logging.debug('Submitting job: %s' % body_object)
+
+        job_collection = self.bigquery.jobs()
+
+        return job_collection.insert(projectId=self.project_id, body=body_object).execute()
+
     def _submit_query_job(self, query_data):
 
         """ Submit a query job to BigQuery
