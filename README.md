@@ -231,7 +231,7 @@ client.patch_dataset('mydataset', friendly_name="mon Dataset") # friendly_name c
 ```python
 from bigquery import schema_from_record
 
-schema_from_record({id:123, posts: [{id:123, text: "tihs is a post"}], username: "bob"})
+schema_from_record({"id":123, "posts": [{"id":123, "text": "tihs is a post"}], "username": "bob"})
 ```
 
 # Caveats
