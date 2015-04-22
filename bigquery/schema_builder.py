@@ -29,7 +29,8 @@ def schema_from_record(record, timestamp_parser=default_timestamp_parser):
     Returns:
         schema: list
     """
-    return [describe_field(k, v) for k, v in record.items()]
+    return [describe_field(k, v, timestamp_parser=timestamp_parser)
+            for k, v in record.items()]
 
 
 def describe_field(k, v, timestamp_parser=default_timestamp_parser):
