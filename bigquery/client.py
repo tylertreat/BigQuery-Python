@@ -218,6 +218,45 @@ class BigQueryClient(object):
         }
         return self._submit_query_job(query_data)
 
+    def save_query_as_table(self, query, dataset=None, table_name=None,
+        write_disposition="WRITE_TRUNCATE", timeout=0):
+        """ Submit a query to BigQuery and save results to a table.
+
+        Args:
+            query: SQL to run
+            dataset: destination dataset for query results
+            table_name: destination table for query results
+            write_disposition: one of the following string values:
+                               "WRITE_TRUNCATE" -  (default) overwrites all existing rows,
+                                                   removing previous data in the table.
+                               "WRITE_APPEND"   -  adds rows to the destination table.
+                               "WRITE_EMPTY"    -  only saves its results to the destination
+                                                   table if it is currently empty.
+
+        """
+
+        configuration = {
+            'configuration': {
+                'query': {
+                    'query': query,
+                    'priority': "BATCH",
+                    'allowLargeResults': True,
+                    'writeDisposition': write_disposition,
+                    'createDisposition': 'CREATE_IF_NEEDED',
+                    'timeoutMs': timeout * 1000,
+                    'dryRun': False,
+                    'destinationTable': {
+                        'projectId': self.project_id,
+                        'datasetId': dataset,
+                        'tableId': table_name,
+                    }
+                }
+            }
+        }
+
+        return self._submit_job(configuration)
+
+
     def get_query_schema(self, job_id):
         """Retrieve the schema of a query by job id.
 
