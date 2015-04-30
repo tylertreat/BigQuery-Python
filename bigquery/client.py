@@ -120,6 +120,89 @@ class BigQueryClient(object):
         self.swallow_results = swallow_results
         self.cache = {}
 
+    def _submit_job(self, body_object):
+
+        """ Submit a job to BigQuery
+
+            Direct proxy to the insert() method of the offical BigQuery
+            python client.
+
+            Able to submit load, link, query, copy, or extract jobs.
+
+            For more details, see:
+            https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#insert
+
+
+        Args:
+            body_object: body object passed to bigquery.jobs().insert()
+
+        Returns:
+            response of the bigquery.jobs().insert().execute() call
+
+        Raises:
+            BigQueryTimeoutException on timeout
+        """
+
+        logging.debug('Submitting job: %s' % body_object)
+
+        job_collection = self.bigquery.jobs()
+
+        return job_collection.insert(
+            projectId=self.project_id,
+            body=body_object
+        ).execute()
+
+    def _submit_query_job(self, query_data):
+
+        """ Submit a query job to BigQuery.
+
+            This is similar to BigQueryClient.query, but gives the user
+            direct access to the query method on the offical BigQuery
+            python client.
+
+            For fine-grained control over a query job, see:
+            https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#query
+
+
+
+        Args:
+            query_data: query object as per "configuration.query" in
+                        https://cloud.google.com/bigquery/docs/reference/v2/jobs#configuration.query
+
+        Returns:
+            job id and query results if query completed. If dry_run is True,
+            job id will be None and results will be empty if the query is valid
+            or a dict containing the response if invalid.
+
+        Raises:
+            BigQueryTimeoutException on timeout
+        """
+
+        logging.debug('Submitting query job: %s' % query_data)
+
+        job_collection = self.bigquery.jobs()
+
+        try:
+            query_reply = job_collection.query(
+                projectId=self.project_id, body=query_data).execute()
+        except HttpError as e:
+            if query_data.get("dryRun", False):
+                return None, json.loads(e.content)
+            raise
+
+        job_id = query_reply['jobReference'].get('jobId')
+        schema = query_reply.get('schema', {'fields': None})['fields']
+        rows = query_reply.get('rows', [])
+        job_complete = query_reply.get('jobComplete', False)
+
+        # raise exceptions if it's not an async query
+        # and job is not completed after timeout
+        if not job_complete and query_data.get("timeoutMs", False):
+            logging.error('BigQuery job %s timeout' % job_id)
+            raise BigQueryTimeoutException()
+
+        return job_id, [self._transform_row(row, schema) for row in rows]
+
     def query(self, query, max_results=None, timeout=0, dry_run=False):
         """Submit a query to BigQuery.
 
@@ -143,34 +226,60 @@ class BigQueryClient(object):
 
         logging.debug('Executing query: %s' % query)
 
-        job_collection = self.bigquery.jobs()
         query_data = {
             'query': query,
             'timeoutMs': timeout * 1000,
             'dryRun': dry_run,
             'maxResults': max_results,
         }
+        return self._submit_query_job(query_data)
 
-        try:
-            query_reply = job_collection.query(
-                projectId=self.project_id, body=query_data).execute()
-        except HttpError as e:
-            if dry_run:
-                return None, json.loads(e.content)
-            raise
+    def save_query_as_table(
+        self,
+        query,
+        dataset=None,
+        table_name=None,
+        write_disposition="WRITE_TRUNCATE",
+        timeout=0
+    ):
+        """ Submit a query to BigQuery and save results to a table.
 
-        job_id = query_reply['jobReference'].get('jobId')
-        schema = query_reply.get('schema', {'fields': None})['fields']
-        rows = query_reply.get('rows', [])
-        job_complete = query_reply.get('jobComplete', False)
+        Args:
+            query: SQL to run
+            dataset: destination dataset for query results
+            table_name: destination table for query results
+            write_disposition: one of the following string values:
+                               "WRITE_TRUNCATE" -  (default) overwrites all
+                                                   existing rows, removing
+                                                   previous data in the table.
+                               "WRITE_APPEND"   -  adds rows to the destination
+                                                   table.
+                               "WRITE_EMPTY"    -  only saves its results to
+                                                   the destination table if it
+                                                   is currently empty.
 
-        # raise exceptions if it's not an async query
-        # and job is not completed after timeout
-        if not job_complete and timeout:
-            logging.error('BigQuery job %s timeout' % job_id)
-            raise BigQueryTimeoutException()
+        """
 
-        return job_id, [self._transform_row(row, schema) for row in rows]
+        configuration = {
+            'configuration': {
+                'query': {
+                    'query': query,
+                    'priority': "BATCH",
+                    'allowLargeResults': True,
+                    'writeDisposition': write_disposition,
+                    'createDisposition': 'CREATE_IF_NEEDED',
+                    'timeoutMs': timeout * 1000,
+                    'dryRun': False,
+                    'destinationTable': {
+                        'projectId': self.project_id,
+                        'datasetId': dataset,
+                        'tableId': table_name,
+                    }
+                }
+            }
+        }
+
+        return self._submit_job(configuration)
 
     def get_query_schema(self, job_id):
         """Retrieve the schema of a query by job id.
