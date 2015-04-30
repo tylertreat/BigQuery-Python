@@ -122,13 +122,19 @@ class BigQueryClient(object):
 
     def _submit_job(self, body_object):
 
-        """ Submit a query job to BigQuery
+        """ Submit a job to BigQuery
 
-            This is similar to BigQueryClient.query, but gives the user
+            Direct proxy to the insert() method of the offical BigQuery
+            python client.
+
+            Able to submit load, link, query, copy, or extract jobs.
+
+            For more details, see:
+            https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#insert
+
 
         Args:
-            body_object: body object as per these docs
-                        https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#insert
+            body_object: body object passed to bigquery.jobs().insert()
 
         Returns:
             response of the bigquery.jobs().insert().execute() call
@@ -141,13 +147,23 @@ class BigQueryClient(object):
 
         job_collection = self.bigquery.jobs()
 
-        return job_collection.insert(projectId=self.project_id, body=body_object).execute()
+        return job_collection.insert(
+            projectId=self.project_id,
+            body=body_object
+        ).execute()
 
     def _submit_query_job(self, query_data):
 
-        """ Submit a query job to BigQuery
+        """ Submit a query job to BigQuery.
 
             This is similar to BigQueryClient.query, but gives the user
+            direct access to the query method on the offical BigQuery
+            python client.
+
+            For fine-grained control over a query job, see:
+            https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#query
+
+
 
         Args:
             query_data: query object as per "configuration.query" in
@@ -218,8 +234,14 @@ class BigQueryClient(object):
         }
         return self._submit_query_job(query_data)
 
-    def save_query_as_table(self, query, dataset=None, table_name=None,
-        write_disposition="WRITE_TRUNCATE", timeout=0):
+    def save_query_as_table(
+        self,
+        query,
+        dataset=None,
+        table_name=None,
+        write_disposition="WRITE_TRUNCATE",
+        timeout=0
+    ):
         """ Submit a query to BigQuery and save results to a table.
 
         Args:
@@ -227,11 +249,14 @@ class BigQueryClient(object):
             dataset: destination dataset for query results
             table_name: destination table for query results
             write_disposition: one of the following string values:
-                               "WRITE_TRUNCATE" -  (default) overwrites all existing rows,
-                                                   removing previous data in the table.
-                               "WRITE_APPEND"   -  adds rows to the destination table.
-                               "WRITE_EMPTY"    -  only saves its results to the destination
-                                                   table if it is currently empty.
+                               "WRITE_TRUNCATE" -  (default) overwrites all
+                                                   existing rows, removing
+                                                   previous data in the table.
+                               "WRITE_APPEND"   -  adds rows to the destination
+                                                   table.
+                               "WRITE_EMPTY"    -  only saves its results to
+                                                   the destination table if it
+                                                   is currently empty.
 
         """
 
@@ -255,7 +280,6 @@ class BigQueryClient(object):
         }
 
         return self._submit_job(configuration)
-
 
     def get_query_schema(self, job_id):
         """Retrieve the schema of a query by job id.
