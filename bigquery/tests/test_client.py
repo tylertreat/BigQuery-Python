@@ -1424,6 +1424,77 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.return_value.execute.assert_called_with()
 
 
+class TestCreateView(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_tables = mock.Mock()
+        self.mock_bq_service.tables.return_value = self.mock_tables
+        self.table = 'table'
+        self.project = 'project'
+        self.dataset = 'dataset'
+        self.query = 'SELECT "foo" bar'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+        self.body = {
+            'view': {'query': self.query},
+            'tableReference': {
+                'tableId': self.table, 'projectId': self.project,
+                'datasetId': self.dataset}
+        }
+
+    def test_view_create_failed(self):
+        """Ensure that if creating the table fails, False is returned,
+        or if swallow_results is False an empty dict is returned."""
+
+        self.mock_tables.insert.return_value.execute.side_effect = (
+            HttpError(HttpResponse(404), 'There was an error'))
+
+        actual = self.client.create_view(self.dataset, self.table,
+                                         self.query)
+
+        self.assertFalse(actual)
+
+        self.client.swallow_results = False
+
+        actual = self.client.create_view(self.dataset, self.table,
+                                         self.query)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.insert.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_tables.insert.return_value.execute.assert_called_with()
+
+    def test_view_create_success(self):
+        """Ensure that if creating the table succeeds, True is returned,
+        or if swallow_results is False the actual response is returned."""
+
+        self.mock_tables.insert.return_value.execute.side_effect = [
+            {'status': 'bar'}]
+
+        actual = self.client.create_view(self.dataset, self.table,
+                                         self.query)
+
+        self.assertTrue(actual)
+
+        self.client.swallow_results = False
+
+        actual = self.client.create_view(self.dataset, self.table,
+                                         self.query)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.insert.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_tables.insert.return_value.execute.assert_called_with()
+
+
 class TestDeleteTable(unittest.TestCase):
 
     def setUp(self):
