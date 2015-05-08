@@ -400,28 +400,28 @@ class BigQueryClient(object):
 
     def create_view(self, dataset, view, query):
         """Create a new view in the dataset.
-    
+
         Args:
             dataset: the dataset to create the view in.
             view: the name of view to create.
             query: a query that BigQuery executes when the view is referenced.
-    
+
         Returns:
             bool indicating if the view was successfully created or not,
             or response from BigQuery if swallow_results is set for False.
         """
-            
+
         body = {
-        'tableReference': {
-            'tableId': view,
-            'projectId': self.project_id,
-            'datasetId': dataset
-        },
+            'tableReference': {
+                'tableId': view,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            },
             'view': {
                 'query': query
             }
         }
-    
+
         try:
             view = self.bigquery.tables().insert(
                 projectId=self.project_id,
@@ -432,11 +432,15 @@ class BigQueryClient(object):
                 return True
             else:
                 return view
-    
+
         except HttpError as e:
             logging.error(('Cannot create view {0}.{1}\n'
                            'Http Error: {2}').format(dataset, view,
                                                      e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
 
     def delete_table(self, dataset, table):
         """Delete a table from the dataset.
