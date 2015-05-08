@@ -1433,7 +1433,7 @@ class TestCreateView(unittest.TestCase):
         self.table = 'table'
         self.project = 'project'
         self.dataset = 'dataset'
-        self.query = 'SELECT "foo" bar'
+        self.query = 'SELECT "bar" foo, "foo" bar'
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
         self.body = {
             'view': {'query': self.query},
@@ -1472,8 +1472,8 @@ class TestCreateView(unittest.TestCase):
         """Ensure that if creating the table succeeds, True is returned,
         or if swallow_results is False the actual response is returned."""
 
-        self.mock_tables.insert.return_value.execute.side_effect = [
-            {'status': 'bar'}]
+        self.mock_tables.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
 
         actual = self.client.create_view(self.dataset, self.table,
                                          self.query)
