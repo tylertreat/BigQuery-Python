@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 
 setup_args = dict(
     name='BigQuery-Python',
