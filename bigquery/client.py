@@ -321,6 +321,33 @@ class BigQueryClient(object):
             records += [self._transform_row(row, schema) for row in rows]
         return records
 
+    def check_dataset(self, dataset_id):
+        """Check to see if a dataset exists.
+        Args:
+            dataset: dataset unique id
+        Returns:
+            bool indicating if the table exists.
+        """
+        dataset = self.get_dataset(dataset_id)
+        return bool(dataset)
+
+    def get_dataset(self, dataset_id):
+        """
+        Retrieve a dataset if it exists, otherwise return an empty dict.
+        Args:
+            dataset: dataset unique id
+        Returns:
+            dictionary containing the dataset object if it exists, otherwise
+            an empty dictionary
+        """
+        try:
+            dataset = self.bigquery.datasets().get(
+                projectId=self.project_id, datasetId=dataset_id).execute()
+        except HttpError:
+            dataset = {}
+
+        return dataset
+
     def check_table(self, dataset, table):
         """Check to see if a table exists.
 
