@@ -225,6 +225,9 @@ client.update_dataset('mydataset', friendly_name="mon Dataset") # description is
 
 # Patch dataset
 client.patch_dataset('mydataset', friendly_name="mon Dataset") # friendly_name changed; description is preserved
+
+# Check if dataset exists.
+exists = client.check_dataset('mydataset')
 ```
 
 # Creating a schema from a sample record
