@@ -292,6 +292,10 @@ class BigQueryClient(object):
 
     def get_query_rows(self, job_id, offset=None, limit=None, timeout=0):
         """Retrieve a list of rows from a query table by job id.
+        This method will append results from multiple pages together. If you want
+        to manually page through results, you can use `get_query_results`
+        method directly.
+
         Args:
             job_id: The job id that references a BigQuery query.
             offset: The offset of the rows to pull from BigQuery.
@@ -1066,7 +1070,9 @@ class BigQueryClient(object):
             time <= end_time <= time + ONE_MONTH
 
     def get_query_results(self, job_id, offset=None, limit=None, page_token=None, timeout=0):
-        """Execute the query job indicated by the given job id.
+        """Execute the query job indicated by the given job id. This is direct mapping to
+        bigquery api https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults
+
         Args:
             job_id: The job id of the query to check.
             offset: The index the result set should start at.
