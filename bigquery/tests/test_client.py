@@ -358,7 +358,6 @@ class TestGetQueryResults(unittest.TestCase):
         """Ensure that the query is executed and the query reply is returned.
         """
 
-        project_id = 'foo'
         job_id = 'bar'
 
         mock_query_job = mock.Mock()
@@ -368,14 +367,15 @@ class TestGetQueryResults(unittest.TestCase):
 
         offset = 5
         limit = 10
+        page_token = "token"
+        timeout = 1
 
-        actual = self.client._get_query_results(self.mock_job_collection,
-                                                project_id, job_id,
-                                                offset, limit)
+        actual = self.client.get_query_results(job_id, offset, limit, page_token, timeout)
 
         self.mock_job_collection.getQueryResults.assert_called_once_with(
-            timeoutMs=0, projectId=project_id, jobId=job_id,
-            startIndex=offset, maxResults=limit)
+            projectId=self.project_id, jobId=job_id, startIndex=offset,
+            maxResults=limit, pageToken=page_token, timeoutMs=1000)
+
         mock_query_job.execute.assert_called_once()
         self.assertEquals(actual, mock_query_reply)
 
@@ -458,7 +458,7 @@ class TestTransformRow(unittest.TestCase):
         self.assertEquals(actual, expected)
 
 
-@mock.patch('bigquery.client.BigQueryClient._get_query_results')
+@mock.patch('bigquery.client.BigQueryClient.get_query_results')
 class TestCheckJob(unittest.TestCase):
 
     def setUp(self):
@@ -1175,7 +1175,7 @@ FULL_TABLE_LIST_RESPONSE = {
 }
 
 
-@mock.patch('bigquery.client.BigQueryClient._get_query_results')
+@mock.patch('bigquery.client.BigQueryClient.get_query_results')
 class TestGetQuerySchema(unittest.TestCase):
 
     def test_query_complete(self, get_query_mock):
@@ -1251,7 +1251,7 @@ class TestGetTableSchema(unittest.TestCase):
         self.mock_tables.get.return_value.execute.assert_called_once_with()
 
 
-@mock.patch('bigquery.client.BigQueryClient._get_query_results')
+@mock.patch('bigquery.client.BigQueryClient.get_query_results')
 class TestGetQueryRows(unittest.TestCase):
 
     def test_query_complete(self, get_query_mock):
@@ -1279,6 +1279,77 @@ class TestGetQueryRows(unittest.TestCase):
 
         expected_rows = [{'foo': 'bar', 'spider': 'man'},
                          {'foo': 'abc', 'spider': 'xyz'}]
+        self.assertEquals(result_rows, expected_rows)
+
+    def test_query_complete_with_page_token(self, get_query_mock):
+        """Ensure that get_query_rows works with page token."""
+        from bigquery.client import BigQueryClient
+
+        page_one_resp = {
+            "jobComplete": True,
+            "kind": "bigquery#getQueryResultsResponse",
+            "pageToken": "TOKEN_TO_PAGE_2",
+            "schema": {
+                "fields": [{
+                    "name": "first_name",
+                    "type": "STRING",
+                }, {
+                    "name": "last_name",
+                    "type": "STRING",
+                }]
+            },
+            "rows": [{
+                "f": [{
+                    "v": "foo",
+                }, {
+                    "v": "bar"
+                }]
+            }, {
+                "f": [{
+                    "v": "abc",
+                }, {
+                    "v": "xyz"
+                }]
+            }],
+            "totalRows": "4"
+        }
+
+        page_two_resp = {
+            "jobComplete": True,
+            "kind": "bigquery#getQueryResultsResponse",
+            "schema": {
+                "fields": [{
+                    "name": "first_name",
+                    "type": "STRING",
+                }, {
+                    "name": "last_name",
+                    "type": "STRING",
+                }]
+            },
+            "rows": [{
+                "f": [{
+                    "v": "the",
+                }, {
+                    "v": "beatles"
+                }]
+            }, {
+                "f": [{
+                    "v": "monty",
+                }, {
+                    "v": "python"
+                }]
+            }],
+            "totalRows": "4"
+        }
+
+        bq = BigQueryClient(mock.Mock(), 'project')
+        get_query_mock.side_effect = [page_one_resp, page_two_resp]
+        result_rows = bq.get_query_rows(job_id=123, offset=0, limit=0)
+
+        expected_rows = [{'first_name': 'foo', 'last_name': 'bar'},
+                         {'first_name': 'abc', 'last_name': 'xyz'},
+                         {'first_name': 'the', 'last_name': 'beatles'},
+                         {'first_name': 'monty', 'last_name': 'python'}]
         self.assertEquals(result_rows, expected_rows)
 
     def test_query_incomplete(self, get_query_mock):

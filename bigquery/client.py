@@ -121,7 +121,6 @@ class BigQueryClient(object):
         self.cache = {}
 
     def _submit_query_job(self, query_data):
-
         """ Submit a query job to BigQuery.
 
             This is similar to BigQueryClient.query, but gives the user
@@ -172,7 +171,6 @@ class BigQueryClient(object):
         return job_id, [self._transform_row(row, schema) for row in rows]
 
     def _insert_job(self, body_object):
-
         """ Submit a job to BigQuery
 
             Direct proxy to the insert() method of the offical BigQuery
@@ -243,9 +241,7 @@ class BigQueryClient(object):
             A list of dictionaries that represent the schema.
         """
 
-        job_collection = self.bigquery.jobs()
-        query_reply = self._get_query_results(
-            job_collection, self.project_id, job_id, offset=0, limit=0)
+        query_reply = self.get_query_results(job_id, offset=0, limit=0)
 
         if not query_reply['jobComplete']:
             logging.warning('BigQuery job %s not complete' % job_id)
@@ -289,38 +285,72 @@ class BigQueryClient(object):
             included in the query table if it has completed.
         """
 
-        job_collection = self.bigquery.jobs()
-        query_reply = self._get_query_results(
-            job_collection, self.project_id, job_id, offset=0, limit=0)
+        query_reply = self.get_query_results(job_id, offset=0, limit=0)
 
         return (query_reply.get('jobComplete', False),
                 int(query_reply.get('totalRows', 0)))
 
-    def get_query_rows(self, job_id, offset=None, limit=None):
+    def get_query_rows(self, job_id, offset=None, limit=None, timeout=0):
         """Retrieve a list of rows from a query table by job id.
+        This method will append results from multiple pages together. If you want
+        to manually page through results, you can use `get_query_results`
+        method directly.
 
         Args:
             job_id: The job id that references a BigQuery query.
             offset: The offset of the rows to pull from BigQuery.
             limit: The number of rows to retrieve from a query table.
-
+            timeout: Timeout in seconds.
         Returns:
             A list of dictionaries that represent table rows.
         """
 
-        job_collection = self.bigquery.jobs()
-        query_reply = self._get_query_results(
-            job_collection, self.project_id, job_id, offset=offset,
-            limit=limit)
-
+        # Get query results
+        query_reply = self.get_query_results(job_id, offset=offset, limit=limit, timeout=timeout)
         if not query_reply['jobComplete']:
             logging.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
 
-        schema = query_reply['schema']['fields']
+        schema = query_reply["schema"]["fields"]
         rows = query_reply.get('rows', [])
+        page_token = query_reply.get("pageToken")
+        records = [self._transform_row(row, schema) for row in rows]
 
-        return [self._transform_row(row, schema) for row in rows]
+        # Append to records if there are multiple pages for query results
+        while page_token:
+            query_reply = self.get_query_results(job_id, offset=offset, limit=limit,
+                                                 page_token=page_token, timeout=timeout)
+            page_token = query_reply.get("pageToken")
+            rows = query_reply.get('rows', [])
+            records += [self._transform_row(row, schema) for row in rows]
+        return records
+
+    def check_dataset(self, dataset_id):
+        """Check to see if a dataset exists.
+        Args:
+            dataset: dataset unique id
+        Returns:
+            bool indicating if the table exists.
+        """
+        dataset = self.get_dataset(dataset_id)
+        return bool(dataset)
+
+    def get_dataset(self, dataset_id):
+        """
+        Retrieve a dataset if it exists, otherwise return an empty dict.
+        Args:
+            dataset: dataset unique id
+        Returns:
+            dictionary containing the dataset object if it exists, otherwise
+            an empty dictionary
+        """
+        try:
+            dataset = self.bigquery.datasets().get(
+                projectId=self.project_id, datasetId=dataset_id).execute()
+        except HttpError:
+            dataset = {}
+
+        return dataset
 
     def check_table(self, dataset, table):
         """Check to see if a table exists.
@@ -1039,27 +1069,28 @@ class BigQueryClient(object):
             time <= start_time <= time + ONE_MONTH or \
             time <= end_time <= time + ONE_MONTH
 
-    def _get_query_results(self, job_collection, project_id, job_id,
-                           offset=None, limit=None):
-        """Execute the query job indicated by the given job id.
+    def get_query_results(self, job_id, offset=None, limit=None, page_token=None, timeout=0):
+        """Execute the query job indicated by the given job id. This is direct mapping to
+        bigquery api https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults
 
         Args:
-            job_collection: The collection the job belongs to.
-            project_id: The project id of the table.
             job_id: The job id of the query to check.
             offset: The index the result set should start at.
             limit: The maximum number of results to retrieve.
-
+            page_token: Page token, returned by a previous call, to request the next page of results.
+            timeout: Timeout in seconds.
         Returns:
             The query reply.
         """
 
+        job_collection = self.bigquery.jobs()
         return job_collection.getQueryResults(
-            projectId=project_id,
+            projectId=self.project_id,
             jobId=job_id,
             startIndex=offset,
             maxResults=limit,
-            timeoutMs=0).execute()
+            pageToken=page_token,
+            timeoutMs=timeout * 1000).execute()
 
     def _transform_row(self, row, schema):
         """Apply the given schema to the given BigQuery data row.
