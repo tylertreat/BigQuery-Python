@@ -90,6 +90,33 @@ class TestSchemaGenerator(unittest.TestCase):
 
         self.assertItemsEqual(schema_from_record(record), schema)
 
+    def test_hierarchical_record_with_timestamps(self):
+        record = {"global": "2001-01-01", "user": {"local": "2001-01-01"}}
+
+        schema_with_ts = [
+            {"name": "global", "type": "timestamp", "mode": "nullable"},
+            {"name": "user", "type": "record", "mode": "nullable",
+                "fields": [{
+                    "name": "local",
+                    "type": "timestamp",
+                    "mode": "nullable"}]}]
+
+        schema_without_ts = [
+            {"name": "global", "type": "string", "mode": "nullable"},
+            {"name": "user", "type": "record", "mode": "nullable",
+                "fields": [{
+                    "name": "local",
+                    "type": "string",
+                    "mode": "nullable"}]}]
+
+        self.assertItemsEqual(
+            schema_from_record(record),
+            schema_with_ts)
+
+        self.assertItemsEqual(
+            schema_from_record(record, timestamp_parser=lambda x: False),
+            schema_without_ts)
+
     def test_repeated_field(self):
         record = {"ids": [1, 2, 3, 4, 5]}
         schema = [{"name": "ids", "type": "integer", "mode": "repeated"}]
