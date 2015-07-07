@@ -1,6 +1,7 @@
 import unittest
 
 import mock
+import six
 from nose.tools import raises
 
 from apiclient.errors import HttpError
@@ -101,7 +102,7 @@ class TestGetClient(unittest.TestCase):
 
     @mock.patch('bigquery.client._credentials')
     @mock.patch('bigquery.client.build')
-    @mock.patch('__builtin__.open')
+    @mock.patch('__builtin__.open' if six.PY2 else 'builtins.open')
     def test_initialize_key_file(self, mock_open, mock_build,
                                  mock_return_cred):
         """Ensure that a BigQueryClient is initialized and returned with
@@ -295,7 +296,7 @@ class TestQuery(unittest.TestCase):
         mock_query_job = mock.Mock()
 
         mock_query_job.execute.side_effect = HttpError(
-            'crap', '{"message": "Bad query"}')
+            'crap', '{"message": "Bad query"}'.encode('utf8'))
 
         self.mock_job_collection.query.return_value = mock_query_job
 
@@ -370,7 +371,8 @@ class TestGetQueryResults(unittest.TestCase):
         page_token = "token"
         timeout = 1
 
-        actual = self.client.get_query_results(job_id, offset, limit, page_token, timeout)
+        actual = self.client.get_query_results(job_id, offset, limit,
+                                               page_token, timeout)
 
         self.mock_job_collection.getQueryResults.assert_called_once_with(
             projectId=self.project_id, jobId=job_id, startIndex=offset,
@@ -1042,8 +1044,9 @@ class TestFilterTablesByTime(unittest.TestCase):
         }, 1370002000, 1370000000)
 
         self.assertEqual(
-            ['Daenerys Targaryen', 'William Shatner', 'Gordon Freeman'],
-            tables
+            sorted(
+                ['Daenerys Targaryen', 'William Shatner', 'Gordon Freeman']),
+            sorted(tables)
         )
 
     def test_not_inside_range(self):
@@ -1242,7 +1245,7 @@ class TestGetTableSchema(unittest.TestCase):
     def test_table_does_not_exist(self):
         """Ensure that None is returned if the table doesn't exist."""
         self.mock_tables.get.return_value.execute.side_effect = \
-            HttpError({'status': "404"}, '{}')
+            HttpError({'status': "404"}, '{}'.encode('utf8'))
 
         self.assertIsNone(
             self.client.get_table_schema(self.dataset, self.table))
@@ -1394,7 +1397,7 @@ class TestCheckTable(unittest.TestCase):
         """Ensure that if the table does not exist, False is returned."""
 
         self.mock_tables.get.return_value.execute.side_effect = (
-            HttpError(HttpResponse(404), 'There was an error'))
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8')))
 
         actual = self.client.check_table(self.dataset, self.table)
 
@@ -1447,7 +1450,7 @@ class TestCreateTable(unittest.TestCase):
         or if swallow_results is False an empty dict is returned."""
 
         self.mock_tables.insert.return_value.execute.side_effect = (
-            HttpError(HttpResponse(404), 'There was an error'))
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8')))
 
         actual = self.client.create_table(self.dataset, self.table,
                                           self.schema)
@@ -1518,7 +1521,7 @@ class TestCreateView(unittest.TestCase):
         or if swallow_results is False an empty dict is returned."""
 
         self.mock_tables.insert.return_value.execute.side_effect = (
-            HttpError(HttpResponse(404), 'There was an error'))
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8')))
 
         actual = self.client.create_view(self.dataset, self.table,
                                          self.query)
@@ -1582,7 +1585,7 @@ class TestDeleteTable(unittest.TestCase):
         or the actual response is swallow_results is False."""
 
         self.mock_tables.delete.return_value.execute.side_effect = (
-            HttpError(HttpResponse(404), 'There was an error'))
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8')))
 
         actual = self.client.delete_table(self.dataset, self.table)
 
@@ -1784,7 +1787,7 @@ class TestPushRows(unittest.TestCase):
     def test_push_exception(self):
         """Ensure that if insertAll raises an exception, False is returned."""
 
-        e = HttpError(HttpResponse(404), 'There was an error')
+        e = HttpError(HttpResponse(404), 'There was an error'.encode('utf8'))
         self.mock_table_data.insertAll.return_value.execute.side_effect = e
 
         actual = self.client.push_rows(self.dataset, self.table, self.rows,
@@ -1973,7 +1976,7 @@ class TestGetTables(unittest.TestCase):
         bq = client.BigQueryClient(mock_bq_service, 'project')
 
         tables = bq.get_tables('dataset', 'appspot-1', 0, 10000000000)
-        self.assertItemsEqual(tables, ['2013_06_appspot_1'])
+        six.assertCountEqual(self, tables, ['2013_06_appspot_1'])
 
     def test_get_tables_from_datetimes(self):
         """Ensure tables falling in the time window, specified with datetimes,
@@ -1996,7 +1999,7 @@ class TestGetTables(unittest.TestCase):
         end = datetime(2013, 7, 10)
 
         tables = bq.get_tables('dataset', 'appspot-1', start, end)
-        self.assertItemsEqual(tables, ['2013_06_appspot_1'])
+        six.assertCountEqual(self, tables, ['2013_06_appspot_1'])
 
 
 #
@@ -2027,7 +2030,7 @@ class TestCreateDataset(unittest.TestCase):
         """Ensure that if creating the table fails, False is returned."""
 
         self.mock_datasets.insert.return_value.execute.side_effect = \
-            HttpError(HttpResponse(404), 'There was an error')
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8'))
 
         actual = self.client.create_dataset(self.dataset,
                                             friendly_name=self.friendly_name,
@@ -2096,7 +2099,7 @@ class TestDeleteDataset(unittest.TestCase):
         """Ensure that if deleting table fails, False is returned."""
 
         self.mock_datasets.delete.return_value.execute.side_effect = \
-            HttpError(HttpResponse(404), 'There was an error')
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8'))
 
         actual = self.client.delete_dataset(self.dataset)
 
@@ -2254,7 +2257,8 @@ class TestGetDatasets(unittest.TestCase):
         bq = client.BigQueryClient(mock_bq_service, 'project')
 
         datasets = bq.get_datasets()
-        self.assertItemsEqual(datasets, FULL_DATASET_LIST_RESPONSE['datasets'])
+        six.assertCountEqual(self, datasets,
+                             FULL_DATASET_LIST_RESPONSE['datasets'])
 
     def test_get_datasets_returns_no_list(self):
         """Ensure we handle the no datasets case"""
@@ -2273,7 +2277,7 @@ class TestGetDatasets(unittest.TestCase):
         bq = client.BigQueryClient(mock_bq_service, 'project')
 
         datasets = bq.get_datasets()
-        self.assertItemsEqual(datasets, [])
+        six.assertCountEqual(self, datasets, [])
 
 
 class TestUpdateDataset(unittest.TestCase):
@@ -2301,12 +2305,12 @@ class TestUpdateDataset(unittest.TestCase):
         """Ensure that if creating the table fails, False is returned."""
 
         self.mock_datasets.update.return_value.execute.side_effect = \
-            HttpError(HttpResponse(404), 'There was an error')
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8'))
 
         actual = self.client.update_dataset(self.dataset,
-                                            friendly_name=self.friendly_name,
-                                            description=self.description,
-                                            access=self.access)
+                                             friendly_name=self.friendly_name,
+                                             description=self.description,
+                                             access=self.access)
         self.assertFalse(actual)
 
         self.client.swallow_results = False

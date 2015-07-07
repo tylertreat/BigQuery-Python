@@ -1,10 +1,12 @@
+from __future__ import absolute_import
 __author__ = 'Aneil Mallavarapu (http://github.com/aneilbaboo)'
 
 from datetime import datetime
 
+import six
 import dateutil.parser
 
-from errors import InvalidTypeException
+from .errors import InvalidTypeException
 
 
 def default_timestamp_parser(s):
@@ -30,7 +32,7 @@ def schema_from_record(record, timestamp_parser=default_timestamp_parser):
         schema: list
     """
     return [describe_field(k, v, timestamp_parser=timestamp_parser)
-            for k, v in record.items()]
+            for k, v in list(record.items())]
 
 
 def describe_field(k, v, timestamp_parser=default_timestamp_parser):
@@ -76,7 +78,7 @@ def describe_field(k, v, timestamp_parser=default_timestamp_parser):
     if bq_type == "record":
         try:
             field['fields'] = schema_from_record(v, timestamp_parser)
-        except InvalidTypeException, e:
+        except InvalidTypeException as e:
             # recursively construct the key causing the error
             raise InvalidTypeException("%s.%s" % (k, e.key), e.value)
 
@@ -100,7 +102,7 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     t = type(o)
     if t == int:
         return "integer"
-    elif t == str or t == unicode:
+    elif (t == six.binary_type and six.PY2) or t == six.text_type:
         if timestamp_parser and timestamp_parser(o):
             return "timestamp"
         else:

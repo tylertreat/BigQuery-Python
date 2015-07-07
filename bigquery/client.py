@@ -154,7 +154,7 @@ class BigQueryClient(object):
                 projectId=self.project_id, body=query_data).execute()
         except HttpError as e:
             if query_data.get("dryRun", False):
-                return None, json.loads(e.content)
+                return None, json.loads(e.content.decode('utf8'))
             raise
 
         job_id = query_reply['jobReference'].get('jobId')
@@ -266,7 +266,7 @@ class BigQueryClient(object):
                 projectId=self.project_id,
                 tableId=table,
                 datasetId=dataset).execute()
-        except HttpError, e:
+        except HttpError as e:
             if int(e.resp['status']) == 404:
                 logging.warn('Table %s.%s does not exist', dataset, table)
                 return None
@@ -651,7 +651,7 @@ class BigQueryClient(object):
                               skip_leading_rows=skip_leading_rows,
                               quote=quote)
             non_null_values = dict((k, v) for k, v
-                                   in all_values.items()
+                                   in list(all_values.items())
                                    if v)
             raise Exception("Parameters field_delimiter, allow_jagged_rows, "
                             "allow_quoted_newlines, quote and "
@@ -1048,7 +1048,7 @@ class BigQueryClient(object):
             A list of table names that are inside the time range.
         """
 
-        return [table_name for (table_name, unix_seconds) in tables.iteritems()
+        return [table_name for (table_name, unix_seconds) in tables.items()
                 if self._in_range(start_time, end_time, unix_seconds)]
 
     def _in_range(self, start_time, end_time, time):
@@ -1167,7 +1167,7 @@ class BigQueryClient(object):
         Returns:
             string of hexed uris
         """
-        return sha256(":".join(uris) + str(time())).hexdigest()
+        return sha256((":".join(uris) + str(time())).encode()).hexdigest()
 
     def _raise_insert_exception_if_error(self, job):
         error_http = job.get('error')
