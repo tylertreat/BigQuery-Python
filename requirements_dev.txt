@@ -3,3 +3,5 @@ rednose
 mock
 coverage
 nose-exclude
+tox
+-r requirements.txt

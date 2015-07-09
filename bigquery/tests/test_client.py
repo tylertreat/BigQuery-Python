@@ -588,6 +588,26 @@ class TestWaitForJob(unittest.TestCase):
                           interval=.01,
                           timeout=.01)
 
+    def test_accepts_job_id(self):
+        """Ensure it accepts a job Id rather than a full job resource"""
+
+        return_values = [{'status': {'state': u'RUNNING'},
+                          'jobReference': {'jobId': "testJob"}},
+                         {'status': {'state': u'DONE'},
+                          'jobReference': {'jobId': "testJob"}}]
+
+        def side_effect(*args, **kwargs):
+            return return_values.pop(0)
+
+        self.api_mock.jobs().get().execute.side_effect = side_effect
+
+        job_resource = self.client.wait_for_job("testJob",
+                                                interval=.01,
+                                                timeout=600)
+
+        self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
+        self.assertIsInstance(job_resource, dict)
+
 
 class TestImportDataFromURIs(unittest.TestCase):
 
@@ -859,8 +879,8 @@ class TestExportDataToURIs(unittest.TestCase):
         body = {
             "jobReference": {
                 "projectId": self.project_id,
-                "jobId": "%s-%s-destinationuri" %
-                (self.dataset_id, self.table_id)
+                "jobId": "%s-%s-destinationuri" % (self.dataset_id,
+                                                   self.table_id)
             },
             "configuration": {
                 "extract": {
@@ -2308,9 +2328,9 @@ class TestUpdateDataset(unittest.TestCase):
             HttpError(HttpResponse(404), 'There was an error'.encode('utf8'))
 
         actual = self.client.update_dataset(self.dataset,
-                                             friendly_name=self.friendly_name,
-                                             description=self.description,
-                                             access=self.access)
+                                            friendly_name=self.friendly_name,
+                                            description=self.description,
+                                            access=self.access)
         self.assertFalse(actual)
 
         self.client.swallow_results = False

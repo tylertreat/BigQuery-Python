@@ -1,21 +1,19 @@
 import calendar
-from collections import defaultdict
-from datetime import datetime, timedelta
-from time import sleep
-from time import time
-from hashlib import sha256
 import json
 import logging
+from collections import defaultdict
+from datetime import datetime, timedelta
+from hashlib import sha256
+from time import sleep, time
 
+import httplib2
+import six
 from apiclient.discovery import build
 from apiclient.errors import HttpError
-import httplib2
 
+from bigquery.errors import (BigQueryTimeoutException, JobExecutingException,
+                             JobInsertException, UnfinishedQueryException)
 from bigquery.schema_builder import schema_from_record
-from bigquery.errors import (
-    JobExecutingException, JobInsertException,
-    UnfinishedQueryException, BigQueryTimeoutException
-)
 
 BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
@@ -837,6 +835,7 @@ class BigQueryClient(object):
         Waits until the job indicated by job_resource is done or has failed
         Args:
             job: dict, representing a BigQuery job resource
+                 or str, representing a BigQuery job id
             interval: optional float polling interval in seconds, default = 5
             timeout: optional float timeout in seconds, default = 60
         Returns:
@@ -848,7 +847,8 @@ class BigQueryClient(object):
             BigQueryTimeoutException on timeout
         """
         complete = False
-        job_id = job['jobReference']['jobId']
+        job_id = (job if isinstance(job, (six.binary_type, six.text_type))
+                  else job['jobReference']['jobId'])
         job_resource = None
 
         start_time = time()
