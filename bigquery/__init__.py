@@ -1,5 +1,6 @@
-from client import get_client
-from client import (
+from __future__ import absolute_import
+from .client import get_client
+from .client import (
     BIGQUERY_SCOPE,
     BIGQUERY_SCOPE_READ_ONLY,
     JOB_CREATE_IF_NEEDED,
@@ -14,4 +15,4 @@ from client import (
     JOB_ENCODING_ISO_8859_1
 )
 
-from schema_builder import schema_from_record
+from .schema_builder import schema_from_record

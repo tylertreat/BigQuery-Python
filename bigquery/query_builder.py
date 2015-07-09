@@ -77,7 +77,7 @@ def _render_select(selections):
         return 'SELECT *'
 
     rendered_selections = []
-    for name, options in selections.iteritems():
+    for name, options in selections.items():
         if not isinstance(options, list):
             options = [options]
 
@@ -200,7 +200,8 @@ def _render_condition(field, field_type, comparators):
         if condition == "IN":
             if isinstance(value, (list, tuple, set)):
                 value = ', '.join(
-                    [_render_condition_value(v, field_type) for v in value]
+                    sorted([_render_condition_value(v, field_type)
+                            for v in value])
                 )
             else:
                 value = _render_condition_value(value, field_type)

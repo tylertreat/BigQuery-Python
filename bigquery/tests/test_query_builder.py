@@ -1,4 +1,7 @@
+import six
 import unittest
+
+unittest.TestCase.maxDiff = None
 
 
 class TestRenderSelect(unittest.TestCase):
@@ -18,11 +21,13 @@ class TestRenderSelect(unittest.TestCase):
             'ip': {'alias': 'IP'},
             'app_logs': {'alias': 'AppLogs'}})
 
-        expected = 'SELECT status as Status, latency as Latency, ' \
-                   'max_log_level as MaxLogLevel, resource as URL, user as ' \
-                   'User, ip as IP, start_time as TimeStamp, version_id as ' \
-                   'Version, app_logs as AppLogs'
-        self.assertEqual(expected, result)
+        expected = ('SELECT status as Status, latency as Latency, '
+                    'max_log_level as MaxLogLevel, resource as URL, user as '
+                    'User, ip as IP, start_time as TimeStamp, version_id as '
+                    'Version, app_logs as AppLogs')
+        six.assertCountEqual(
+            self, sorted(expected[len('SELECT '):].split(', ')),
+            sorted(result[len('SELECT '):].split(', ')))
 
     def test_casting(self):
         """Ensure that render select can handle custom casting."""
@@ -202,14 +207,16 @@ class TestRenderConditions(unittest.TestCase):
             }
         ])
 
-        self.assertEqual(result, "WHERE ((foobar IN (STRING('a'), STRING('b'))"
-                                 " AND foobar IN (STRING('c'), STRING('d')) "
-                                 "AND foobar IN (STRING('e'), STRING('f')) AND"
-                                 " foobar IN (STRING('g'))) AND (NOT foobar IN"
-                                 " (STRING('h'), STRING('i')) AND NOT foobar "
-                                 "IN (STRING('k'), STRING('j')) AND NOT foobar"
-                                 " IN (STRING('l'), STRING('m')) AND NOT "
-                                 "foobar IN (STRING('n'))))")
+        six.assertCountEqual(self, result[len('WHERE '):].split(' AND '),
+                             "WHERE ((foobar IN (STRING('a'), STRING('b'))"
+                             " AND foobar IN (STRING('c'), STRING('d')) "
+                             "AND foobar IN (STRING('e'), STRING('f')) AND"
+                             " foobar IN (STRING('g'))) AND (NOT foobar IN"
+                             " (STRING('h'), STRING('i')) AND NOT foobar "
+                             "IN (STRING('j'), STRING('k')) AND NOT foobar"
+                             " IN (STRING('l'), STRING('m')) AND NOT "
+                             "foobar IN (STRING('n'))))" [len('WHERE '):]
+                             .split(' AND '))
 
 
 class TestRenderOrder(unittest.TestCase):
@@ -298,7 +305,14 @@ class TestRenderQuery(unittest.TestCase):
                           " WHERE (start_time <= INTEGER('1371566954')) AND "
                           "(start_time >= INTEGER('1371556954')) GROUP BY "
                           "timestamp, status ORDER BY timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_empty_conditions(self):
         """Ensure that render query can handle an empty list of conditions."""
@@ -319,7 +333,14 @@ class TestRenderQuery(unittest.TestCase):
                           "resource as url FROM "
                           "[dataset.2013_06_appspot_1]   ORDER BY "
                           "timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_incorrect_conditions(self):
         """Ensure that render query can handle incorrectly formatted
@@ -348,7 +369,14 @@ class TestRenderQuery(unittest.TestCase):
                           "resource as url FROM "
                           "[dataset.2013_06_appspot_1]   ORDER BY "
                           "timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_multiple_condition_values(self):
         """Ensure that render query can handle conditions with multiple values.
@@ -393,7 +421,14 @@ class TestRenderQuery(unittest.TestCase):
                           "((resource CONTAINS STRING('foo') AND resource "
                           "CONTAINS STRING('baz')) AND (NOT resource CONTAINS "
                           "STRING('bar')))  ORDER BY timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_negated_condition_value(self):
         """Ensure that render query can handle conditions with negated values.
@@ -420,7 +455,14 @@ class TestRenderQuery(unittest.TestCase):
                           "resource as url FROM "
                           "[dataset.2013_06_appspot_1] WHERE (NOT resource "
                           "CONTAINS STRING('foo'))  ORDER BY timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_multiple_negated_condition_values(self):
         """Ensure that render query can handle conditions with multiple negated
@@ -456,7 +498,14 @@ class TestRenderQuery(unittest.TestCase):
                           "CONTAINS STRING('foo') AND NOT resource CONTAINS "
                           "STRING('baz') AND NOT resource CONTAINS "
                           "STRING('bar'))  ORDER BY timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_empty_order(self):
         """Ensure that render query can handle an empty formatted order."""
@@ -487,7 +536,14 @@ class TestRenderQuery(unittest.TestCase):
                           "[dataset.2013_06_appspot_1] WHERE (start_time "
                           "<= INTEGER('1371566954')) AND (start_time >= "
                           "INTEGER('1371556954'))  ")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_incorrect_order(self):
         """Ensure that render query can handle inccorectly formatted order."""
@@ -518,7 +574,14 @@ class TestRenderQuery(unittest.TestCase):
                           "[dataset.2013_06_appspot_1] WHERE (start_time "
                           "<= INTEGER('1371566954')) AND (start_time >= "
                           "INTEGER('1371556954'))  ")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_empty_select(self):
         """Ensure that render query corrently handles no selection."""
@@ -574,7 +637,17 @@ class TestRenderQuery(unittest.TestCase):
                           "[dataset.2013_06_appspot_1] WHERE (start_time "
                           "<= INTEGER('1371566954')) AND (start_time >= "
                           "INTEGER('1371556954'))  ORDER BY start_time desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (field.strip() for field in
+                           expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = (expected_query[len('SELECT '):].split('FROM')[1]
+                         .strip())
+        result_select = (field.strip() for field in
+                         result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1].strip()
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_formatting(self):
         """Ensure that render query runs with formatting a select."""
@@ -609,7 +682,14 @@ class TestRenderQuery(unittest.TestCase):
                           "[dataset.2013_06_appspot_1] WHERE (start_time "
                           "<= INTEGER('1371566954')) AND (start_time >= "
                           "INTEGER('1371556954'))  ORDER BY timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_formatting_duplicate_columns(self):
         """Ensure that render query runs with formatting a select for a
@@ -655,7 +735,14 @@ class TestRenderQuery(unittest.TestCase):
                           "(start_time <= INTEGER('1371566954')) AND "
                           "(start_time >= INTEGER('1371556954'))  ORDER BY "
                           "timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_sec_to_micro_formatting(self):
         """Ensure that render query runs sec_to_micro formatting on a
@@ -692,7 +779,14 @@ class TestRenderQuery(unittest.TestCase):
                           "[dataset.2013_06_appspot_1] WHERE (start_time "
                           "<= INTEGER('1371566954')) AND (start_time >= "
                           "INTEGER('1371556954'))  ORDER BY timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
 
     def test_no_table_or_dataset(self):
         """Ensure that render query returns None if there is no dataset or
@@ -741,7 +835,15 @@ class TestRenderQuery(unittest.TestCase):
                           "resource as url FROM "
                           "[dataset.2013_06_appspot_1]   ORDER BY "
                           "timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
+
 
     def test_multi_tables(self):
         """Ensure that render query arguments work with multiple tables."""
@@ -775,4 +877,11 @@ class TestRenderQuery(unittest.TestCase):
                           "<= INTEGER('1371566954')) AND (start_time >= "
                           "INTEGER('1371556954')) GROUP BY timestamp, status "
                           "ORDER BY timestamp desc")
-        self.assertEqual(result, expected_query)
+        expected_select = (expected_query[len('SELECT '):]
+                           .split('FROM')[0].strip().split(', '))
+        expected_from = expected_query[len('SELECT '):].split('FROM')[1]
+        result_select = (result[len('SELECT '):].split('FROM')[0]
+                         .strip().split(', '))
+        result_from = result[len('SELECT '):].split('FROM')[1]
+        six.assertCountEqual(self, expected_select, result_select)
+        six.assertCountEqual(self, expected_from, result_from)
