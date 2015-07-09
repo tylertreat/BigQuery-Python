@@ -847,8 +847,9 @@ class BigQueryClient(object):
             BigQueryTimeoutException on timeout
         """
         complete = False
-        job_id = (job if isinstance(job, (six.binary_type, six.text_type))
-                  else job['jobReference']['jobId'])
+        job_id = str(job if isinstance(job,
+                                       (six.binary_type, six.text_type, int))
+                     else job['jobReference']['jobId'])
         job_resource = None
 
         start_time = time()

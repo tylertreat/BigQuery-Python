@@ -5,12 +5,8 @@ script: tox -e $TOXENV
 notifications:
   email: false
 env:
-  - TOXENV=py26
   - TOXENV=py27
-  - TOXENV=py32
   - TOXENV=py33
   - TOXENV=py34
-  - TOXENV=py35
+  - TOXENV=nightly
   - TOXENV=pypy
-  - TOXENV=pypy3
-  - TOXENV=jython

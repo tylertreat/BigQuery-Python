@@ -603,6 +603,24 @@ class TestWaitForJob(unittest.TestCase):
 
         job_resource = self.client.wait_for_job("testJob",
                                                 interval=.01,
+                                                timeout=5)
+
+        self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
+        self.assertIsInstance(job_resource, dict)
+
+    def test_accepts_integer_job_id(self):
+        return_values = [{'status': {'state': u'RUNNING'},
+                          'jobReference': {'jobId': "testJob"}},
+                         {'status': {'state': u'DONE'},
+                          'jobReference': {'jobId': "testJob"}}]
+
+        def side_effect(*args, **kwargs):
+            return return_values.pop(0)
+
+        self.api_mock.jobs().get().execute.side_effect = side_effect
+
+        job_resource = self.client.wait_for_job(1234567,
+                                                interval=.01,
                                                 timeout=600)
 
         self.assertEqual(self.api_mock.jobs().get().execute.call_count, 2)
