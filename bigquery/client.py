@@ -384,13 +384,14 @@ class BigQueryClient(object):
 
         return table
 
-    def create_table(self, dataset, table, schema):
+    def create_table(self, dataset, table, schema, expiration_time=None):
         """Create a new table in the dataset.
 
         Args:
             dataset: the dataset to create the table in.
             table: the name of table to create.
             schema: table schema dict.
+            expiration_time: the expiry time in milliseconds since the epoch.
 
         Returns:
             bool indicating if the table was successfully created or not,
@@ -405,6 +406,9 @@ class BigQueryClient(object):
                 'datasetId': dataset
             }
         }
+
+        if expiration_time is not None:
+            body['expirationTime'] = expiration_time
 
         try:
             table = self.bigquery.tables().insert(

@@ -65,7 +65,7 @@ class TestGetClient(unittest.TestCase):
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE_READ_ONLY)
-        mock_cred.authorize.assert_called_once()
+        self.assertTrue(mock_cred.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
@@ -95,7 +95,7 @@ class TestGetClient(unittest.TestCase):
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE)
-        mock_cred.authorize.assert_called_once()
+        self.assertTrue(mock_cred.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
@@ -130,7 +130,7 @@ class TestGetClient(unittest.TestCase):
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE)
-        mock_cred.authorize.assert_called_once()
+        self.assertTrue(mock_cred.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
@@ -378,7 +378,7 @@ class TestGetQueryResults(unittest.TestCase):
             projectId=self.project_id, jobId=job_id, startIndex=offset,
             maxResults=limit, pageToken=page_token, timeoutMs=1000)
 
-        mock_query_job.execute.assert_called_once()
+        mock_query_job.execute.assert_called_once_with()
         self.assertEquals(actual, mock_query_reply)
 
 
@@ -1482,6 +1482,7 @@ class TestCreateTable(unittest.TestCase):
                 'tableId': self.table, 'projectId': self.project,
                 'datasetId': self.dataset}
         }
+        self.expiration_time = 1437513693000
 
     def test_table_create_failed(self):
         """Ensure that if creating the table fails, False is returned,
@@ -1532,6 +1533,26 @@ class TestCreateTable(unittest.TestCase):
 
         self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_tables.insert.return_value.execute.assert_called_with()
+
+    def test_table_create_body_with_expiration_time(self):
+        """Ensure that if expiration_time has specified,
+        it passed to the body."""
+
+        self.mock_tables.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        self.client.create_table(self.dataset, self.table,
+                                 self.schema, self.expiration_time)
+
+        body = self.body.copy()
+        body.update({
+            'expirationTime': self.expiration_time
+        })
+
+        self.mock_tables.insert.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=body)
 
         self.mock_tables.insert.return_value.execute.assert_called_with()
 
