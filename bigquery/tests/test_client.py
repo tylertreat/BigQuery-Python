@@ -1543,8 +1543,8 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.return_value.execute.side_effect = [{
             'status': 'foo'}, {'status': 'bar'}]
 
-        actual = self.client.create_table(self.dataset, self.table,
-                                          self.schema, self.expiration_time)
+        self.client.create_table(self.dataset, self.table,
+                                 self.schema, self.expiration_time)
 
         body = self.body.copy()
         body.update({
