@@ -1,6 +1,6 @@
 nose
 rednose
-mock
+mock==1.0.1
 coverage
 nose-exclude
 tox
