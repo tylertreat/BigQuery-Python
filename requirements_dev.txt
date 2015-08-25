@@ -4,4 +4,3 @@ mock==1.0.1
 coverage
 nose-exclude
 tox
--r requirements.txt
