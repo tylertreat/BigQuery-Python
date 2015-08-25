@@ -1,4 +1,0 @@
-google-api-python-client
-httplib2
-pyopenssl
-python-dateutil

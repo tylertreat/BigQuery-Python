@@ -1,5 +1,6 @@
 language: python
 install:
+  - python setup.py develop
   - pip install tox
 script: tox -e $TOXENV
 notifications:
