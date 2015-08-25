@@ -11,8 +11,11 @@ setup_args = dict(
     license='Apache',
     packages=find_packages(),
     include_package_data=True,
-    install_requires=['google-api-python-client', 'pyopenssl', 'httplib2',
-                      'python-dateutil'],
+    install_requires=[
+        'google-api-python-client',
+        'httplib2',
+        'python-dateutil'
+    ],
     author='Tyler Treat',
     author_email='ttreat31@gmail.com',
     classifiers=[
