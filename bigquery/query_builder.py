@@ -86,7 +86,7 @@ def _render_select(selections):
         for options_dict in options:
             name = original_name
             alias = options_dict.get('alias')
-            alias = "AS %s" % alias if alias else ""
+            alias = "as %s" % alias if alias else ""
 
             formatter = options_dict.get('format')
             if formatter:
