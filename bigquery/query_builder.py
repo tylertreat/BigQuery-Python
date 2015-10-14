@@ -266,37 +266,6 @@ def _render_condition_value(value, field_type):
     return "%s(%s)" % (field_type, value)
 
 
-def _render_having(having):
-    """Render the having part of a query.
-
-    Args:
-        having: accepts the having query as it is.
-
-    Returns:
-        a string that represents the having part of a query.
-    """
-
-    return "HAVING %s" % (having) if having else ""
-
-
-def _render_order(order):
-    """Render the order by part of a query.
-
-    Args:
-        order: a dictionary with two keys, field and direction.
-            Such that the dictionary should be formatted as
-            {'fields': ['TimeStamp'], 'direction':'desc'}.
-
-    Returns:
-        a string that represents the order by part of a query.
-    """
-
-    if not order or 'fields' not in order or 'direction' not in order:
-        return ''
-
-    return "ORDER BY %s %s" % (", ".join(order['fields']), order['direction'])
-
-
 def _render_groupings(fields):
     """Render the group by part of a query.
 
@@ -311,3 +280,57 @@ def _render_groupings(fields):
         return ""
 
     return "GROUP BY " + ", ".join(fields)
+
+
+def _render_having(having_conditions):
+    """Render the having part of a query.
+
+    Args:
+        conditions: a list of dictionary items to filter the rows.
+            Each dict should be formatted as {'field': 'start_time',
+            'value': {'value': 1, 'negate': False}, 'comparator': '>',
+            'type': 'FLOAT'} which is represetned as
+            'start_time > FLOAT('1')' in the query.
+
+    Returns:
+        a string that represents the having part of a query.
+    """
+    if not having_conditions:
+        return ""
+
+    rendered_conditions = []
+
+    for condition in having_conditions:
+        field = condition.get('field')
+        field_type = condition.get('type')
+        comparators = condition.get('comparators')
+
+        if None in (field, field_type, comparators) or not comparators:
+            logging.warn('Invalid condition passed in: %s' % condition)
+            continue
+
+        rendered_conditions.append(
+            _render_condition(field, field_type, comparators))
+
+    if not rendered_conditions:
+        return ""
+
+    return "HAVING %s" % (" AND ".join(rendered_conditions))
+
+
+def _render_order(order):
+    """Render the order by part of a query.
+
+    Args:
+        order: a dictionary with two keys, fields and direction.
+            Such that the dictionary should be formatted as
+            {'fields': ['TimeStamp'], 'direction':'desc'}.
+
+    Returns:
+        a string that represents the order by part of a query.
+    """
+
+    if not order or 'fields' not in order or 'direction' not in order:
+        return ''
+
+    return "ORDER BY %s %s" % (", ".join(order['fields']), order['direction'])
