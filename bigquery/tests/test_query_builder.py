@@ -80,6 +80,22 @@ class TestRenderSources(unittest.TestCase):
 
         self.assertEqual(result, 'FROM [.man], [.pig], [.bro]')
 
+    def test_tables_in_date_range(self):
+        """Ensure that render sources can handle tables in DATE RANGE."""
+        from bigquery.query_builder import _render_sources
+
+        tables = {
+            'date_range': True,
+            'from_date': '2015-08-23',
+            'to_date': '2015-10-10',
+            'table': 'pets_'
+        }
+
+        result = _render_sources('animals', tables)
+
+        self.assertEqual(result, "FROM (TABLE_DATE_RANGE([animals.pets_], "
+                         "TIMESTAMP('2015-08-23'), TIMESTAMP('2015-10-10'))) ")
+
 
 class TestRenderConditions(unittest.TestCase):
 
