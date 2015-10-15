@@ -220,11 +220,14 @@ def _render_condition(field, field_type, comparators):
                 value = _render_condition_value(value, field_type)
             value = "(" + value + ")"
         elif condition == "BETWEEN":
-            if isinstance(value, (tuple, list)):
+            if isinstance(value, (tuple, list, set)) and len(value) == 2:
                 value = ' AND '.join(
                     sorted([_render_condition_value(v, field_type)
                             for v in value])
                 )
+            elif isinstance(value, (tuple, list, set)) and len(value) != 2:
+                logging.warn('Invalid condition passed in: %s' % condition)
+            value = "(" + value + ")"
         else:
             value = _render_condition_value(value, field_type)
 
