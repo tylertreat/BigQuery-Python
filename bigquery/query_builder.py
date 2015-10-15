@@ -135,7 +135,7 @@ def _render_sources(dataset, tables):
     """
 
     if isinstance(tables, dict):
-        if tables['date_range']:
+        if tables.get('date_range', False):
             try:
                 dataset_table = '.'.join([dataset, tables['table']])
                 return "FROM (TABLE_DATE_RANGE([{}], TIMESTAMP('{}'),"\
@@ -143,7 +143,8 @@ def _render_sources(dataset, tables):
                                                  tables['from_date'],
                                                  tables['to_date'])
             except KeyError as exp:
-                raise Exception('Missing parameter %s' % (exp))
+                logging.warn('Missing parameter %s in selecting sources' %
+                             (exp))
 
     else:
         return "FROM " + ", ".join(
