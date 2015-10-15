@@ -218,6 +218,42 @@ class TestRenderConditions(unittest.TestCase):
                              "foobar IN (STRING('n'))))" [len('WHERE '):]
                              .split(' AND '))
 
+    def test_between_comparator(self):
+        """Ensure that render conditions can handle "BETWEEN" condition."""
+        from bigquery.query_builder import _render_conditions
+
+        result = _render_conditions([
+            {
+                'field': 'foobar',
+                'type': 'STRING',
+                'comparators': [
+                    {'condition': 'BETWEEN', 'negate': False,
+                        'value': ['a', 'b']},
+                    {'condition': 'BETWEEN', 'negate': False,
+                        'value': {'c', 'd'}},
+                    {'condition': 'BETWEEN', 'negate': False,
+                        'value': ('e', 'f')},
+                    {'condition': 'BETWEEN', 'negate': True,
+                        'value': ['h', 'i']},
+                    {'condition': 'BETWEEN', 'negate': True,
+                        'value': {'j', 'k'}},
+                    {'condition': 'BETWEEN', 'negate': True,
+                        'value': ('l', 'm')}
+                ]
+            }
+        ])
+
+        six.assertCountEqual(self, result[len('WHERE '):].split(' AND '),
+                             "WHERE ((foobar BETWEEN (STRING('a') AND "
+                             "STRING('b')) AND foobar BETWEEN (STRING('c') "
+                             "AND STRING('d')) AND foobar BETWEEN "
+                             "(STRING('e') AND STRING('f'))) AND (NOT foobar "
+                             "BETWEEN (STRING('h') AND STRING('i')) AND NOT "
+                             "foobar BETWEEN (STRING('j') AND STRING('k')) "
+                             "AND NOT foobar BETWEEN (STRING('l') AND "
+                             "STRING('m'))))" [len('WHERE '):]
+                             .split(' AND '))
+
 
 class TestRenderOrder(unittest.TestCase):
 
