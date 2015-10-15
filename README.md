@@ -94,13 +94,32 @@ conditions = [
     }
 ]
 
+grouping = ['Timestamp']
+
+having = [
+    {
+        'field': 'Timestamp',
+        'type': 'INTEGER',
+        'comparators': [
+            {
+                'condition': '==',
+                'negate': False,
+                'value': 1399478981
+            }
+        ]
+    }
+]
+
+order_by ={'fields': ['Timestamp'], 'direction': 'desc'}
+
 query = render_query(
     'dataset',
     ['table'],
     select=selects,
     conditions=conditions,
-    groupings=['Timestamp'],
-    order_by={'field': 'Timestamp', 'direction': 'desc'}
+    groupings=grouping,
+    having=having,
+    order_by=order_by
 )
 
 job_id, _ = client.query(query)
