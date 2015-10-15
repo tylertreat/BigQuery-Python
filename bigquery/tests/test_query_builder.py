@@ -295,6 +295,35 @@ class TestGroupings(unittest.TestCase):
         self.assertEqual(result, "")
 
 
+class TestRenderHaving(unittest.TestCase):
+
+    def test_mutliple_fields(self):
+        """Ensure that render having works with multiple fields."""
+        from bigquery.query_builder \
+            import _render_having
+
+        result = _render_having([
+            {
+                'field': 'bar',
+                'type': 'STRING',
+                'comparators': [
+                    {'condition': '>=', 'negate': False, 'value': '1'}
+                ]
+            }
+        ])
+
+        self.assertEqual(result, "HAVING (bar >= STRING('1'))")
+
+    def test_no_fields(self):
+        """Ensure that render having can work with out any arguments."""
+        from bigquery.query_builder \
+            import _render_having
+
+        result = _render_having(None)
+
+        self.assertEqual(result, "")
+
+
 class TestRenderQuery(unittest.TestCase):
 
     def test_full_query(self):
