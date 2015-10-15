@@ -363,13 +363,27 @@ class TestRenderQuery(unittest.TestCase):
                 }
             ],
             groupings=['timestamp', 'status'],
+            having=[
+                {
+                    'field': 'status',
+                    'comparators': [
+                        {
+                            'condition': '==',
+                            'value': 1,
+                            'negate': False
+                        }
+                    ],
+                    'type': 'INTEGER'
+                }
+            ],
             order_by={'fields': ['timestamp'], 'direction': 'desc'})
 
         expected_query = ("SELECT status as status, start_time as timestamp, "
                           "resource as url FROM [dataset.2013_06_appspot_1]"
                           " WHERE (start_time <= INTEGER('1371566954')) AND "
                           "(start_time >= INTEGER('1371556954')) GROUP BY "
-                          "timestamp, status  ORDER BY timestamp desc")
+                          "timestamp, status HAVING (status == INTEGER('1')) "
+                          "ORDER BY timestamp desc")
         expected_select = (expected_query[len('SELECT '):]
                            .split('FROM')[0].strip().split(', '))
         expected_from = expected_query[len('SELECT '):].split('FROM')[1]
