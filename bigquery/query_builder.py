@@ -228,7 +228,7 @@ def _render_condition(field, field_type, comparators):
                 )
             elif isinstance(value, (tuple, list, set)) and len(value) != 2:
                 logging.warn('Invalid condition passed in: %s' % condition)
-            value = "(" + value + ")"
+
         else:
             value = _render_condition_value(value, field_type)
 
