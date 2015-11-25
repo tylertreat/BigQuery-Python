@@ -44,8 +44,9 @@ JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 
 def get_client(project_id, credentials=None, service_account=None,
-               private_key=None, private_key_file=None, readonly=True,
-               swallow_results=True):
+               private_key=None, private_key_file=None,
+               json_key=None, json_key_file=None,
+               readonly=True, swallow_results=True):
     """Return a singleton instance of BigQueryClient. Either
     AssertionCredentials or a service account and private key combination need
     to be provided in order to authenticate requests to BigQuery.
@@ -60,6 +61,9 @@ def get_client(project_id, credentials=None, service_account=None,
         private_key_file: the name of the file containing the private key
                           associated with the service account in PKCS12 or PEM
                           format.
+        json_key: the JSON key associated with the service account
+        json_key_file: the name of the JSON key file associated with
+                       the service account
         readonly: bool indicating if BigQuery access is read-only. Has no
                   effect if credentials are provided.
         swallow_results: If set to false then return the actual response value
@@ -70,12 +74,20 @@ def get_client(project_id, credentials=None, service_account=None,
     """
 
     if not credentials:
-        assert service_account and (private_key or private_key_file), \
-            'Must provide AssertionCredentials or service account and key'
+        assert (service_account and (private_key or private_key_file)) or (json_key or json_key_file), \
+            'Must provide AssertionCredentials or service account and P12 key or JSON key'
 
     if private_key_file:
         with open(private_key_file, 'rb') as key_file:
             private_key = key_file.read()
+
+    if json_key_file:
+        with open(json_key_file, 'rb') as key_file:
+            json_key = json.loads(key_file.read())
+
+    if json_key:
+        service_account = json_key['client_email']
+        private_key = json_key['private_key']
 
     bq_service = _get_bq_service(credentials=credentials,
                                  service_account=service_account,
