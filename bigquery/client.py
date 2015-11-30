@@ -1146,6 +1146,9 @@ class BigQueryClient(object):
 
             elif col_dict['type'] == 'BOOLEAN':
                 row_value = row_value in ('True', 'true', 'TRUE')
+            
+            elif col_dict['type'] == 'TIMESTAMP':
+                row_value = float(row_value)
 
             log[col_name] = row_value
 

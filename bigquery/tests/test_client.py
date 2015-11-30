@@ -434,7 +434,7 @@ class TestTransformRow(unittest.TestCase):
                   {'name': 'bar', 'type': 'FLOAT'},
                   {'name': 'baz', 'type': 'STRING'},
                   {'name': 'qux', 'type': 'BOOLEAN'},
-                  {'name': 'timestamp', 'type': 'FLOAT'}]
+                  {'name': 'timestamp', 'type': 'TIMESTAMP'}]
 
         row = {'f': [{'v': '42'}, {'v': None}, {'v': 'batman'},
                      {'v': 'True'}, {'v': '1.371145650319132E9'}]}
