@@ -158,7 +158,7 @@ class TestGetClient(unittest.TestCase):
 
         bq_client = client.get_client(project_id, json_key_file=json_key_file, readonly=False)
 
-        mock_open.assert_called_once_with(json_key_file, 'rb')
+        mock_open.assert_called_once_with(json_key_file, 'r')
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(json_key['client_email'], json_key['private_key'], scope=BIGQUERY_SCOPE)
         self.assertTrue(mock_cred.return_value.authorize.called)
