@@ -327,7 +327,7 @@ class BigQueryClient(object):
         records = [self._transform_row(row, schema) for row in rows]
 
         # Append to records if there are multiple pages for query results
-        while limit is None and page_token or len(records) < limit:
+        while page_token and (not limit or len(records) < limit):
             query_reply = self.get_query_results(job_id, offset=offset, limit=limit,
                                                  page_token=page_token, timeout=timeout)
             page_token = query_reply.get("pageToken")
