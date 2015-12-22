@@ -327,13 +327,13 @@ class BigQueryClient(object):
         records = [self._transform_row(row, schema) for row in rows]
 
         # Append to records if there are multiple pages for query results
-        while page_token:
+        while page_token and (not limit or len(records) < limit):
             query_reply = self.get_query_results(job_id, offset=offset, limit=limit,
                                                  page_token=page_token, timeout=timeout)
             page_token = query_reply.get("pageToken")
             rows = query_reply.get('rows', [])
             records += [self._transform_row(row, schema) for row in rows]
-        return records
+        return records[:limit] if limit else records
 
     def check_dataset(self, dataset_id):
         """Check to see if a dataset exists.
