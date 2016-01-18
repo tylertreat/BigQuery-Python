@@ -1588,6 +1588,156 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.return_value.execute.assert_called_with()
 
 
+class TestUpdateTable(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_tables = mock.Mock()
+        self.mock_bq_service.tables.return_value = self.mock_tables
+        self.table = 'table'
+        self.schema = [
+            {'name': 'foo', 'type': 'STRING', 'mode': 'nullable'},
+            {'name': 'bar', 'type': 'FLOAT', 'mode': 'nullable'}
+        ]
+        self.project = 'project'
+        self.dataset = 'dataset'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+        self.body = {
+            'schema': {'fields': self.schema},
+            'tableReference': {
+                'tableId': self.table, 'projectId': self.project,
+                'datasetId': self.dataset}
+        }
+        self.expiration_time = 1437513693000
+
+    def test_table_update_failed(self):
+        """Ensure that if updating the table fails, False is returned,
+        or if swallow_results is False an empty dict is returned."""
+
+        self.mock_tables.update.return_value.execute.side_effect = (
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8')))
+
+        actual = self.client.update_table(self.dataset, self.table,
+                                          self.schema)
+
+        self.assertFalse(actual)
+
+        self.client.swallow_results = False
+
+        actual = self.client.update_table(self.dataset, self.table,
+                                          self.schema)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.update.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_tables.update.return_value.execute.assert_called_with()
+
+    def test_table_update_success(self):
+        """Ensure that if updating the table succeeds, True is returned,
+        or if swallow_results is False the actual response is returned."""
+
+        self.mock_tables.update.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        actual = self.client.update_table(self.dataset, self.table,
+                                          self.schema)
+
+        self.assertTrue(actual)
+
+        self.client.swallow_results = False
+
+        actual = self.client.update_table(self.dataset, self.table,
+                                          self.schema)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.update.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_tables.update.return_value.execute.assert_called_with()
+
+
+class TestPatchTable(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_bq_service = mock.Mock()
+        self.mock_tables = mock.Mock()
+        self.mock_bq_service.tables.return_value = self.mock_tables
+        self.table = 'table'
+        self.schema = [
+            {'name': 'foo', 'type': 'STRING', 'mode': 'nullable'},
+            {'name': 'bar', 'type': 'FLOAT', 'mode': 'nullable'}
+        ]
+        self.project = 'project'
+        self.dataset = 'dataset'
+        self.client = client.BigQueryClient(self.mock_bq_service, self.project)
+        self.body = {
+            'schema': {'fields': self.schema},
+            'tableReference': {
+                'tableId': self.table, 'projectId': self.project,
+                'datasetId': self.dataset}
+        }
+        self.expiration_time = 1437513693000
+
+    def test_table_patch_failed(self):
+        """Ensure that if patching the table fails, False is returned,
+        or if swallow_results is False an empty dict is returned."""
+
+        self.mock_tables.patch.return_value.execute.side_effect = (
+            HttpError(HttpResponse(404), 'There was an error'.encode('utf8')))
+
+        actual = self.client.patch_table(self.dataset, self.table,
+                                         self.schema)
+
+        self.assertFalse(actual)
+
+        self.client.swallow_results = False
+
+        actual = self.client.patch_table(self.dataset, self.table,
+                                         self.schema)
+
+        self.assertEqual(actual, {})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.patch.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_tables.patch.return_value.execute.assert_called_with()
+
+    def test_table_patch_success(self):
+        """Ensure that if patching the table succeeds, True is returned,
+        or if swallow_results is False the actual response is returned."""
+
+        self.mock_tables.patch.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        actual = self.client.patch_table(self.dataset, self.table,
+                                         self.schema)
+
+        self.assertTrue(actual)
+
+        self.client.swallow_results = False
+
+        actual = self.client.patch_table(self.dataset, self.table,
+                                         self.schema)
+
+        self.assertEqual(actual, {'status': 'bar'})
+
+        self.client.swallow_results = True
+
+        self.mock_tables.patch.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=self.body)
+
+        self.mock_tables.patch.return_value.execute.assert_called_with()
+
+
 class TestCreateView(unittest.TestCase):
 
     def setUp(self):

@@ -442,6 +442,90 @@ class BigQueryClient(object):
             else:
                 return {}
 
+    def update_table(self, dataset, table, schema):
+        """Update an existing table in the dataset.
+
+        Args:
+            dataset: the dataset to update the table in.
+            table: the name of table to update.
+            schema: table schema dict.
+
+        Returns:
+            bool indicating if the table was successfully updated or not,
+            or response from BigQuery if swallow_results is set for False.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        try:
+            result = self.bigquery.tables().update(
+                projectId=self.project_id,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return result
+
+        except HttpError as e:
+            logging.error(('Cannot update table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
+    def patch_table(self, dataset, table, schema):
+        """Patch an existing table in the dataset.
+
+        Args:
+            dataset: the dataset to patch the table in.
+            table: the name of table to patch.
+            schema: table schema dict.
+
+        Returns:
+            bool indicating if the table was successfully patched or not,
+            or response from BigQuery if swallow_results is set for False.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        try:
+            result = self.bigquery.tables().patch(
+                projectId=self.project_id,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return result
+
+        except HttpError as e:
+            logging.error(('Cannot patch table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
     def create_view(self, dataset, view, query):
         """Create a new view in the dataset.
 
