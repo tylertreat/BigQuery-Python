@@ -396,6 +396,105 @@ class BigQueryClient(object):
 
         return table
 
+
+    def update_table(self, dataset, table, schema, expiration_time=None):
+        """Updates information in an existing table. The update method
+        replaces the entire table resource, whereas the patch method only
+        replaces fields that are provided in the submitted table resource.
+
+        Args:
+            dataset: the dataset to update the table in.
+            table: the name of table to update.
+            schema: table schema dict. Schema Should have older as well as new fields.
+            expiration_time: the expiry time in milliseconds since the epoch.
+
+        Returns:
+            bool indicating if the table was successfully updated or not,
+            or response from BigQuery if swallow_results is set for False.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        if expiration_time is not None:
+            body['expirationTime'] = expiration_time
+
+        try:
+            table = self.bigquery.tables().update(
+                projectId=self.project_id,
+                tableId=table,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return table
+
+        except HttpError as e:
+            logging.error(('Cannot update table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
+    def patch_table(self, dataset, table, schema, expiration_time=None):
+        """Updates information in an existing dataset. The update method
+        replaces the entire dataset resource, whereas the patch method only
+        replaces fields that are provided in the submitted dataset resource.
+
+        Args:
+            dataset: the dataset to patch the table in.
+            table: the name of table to patch.
+            schema: table schema dict. Schema Should have older as well as new fields.
+            expiration_time: the expiry time in milliseconds since the epoch.
+
+        Returns:
+            bool indicating if the table was successfully updated or not,
+            or response from BigQuery if swallow_results is set for False.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        if expiration_time is not None:
+            body['expirationTime'] = expiration_time
+
+        try:
+            table = self.bigquery.tables().patch(
+                projectId=self.project_id,
+                tableId=table,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return table
+
+        except HttpError as e:
+            logging.error(('Cannot patch table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
     def create_table(self, dataset, table, schema, expiration_time=None):
         """Create a new table in the dataset.
 
