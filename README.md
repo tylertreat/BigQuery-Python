@@ -187,7 +187,7 @@ query = """SELECT requests, title
 job = client.write_to_table(
   query,
   'dataset',
-  'table'
+  'table',
   external_udf_uris=external_udf_uris
 )
 
