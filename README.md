@@ -168,6 +168,34 @@ try:
 except BigQueryTimeoutException:
     print "Timeout"
 
+# write to permanent table with UDF in query string
+external_udf_uris = ["gs://bigquery-sandbox-udf/url_decode.js"]
+query = """SELECT requests, title
+            FROM
+              urlDecode(
+                SELECT
+                  title, sum(requests) AS num_requests
+                FROM
+                  [fh-bigquery:wikipedia.pagecounts_201504]
+                WHERE language = 'fr'
+                GROUP EACH BY title
+              )
+            WHERE title LIKE '%ç%'
+            ORDER BY requests DESC
+            LIMIT 100
+        """
+job = client.write_to_table(
+  query,
+  'dataset',
+  'table'
+  external_udf_uris=external_udf_uris
+)
+
+try:
+    job_resource = client.wait_for_job(job, timeout=60)
+    print job_resource
+except BigQueryTimeoutException:
+    print "Timeout"
 
 # write to temporary table
 job = client.write_to_table('SELECT * FROM dataset.original_table LIMIT 100')
@@ -176,6 +204,8 @@ try:
     print job_resource
 except BigQueryTimeoutException:
     print "Timeout"
+
+
 ```
 
 # Import data from Google cloud storage
