@@ -861,6 +861,7 @@ class BigQueryClient(object):
             query,
             dataset=None,
             table=None,
+            external_udf_uris=[],
             allow_large_results=None,
             use_query_cache=None,
             priority=None,
@@ -874,6 +875,11 @@ class BigQueryClient(object):
             query: required BigQuery query string.
             dataset: optional string id of the dataset
             table: optional string id of the table
+            external_udf_uris: optional list of external UDF URIs
+                    (if given,
+                        URIs must be Google Cloud Storage
+                        and have .js extensions
+                    )
             allow_large_results: optional boolean
             use_query_cache: optional boolean
             priority: optional string
@@ -918,6 +924,14 @@ class BigQueryClient(object):
 
         if write_disposition:
             configuration['writeDisposition'] = write_disposition
+
+        configuration['userDefinedFunctionResources'] = []
+        for external_udf_uri in external_udf_uris:
+            configuration['userDefinedFunctionResources'].append(
+                {
+                    "resourceUri": external_udf_uri
+                }
+            )
 
         body = {
             "configuration": {
@@ -1230,7 +1244,7 @@ class BigQueryClient(object):
 
             elif col_dict['type'] == 'BOOLEAN':
                 row_value = row_value in ('True', 'true', 'TRUE')
-            
+
             elif col_dict['type'] == 'TIMESTAMP':
                 row_value = float(row_value)
 

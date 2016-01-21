@@ -1012,6 +1012,7 @@ class TestWriteToTable(unittest.TestCase):
         self.project_id = 'project'
         self.dataset_id = 'dataset'
         self.table_id = 'table'
+        self.external_udf_uris = ['gs://bucket/external_udf.js']
         self.use_query_cache = False
         self.priority = "INTERACTIVE"
         self.client = client.BigQueryClient(self.mock_api,
@@ -1032,6 +1033,9 @@ class TestWriteToTable(unittest.TestCase):
                         "tableId": self.table_id
                     },
                     "query": self.query,
+                    "userDefinedFunctionResources": [{
+                        "resourceUri": self.external_udf_uris[0]
+                    }],
                     "useQueryCache": self.use_query_cache,
                     "priority": self.priority,
                 }
@@ -1042,6 +1046,7 @@ class TestWriteToTable(unittest.TestCase):
         result = self.client.write_to_table(self.query,
                                             self.dataset_id,
                                             self.table_id,
+                                            external_udf_uris=self.external_udf_uris,
                                             use_query_cache=False,
                                             priority=self.priority)
 
