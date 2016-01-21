@@ -875,6 +875,11 @@ class BigQueryClient(object):
             query: required BigQuery query string.
             dataset: optional string id of the dataset
             table: optional string id of the table
+            external_udf_uris: optional list of external UDF URIs
+                    (if given,
+                        URIs must be Google Cloud Storage
+                        and have .js extensions
+                    )
             allow_large_results: optional boolean
             use_query_cache: optional boolean
             priority: optional string
