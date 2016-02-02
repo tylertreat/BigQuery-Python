@@ -260,14 +260,14 @@ class TestRenderConditions(unittest.TestCase):
         ])
 
         six.assertCountEqual(self, result[len('WHERE '):].split(' AND '),
-                             "WHERE ((foobar BETWEEN (STRING('a') AND "
-                             "STRING('b')) AND foobar BETWEEN (STRING('c') "
-                             "AND STRING('d')) AND foobar BETWEEN "
-                             "(STRING('e') AND STRING('f'))) AND (NOT foobar "
-                             "BETWEEN (STRING('h') AND STRING('i')) AND NOT "
-                             "foobar BETWEEN (STRING('j') AND STRING('k')) "
-                             "AND NOT foobar BETWEEN (STRING('l') AND "
-                             "STRING('m'))))" [len('WHERE '):]
+                             "WHERE ((foobar BETWEEN STRING('a') AND "
+                             "STRING('b') AND foobar BETWEEN STRING('c') "
+                             "AND STRING('d') AND foobar BETWEEN "
+                             "STRING('e') AND STRING('f')) AND (NOT foobar "
+                             "BETWEEN STRING('h') AND STRING('i') AND NOT "
+                             "foobar BETWEEN STRING('j') AND STRING('k') "
+                             "AND NOT foobar BETWEEN STRING('l') AND "
+                             "STRING('m')))" [len('WHERE '):]
                              .split(' AND '))
 
 
