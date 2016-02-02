@@ -44,8 +44,9 @@ JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 
 def get_client(project_id, credentials=None, service_account=None,
-               private_key=None, private_key_file=None, readonly=True,
-               swallow_results=True):
+               private_key=None, private_key_file=None,
+               json_key=None, json_key_file=None,
+               readonly=True, swallow_results=True):
     """Return a singleton instance of BigQueryClient. Either
     AssertionCredentials or a service account and private key combination need
     to be provided in order to authenticate requests to BigQuery.
@@ -60,6 +61,9 @@ def get_client(project_id, credentials=None, service_account=None,
         private_key_file: the name of the file containing the private key
                           associated with the service account in PKCS12 or PEM
                           format.
+        json_key: the JSON key associated with the service account
+        json_key_file: the name of the JSON key file associated with
+                       the service account
         readonly: bool indicating if BigQuery access is read-only. Has no
                   effect if credentials are provided.
         swallow_results: If set to false then return the actual response value
@@ -70,12 +74,20 @@ def get_client(project_id, credentials=None, service_account=None,
     """
 
     if not credentials:
-        assert service_account and (private_key or private_key_file), \
-            'Must provide AssertionCredentials or service account and key'
+        assert (service_account and (private_key or private_key_file)) or (json_key or json_key_file), \
+            'Must provide AssertionCredentials or service account and P12 key or JSON key'
 
     if private_key_file:
         with open(private_key_file, 'rb') as key_file:
             private_key = key_file.read()
+
+    if json_key_file:
+        with open(json_key_file, 'r') as key_file:
+            json_key = json.load(key_file)
+
+    if json_key:
+        service_account = json_key['client_email']
+        private_key = json_key['private_key']
 
     bq_service = _get_bq_service(credentials=credentials,
                                  service_account=service_account,
@@ -315,13 +327,13 @@ class BigQueryClient(object):
         records = [self._transform_row(row, schema) for row in rows]
 
         # Append to records if there are multiple pages for query results
-        while page_token:
+        while page_token and (not limit or len(records) < limit):
             query_reply = self.get_query_results(job_id, offset=offset, limit=limit,
                                                  page_token=page_token, timeout=timeout)
             page_token = query_reply.get("pageToken")
             rows = query_reply.get('rows', [])
             records += [self._transform_row(row, schema) for row in rows]
-        return records
+        return records[:limit] if limit else records
 
     def check_dataset(self, dataset_id):
         """Check to see if a dataset exists.
@@ -522,6 +534,90 @@ class BigQueryClient(object):
 
         except HttpError as e:
             logging.error(('Cannot create table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
+    def update_table(self, dataset, table, schema):
+        """Update an existing table in the dataset.
+
+        Args:
+            dataset: the dataset to update the table in.
+            table: the name of table to update.
+            schema: table schema dict.
+
+        Returns:
+            bool indicating if the table was successfully updated or not,
+            or response from BigQuery if swallow_results is set for False.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        try:
+            result = self.bigquery.tables().update(
+                projectId=self.project_id,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return result
+
+        except HttpError as e:
+            logging.error(('Cannot update table {0}.{1}\n'
+                           'Http Error: {2}').format(dataset, table,
+                                                     e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
+    def patch_table(self, dataset, table, schema):
+        """Patch an existing table in the dataset.
+
+        Args:
+            dataset: the dataset to patch the table in.
+            table: the name of table to patch.
+            schema: table schema dict.
+
+        Returns:
+            bool indicating if the table was successfully patched or not,
+            or response from BigQuery if swallow_results is set for False.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        try:
+            result = self.bigquery.tables().patch(
+                projectId=self.project_id,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return result
+
+        except HttpError as e:
+            logging.error(('Cannot patch table {0}.{1}\n'
                            'Http Error: {2}').format(dataset, table,
                                                      e.content))
             if self.swallow_results:
@@ -864,6 +960,7 @@ class BigQueryClient(object):
             query,
             dataset=None,
             table=None,
+            external_udf_uris=[],
             allow_large_results=None,
             use_query_cache=None,
             priority=None,
@@ -877,6 +974,11 @@ class BigQueryClient(object):
             query: required BigQuery query string.
             dataset: optional string id of the dataset
             table: optional string id of the table
+            external_udf_uris: optional list of external UDF URIs
+                    (if given,
+                        URIs must be Google Cloud Storage
+                        and have .js extensions
+                    )
             allow_large_results: optional boolean
             use_query_cache: optional boolean
             priority: optional string
@@ -921,6 +1023,14 @@ class BigQueryClient(object):
 
         if write_disposition:
             configuration['writeDisposition'] = write_disposition
+
+        configuration['userDefinedFunctionResources'] = []
+        for external_udf_uri in external_udf_uris:
+            configuration['userDefinedFunctionResources'].append(
+                {
+                    "resourceUri": external_udf_uri
+                }
+            )
 
         body = {
             "configuration": {
@@ -1233,6 +1343,9 @@ class BigQueryClient(object):
 
             elif col_dict['type'] == 'BOOLEAN':
                 row_value = row_value in ('True', 'true', 'TRUE')
+
+            elif col_dict['type'] == 'TIMESTAMP':
+                row_value = float(row_value)
 
             log[col_name] = row_value
 
