@@ -2,7 +2,7 @@ import logging
 
 
 def render_query(dataset, tables, select=None, conditions=None,
-                 groupings=None, order_by=None):
+                 groupings=None, having=None, order_by=None):
     """Render a query that will run over the given tables using the specified
     parameters.
 
@@ -46,12 +46,13 @@ def render_query(dataset, tables, select=None, conditions=None,
     if None in (dataset, tables):
         return None
 
-    query = "%s %s %s %s %s" % (
+    query = "%s %s %s %s %s %s" % (
         _render_select(select),
         _render_sources(dataset, tables),
         _render_conditions(conditions),
         _render_groupings(groupings),
-        _render_order(order_by),
+        _render_having(having),
+        _render_order(order_by)
     )
 
     return query
@@ -133,8 +134,21 @@ def _render_sources(dataset, tables):
         a string that represents the from part of a query.
     """
 
-    return "FROM " + ", ".join(
-        ["[%s.%s]" % (dataset, table) for table in tables])
+    if isinstance(tables, dict):
+        if tables.get('date_range', False):
+            try:
+                dataset_table = '.'.join([dataset, tables['table']])
+                return "FROM (TABLE_DATE_RANGE([{}], TIMESTAMP('{}'),"\
+                    " TIMESTAMP('{}'))) ".format(dataset_table,
+                                                 tables['from_date'],
+                                                 tables['to_date'])
+            except KeyError as exp:
+                logging.warn('Missing parameter %s in selecting sources' %
+                             (exp))
+
+    else:
+        return "FROM " + ", ".join(
+            ["[%s.%s]" % (dataset, table) for table in tables])
 
 
 def _render_conditions(conditions):
@@ -206,6 +220,15 @@ def _render_condition(field, field_type, comparators):
             else:
                 value = _render_condition_value(value, field_type)
             value = "(" + value + ")"
+        elif condition == "BETWEEN":
+            if isinstance(value, (tuple, list, set)) and len(value) == 2:
+                value = ' AND '.join(
+                    sorted([_render_condition_value(v, field_type)
+                            for v in value])
+                )
+            elif isinstance(value, (tuple, list, set)) and len(value) != 2:
+                logging.warn('Invalid condition passed in: %s' % condition)
+
         else:
             value = _render_condition_value(value, field_type)
 
@@ -242,25 +265,9 @@ def _render_condition_value(value, field_type):
         value = 1 if value else 0
     elif field_type in ("STRING", "INTEGER", "FLOAT"):
         value = "'%s'" % (value)
+    elif field_type in ("TIMESTAMP"):
+        value = "'%s'" % (str(value))
     return "%s(%s)" % (field_type, value)
-
-
-def _render_order(order):
-    """Render the order by part of a query.
-
-    Args:
-        order: a dictionary with two keys, field and direction.
-            Such that the dictionary should be formatted as
-            {'field':'TimeStamp, 'direction':'desc'}.
-
-    Returns:
-        a string that represents the order by part of a query.
-    """
-
-    if not order or 'field' not in order or 'direction' not in order:
-        return ''
-
-    return "ORDER BY %s %s" % (order['field'], order['direction'])
 
 
 def _render_groupings(fields):
@@ -277,3 +284,57 @@ def _render_groupings(fields):
         return ""
 
     return "GROUP BY " + ", ".join(fields)
+
+
+def _render_having(having_conditions):
+    """Render the having part of a query.
+
+    Args:
+        conditions: a list of dictionary items to filter the rows.
+            Each dict should be formatted as {'field': 'start_time',
+            'value': {'value': 1, 'negate': False}, 'comparator': '>',
+            'type': 'FLOAT'} which is represetned as
+            'start_time > FLOAT('1')' in the query.
+
+    Returns:
+        a string that represents the having part of a query.
+    """
+    if not having_conditions:
+        return ""
+
+    rendered_conditions = []
+
+    for condition in having_conditions:
+        field = condition.get('field')
+        field_type = condition.get('type')
+        comparators = condition.get('comparators')
+
+        if None in (field, field_type, comparators) or not comparators:
+            logging.warn('Invalid condition passed in: %s' % condition)
+            continue
+
+        rendered_conditions.append(
+            _render_condition(field, field_type, comparators))
+
+    if not rendered_conditions:
+        return ""
+
+    return "HAVING %s" % (" AND ".join(rendered_conditions))
+
+
+def _render_order(order):
+    """Render the order by part of a query.
+
+    Args:
+        order: a dictionary with two keys, fields and direction.
+            Such that the dictionary should be formatted as
+            {'fields': ['TimeStamp'], 'direction':'desc'}.
+
+    Returns:
+        a string that represents the order by part of a query.
+    """
+
+    if not order or 'fields' not in order or 'direction' not in order:
+        return ''
+
+    return "ORDER BY %s %s" % (", ".join(order['fields']), order['direction'])
