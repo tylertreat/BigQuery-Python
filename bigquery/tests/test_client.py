@@ -50,6 +50,7 @@ class TestGetClient(unittest.TestCase):
 
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
+        mock_service_url = mock.Mock()
         mock_cred.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
@@ -59,14 +60,16 @@ class TestGetClient(unittest.TestCase):
         mock_return_cred.return_value = mock_cred
 
         bq_client = client.get_client(
-            project_id, service_account=service_account, private_key=key,
+            project_id, service_url=mock_service_url,
+            service_account=service_account, private_key=key,
             readonly=True)
 
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE_READ_ONLY)
         self.assertTrue(mock_cred.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
+        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
+                                           discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
@@ -80,6 +83,7 @@ class TestGetClient(unittest.TestCase):
 
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
+        mock_service_url = mock.Mock()
         mock_cred.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
@@ -89,14 +93,16 @@ class TestGetClient(unittest.TestCase):
         mock_return_cred.return_value = mock_cred
 
         bq_client = client.get_client(
-            project_id, service_account=service_account, private_key=key,
+            project_id, service_url=mock_service_url,
+            service_account=service_account, private_key=key,
             readonly=False)
 
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE)
         self.assertTrue(mock_cred.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
+        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
+                                           discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
@@ -112,6 +118,7 @@ class TestGetClient(unittest.TestCase):
 
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
+        mock_service_url = mock.Mock()
         mock_cred.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
@@ -123,7 +130,8 @@ class TestGetClient(unittest.TestCase):
         mock_return_cred.return_value = mock_cred
 
         bq_client = client.get_client(
-            project_id, service_account=service_account,
+            project_id, service_url=mock_service_url,
+            service_account=service_account,
             private_key_file=key_file, readonly=False)
 
         mock_open.assert_called_once_with(key_file, 'rb')
@@ -131,7 +139,8 @@ class TestGetClient(unittest.TestCase):
         mock_cred.assert_called_once_with(service_account, key,
                                           scope=BIGQUERY_SCOPE)
         self.assertTrue(mock_cred.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
+        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
+                                           discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
@@ -147,6 +156,7 @@ class TestGetClient(unittest.TestCase):
 
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
+        mock_service_url = mock.Mock()
         mock_cred.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
@@ -156,13 +166,14 @@ class TestGetClient(unittest.TestCase):
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
 
-        bq_client = client.get_client(project_id, json_key_file=json_key_file, readonly=False)
+        bq_client = client.get_client(
+            project_id, service_url=mock_service_url, json_key_file=json_key_file, readonly=False)
 
         mock_open.assert_called_once_with(json_key_file, 'r')
         mock_return_cred.assert_called_once_with()
         mock_cred.assert_called_once_with(json_key['client_email'], json_key['private_key'], scope=BIGQUERY_SCOPE)
         self.assertTrue(mock_cred.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http)
+        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http, discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
