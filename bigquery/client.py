@@ -115,9 +115,11 @@ def _get_bq_service(credentials=None, service_url=None, readonly=True):
 
     http = httplib2.Http()
     http = credentials.authorize(http)
-    service = build('bigquery', 'v2', http=http, discoveryServiceUrl=service_url)
+    service = build('bigquery', 'v2', http=http,
+                    discoveryServiceUrl=service_url)
 
     return service
+
 
 def _credentials():
     """Import and return ServiceAccountCredentials class"""
