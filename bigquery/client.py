@@ -45,7 +45,7 @@ JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 def get_client(project_id, credentials=None,
                service_url=None, service_account=None,
-               private_key=None, private_key_file=None,
+               private_key_file=None,
                json_key=None, json_key_file=None,
                readonly=True, swallow_results=True):
     """Return a singleton instance of BigQueryClient. Either
@@ -63,8 +63,6 @@ def get_client(project_id, credentials=None,
                      If not set then the default googleapiclient disovery URI
                      is used.
         service_account: the Google API service account name.
-        private_key: the private key associated with the service account in
-                     PKCS12 or PEM format.
         private_key_file: the name of the file containing the private key
                           associated with the service account in PKCS12 or PEM
                           format.
@@ -81,7 +79,8 @@ def get_client(project_id, credentials=None,
     """
 
     if not credentials:
-        assert (service_account and (private_key or private_key_file)) or (json_key or json_key_file), \
+        scopes = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
+        assert (service_account and private_key_file) or (json_key or json_key_file), \
             'Must provide AssertionCredentials or service account and P12 key or JSON key'
 
     if service_url is None:
@@ -89,48 +88,44 @@ def get_client(project_id, credentials=None,
 
     if private_key_file:
         with open(private_key_file, 'rb') as key_file:
-            private_key = key_file.read()
+            credentials = _credentials().from_p12_keyfile_buffer(service_account,
+                                                                 key_file,
+                                                                 scopes=scopes)
 
     if json_key_file:
         with open(json_key_file, 'r') as key_file:
-            json_key = json.load(key_file)
+            json_key = json.load(key_file.read())
 
     if json_key:
-        service_account = json_key['client_email']
-        private_key = json_key['private_key']
+        credentials = _credentials().from_json_keyfile_dict(json_key,
+                                                            scopes=scopes)
 
     bq_service = _get_bq_service(credentials=credentials,
                                  service_url=service_url,
-                                 service_account=service_account,
-                                 private_key=private_key,
                                  readonly=readonly)
 
     return BigQueryClient(bq_service, project_id, swallow_results)
 
 
-def _get_bq_service(credentials=None, service_url=None, service_account=None, private_key=None,
-                    readonly=True):
+def _get_bq_service(credentials=None, service_url=None, readonly=True):
     """Construct an authorized BigQuery service object."""
 
-    assert credentials or (service_account and private_key), \
+    assert credentials, \
         'Must provide AssertionCredentials or service account and key'
-
-    if not credentials:
-        scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
-        credentials = _credentials()(service_account, private_key, scope=scope)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
-    service = build('bigquery', 'v2', http=http, discoveryServiceUrl=service_url)
+    service = build('bigquery', 'v2', http=http,
+                    discoveryServiceUrl=service_url)
 
     return service
 
 
 def _credentials():
-    """Import and return SignedJwtAssertionCredentials class"""
-    from oauth2client.client import SignedJwtAssertionCredentials
+    """Import and return ServiceAccountCredentials class"""
+    from oauth2client.service_account import ServiceAccountCredentials
 
-    return SignedJwtAssertionCredentials
+    return ServiceAccountCredentials
 
 
 class BigQueryClient(object):

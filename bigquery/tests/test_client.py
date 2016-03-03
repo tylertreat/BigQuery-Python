@@ -54,14 +54,14 @@ class TestGetClient(unittest.TestCase):
         mock_cred.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
-        key = 'key'
+        key_file = 'key.pem'
         service_account = 'account'
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
 
         bq_client = client.get_client(
             project_id, service_url=mock_service_url,
-            service_account=service_account, private_key=key,
+            service_account=service_account, private_key_file=key_file,
             readonly=True)
 
         mock_return_cred.assert_called_once_with()
@@ -87,14 +87,14 @@ class TestGetClient(unittest.TestCase):
         mock_cred.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
-        key = 'key'
+        key_file = 'key.pem'
         service_account = 'account'
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
 
         bq_client = client.get_client(
             project_id, service_url=mock_service_url,
-            service_account=service_account, private_key=key,
+            service_account=service_account, private_key_file=key_file,
             readonly=False)
 
         mock_return_cred.assert_called_once_with()
@@ -123,8 +123,6 @@ class TestGetClient(unittest.TestCase):
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         key_file = 'key.pem'
-        key = 'key'
-        mock_open.return_value.__enter__.return_value.read.return_value = key
         service_account = 'account'
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
@@ -136,8 +134,6 @@ class TestGetClient(unittest.TestCase):
 
         mock_open.assert_called_once_with(key_file, 'rb')
         mock_return_cred.assert_called_once_with()
-        mock_cred.assert_called_once_with(service_account, key,
-                                          scope=BIGQUERY_SCOPE)
         self.assertTrue(mock_cred.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
                                            discoveryServiceUrl=mock_service_url)
@@ -161,8 +157,6 @@ class TestGetClient(unittest.TestCase):
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         json_key_file = 'key.json'
-        json_key = {'client_email': 'mail', 'private_key': 'pkey'}
-        mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(json_key)
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
 
@@ -171,7 +165,6 @@ class TestGetClient(unittest.TestCase):
 
         mock_open.assert_called_once_with(json_key_file, 'r')
         mock_return_cred.assert_called_once_with()
-        mock_cred.assert_called_once_with(json_key['client_email'], json_key['private_key'], scope=BIGQUERY_SCOPE)
         self.assertTrue(mock_cred.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http, discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
