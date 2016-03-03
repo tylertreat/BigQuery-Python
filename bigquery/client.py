@@ -102,22 +102,22 @@ def get_client(project_id, credentials=None,
     bq_service = _get_bq_service(credentials=credentials,
                                  service_url=service_url,
                                  service_account=service_account,
-                                 private_key=private_key,
+                                 private_key_file=private_key_file,
                                  readonly=readonly)
 
     return BigQueryClient(bq_service, project_id, swallow_results)
 
 
-def _get_bq_service(credentials=None, service_url=None, service_account=None, private_key=None,
+def _get_bq_service(credentials=None, service_url=None, service_account=None, private_key_file=None,
                     readonly=True):
     """Construct an authorized BigQuery service object."""
 
-    assert credentials or (service_account and private_key), \
+    assert credentials or (service_account and private_key_file), \
         'Must provide AssertionCredentials or service account and key'
 
     if not credentials:
         scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
-        credentials = _credentials()(service_account, private_key, scope=scope)
+        credentials = _credentials().from_p12_keyfile(service_account, private_key_file, scopes=scope)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
@@ -127,10 +127,10 @@ def _get_bq_service(credentials=None, service_url=None, service_account=None, pr
 
 
 def _credentials():
-    """Import and return SignedJwtAssertionCredentials class"""
-    from oauth2client.client import SignedJwtAssertionCredentials
+    """Import and return ServiceAccountCredentials class"""
+    from oauth2client.service_account import ServiceAccountCredentials
 
-    return SignedJwtAssertionCredentials
+    return ServiceAccountCredentials
 
 
 class BigQueryClient(object):
