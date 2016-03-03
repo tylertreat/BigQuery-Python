@@ -54,14 +54,14 @@ class TestGetClient(unittest.TestCase):
         mock_cred.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
-        key = 'key'
+        key_file = 'key.pem'
         service_account = 'account'
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
 
         bq_client = client.get_client(
             project_id, service_url=mock_service_url,
-            service_account=service_account, private_key=key,
+            service_account=service_account, private_key_file=key_file,
             readonly=True)
 
         mock_return_cred.assert_called_once_with()
@@ -123,7 +123,6 @@ class TestGetClient(unittest.TestCase):
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         key_file = 'key.pem'
-        mock_open.return_value.__enter__.return_value.read.return_value = key
         service_account = 'account'
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
@@ -158,7 +157,6 @@ class TestGetClient(unittest.TestCase):
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         json_key_file = 'key.json'
-        mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(json_key)
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
 
