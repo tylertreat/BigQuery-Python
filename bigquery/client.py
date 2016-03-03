@@ -94,7 +94,7 @@ def get_client(project_id, credentials=None,
 
     if json_key_file:
         with open(json_key_file, 'r') as key_file:
-            json_key = json.load(key_file)
+            json_key = json.load(key_file.read())
 
     if json_key:
         credentials = _credentials().from_json_keyfile_dict(json_key,
