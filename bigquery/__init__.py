@@ -1,4 +1,7 @@
 from __future__ import absolute_import
+
+__version__ = '1.6.0'
+
 from .client import get_client
 from .client import (
     BIGQUERY_SCOPE,
