@@ -1,0 +1,217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>schema_builder &mdash; BigQuery-Python 1.6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="BigQuery-Python 1.6.0 documentation" href="../index.html" />
+    <link rel="prev" title="query_builder" href="query_builder.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="query_builder.html" title="query_builder"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="query_builder.html"
+                        title="previous chapter">query_builder</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/pages/schema_builder.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-bigquery.schema_builder">
+<span id="schema-builder"></span><h1>schema_builder<a class="headerlink" href="#module-bigquery.schema_builder" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="bigquery.schema_builder.bigquery_type">
+<code class="descclassname">bigquery.schema_builder.</code><code class="descname">bigquery_type</code><span class="sig-paren">(</span><em>o</em>, <em>timestamp_parser=&lt;function default_timestamp_parser&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.schema_builder.bigquery_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a value, return the matching BigQuery type of that value. Must be
+one of str/unicode/int/float/datetime/record, where record is a dict
+containing value which have matching BigQuery types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>o</strong> : object</p>
+<blockquote>
+<div><p>A Python object</p>
+</div></blockquote>
+<p><strong>time_stamp_parser</strong> : function, optional</p>
+<blockquote>
+<div><p>Unary function taking a <code class="docutils literal"><span class="pre">str</span></code> and returning and <code class="docutils literal"><span class="pre">bool</span></code> that is
+True if the string represents a date</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[str, None]</p>
+<blockquote class="last">
+<div><p>Name of the corresponding BigQuery type for <cite>o</cite>, or None if no type
+could be found</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bigquery_type</span><span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">)</span>
+<span class="go">&quot;string&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bigquery_type</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>
+<span class="go">&quot;integer&quot;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="bigquery.schema_builder.describe_field">
+<code class="descclassname">bigquery.schema_builder.</code><code class="descname">describe_field</code><span class="sig-paren">(</span><em>k</em>, <em>v</em>, <em>timestamp_parser=&lt;function default_timestamp_parser&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.schema_builder.describe_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a key representing a column name and value representing the value
+stored in the column, return a representation of the BigQuery schema
+element describing that field. Raise errors if invalid value types are
+provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>k</strong> : Union[str, unicode]</p>
+<blockquote>
+<div><p>Key representing the column</p>
+</div></blockquote>
+<p><strong>v</strong> : Union[str, unicode, int, float, datetime, object]</p>
+<blockquote>
+<div><p>Value mapped to by <cite>k</cite></p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">object</p>
+<blockquote>
+<div><p>Describing the field</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>Exception</strong></p>
+<blockquote class="last">
+<div><p>If invalid value types are provided.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">describe_field</span><span class="p">(</span><span class="s2">&quot;username&quot;</span><span class="p">,</span> <span class="s2">&quot;Bob&quot;</span><span class="p">)</span>
+<span class="go">{&quot;name&quot;: &quot;username&quot;, &quot;type&quot;: &quot;string&quot;, &quot;mode&quot;: &quot;nullable&quot;}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">describe_field</span><span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="p">[{</span><span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="s2">&quot;Bob&quot;</span><span class="p">}])</span>
+<span class="go">{&quot;name&quot;: &quot;users&quot;, &quot;type&quot;: &quot;record&quot;, &quot;mode&quot;: &quot;repeated&quot;,</span>
+<span class="go"> &quot;fields&quot;: [{&quot;name&quot;:&quot;username&quot;,&quot;type&quot;:&quot;string&quot;,&quot;mode&quot;:&quot;nullable&quot;}]}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="bigquery.schema_builder.schema_from_record">
+<code class="descclassname">bigquery.schema_builder.</code><code class="descname">schema_from_record</code><span class="sig-paren">(</span><em>record</em>, <em>timestamp_parser=&lt;function default_timestamp_parser&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.schema_builder.schema_from_record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a BigQuery schema given an example of a record that is to be
+inserted into BigQuery.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>record</strong> : dict</p>
+<blockquote>
+<div><p>Example of a record that is to be inserted into BigQuery</p>
+</div></blockquote>
+<p><strong>timestamp_parser</strong> : function, optional</p>
+<blockquote>
+<div><p>Unary function taking a <code class="docutils literal"><span class="pre">str</span></code> and returning and <code class="docutils literal"><span class="pre">bool</span></code> that is
+True if the string represents a date</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Schema: list</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="query_builder.html" title="query_builder"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Tyler Treat.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.
+    </div>
+  </body>
+</html>
