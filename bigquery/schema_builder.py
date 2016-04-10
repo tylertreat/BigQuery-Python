@@ -23,13 +23,17 @@ def schema_from_record(record, timestamp_parser=default_timestamp_parser):
     """Generate a BigQuery schema given an example of a record that is to be
     inserted into BigQuery.
 
-    Args:
-        record: dict
-        timestamp_parser: unary function taking a string and return non-NIL if
-                          string represents a date
+    Parameters
+    ----------
+    record : dict
+        Example of a record that is to be inserted into BigQuery
+    timestamp_parser : function, optional
+        Unary function taking a ``str`` and returning and ``bool`` that is
+        True if the string represents a date
 
-    Returns:
-        schema: list
+    Returns
+    -------
+    Schema: list
     """
     return [describe_field(k, v, timestamp_parser=timestamp_parser)
             for k, v in list(record.items())]
@@ -41,16 +45,25 @@ def describe_field(k, v, timestamp_parser=default_timestamp_parser):
     element describing that field. Raise errors if invalid value types are
     provided.
 
-    Args:
-        k: str/unicode, key representing the column
-        v: str/unicode/int/float/datetime/object
+    Parameters
+    ----------
+    k : Union[str, unicode]
+        Key representing the column
+    v : Union[str, unicode, int, float, datetime, object]
+        Value mapped to by `k`
 
-    Returns:
-        object describing the field
+    Returns
+    -------
+    object
+        Describing the field
 
-    Raises:
-        Exception: if invalid value types are provided.
+    Raises
+    ------
+    Exception
+        If invalid value types are provided.
 
+    Examples
+    --------
     >>> describe_field("username", "Bob")
     {"name": "username", "type": "string", "mode": "nullable"}
     >>> describe_field("users", [{"username": "Bob"}])
@@ -90,9 +103,22 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     one of str/unicode/int/float/datetime/record, where record is a dict
     containing value which have matching BigQuery types.
 
-    Returns:
-        str or None if no matching type could be found
+    Parameters
+    ----------
+    o : object
+        A Python object
+    time_stamp_parser : function, optional
+        Unary function taking a ``str`` and returning and ``bool`` that is
+        True if the string represents a date
 
+    Returns
+    -------
+    Union[str, None]
+        Name of the corresponding BigQuery type for `o`, or None if no type
+        could be found
+
+    Examples
+    --------
     >>> bigquery_type("abc")
     "string"
     >>> bigquery_type(123)
