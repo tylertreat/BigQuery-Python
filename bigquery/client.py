@@ -4,19 +4,19 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from hashlib import sha256
+from io import StringIO
 from time import sleep, time
 
-import httplib2
 import six
-from apiclient.discovery import build, DISCOVERY_URI
-from apiclient.errors import HttpError
-
 from bigquery.errors import (BigQueryTimeoutException, JobExecutingException,
                              JobInsertException, UnfinishedQueryException)
 from bigquery.schema_builder import schema_from_record
+from googleapiclient.discovery import build, DISCOVERY_URI
+from googleapiclient.errors import HttpError
+from httplib2 import Http
 
-BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
-BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
+BIGQUERY_SCOPE = ['https://www.googleapis.com/auth/bigquery']
+BIGQUERY_SCOPE_READ_ONLY = ['https://www.googleapis.com/auth/bigquery.readonly']
 
 CACHE_TIMEOUT = timedelta(seconds=30)
 
@@ -90,56 +90,63 @@ def get_client(project_id, credentials=None,
     """
 
     if not credentials:
-        assert (service_account and (private_key or private_key_file)) or (json_key or json_key_file), \
+        assert (service_account and (private_key or private_key_file)) or (
+            json_key or json_key_file), \
             'Must provide AssertionCredentials or service account and P12 key or JSON key'
 
     if service_url is None:
         service_url = DISCOVERY_URI
 
+    scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
+
     if private_key_file:
-        with open(private_key_file, 'rb') as key_file:
-            private_key = key_file.read()
+        credentials = _credentials().from_p12_keyfile(service_account,
+                                                      private_key_file,
+                                                      scopes=scope)
+
+    if private_key:
+        try:
+            if isinstance(private_key, basestring):
+                private_key = private_key.decode('utf-8')
+        except NameError:
+            # python3 -- private_key is already unicode
+            pass
+        credentials = _credentials().from_p12_keyfile_buffer(
+            service_account,
+            StringIO(private_key),
+            scopes=scope)
 
     if json_key_file:
-        with open(json_key_file, 'r') as key_file:
-            json_key = json.load(key_file)
+        credentials = _credentials().from_json_keyfile_name(json_key_file,
+                                                            scopes=scope)
 
     if json_key:
-        service_account = json_key['client_email']
-        private_key = json_key['private_key']
+        credentials = _credentials().from_json_keyfile_dict(json_key,
+                                                            scopes=scope)
 
     bq_service = _get_bq_service(credentials=credentials,
-                                 service_url=service_url,
-                                 service_account=service_account,
-                                 private_key=private_key,
-                                 readonly=readonly)
+                                 service_url=service_url)
 
     return BigQueryClient(bq_service, project_id, swallow_results)
 
 
-def _get_bq_service(credentials=None, service_url=None, service_account=None, private_key=None,
-                    readonly=True):
+def _get_bq_service(credentials=None, service_url=None):
     """Construct an authorized BigQuery service object."""
 
-    assert credentials or (service_account and private_key), \
-        'Must provide AssertionCredentials or service account and key'
+    assert credentials, 'Must provide ServiceAccountCredentials'
 
-    if not credentials:
-        scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
-        credentials = _credentials()(service_account, private_key, scope=scope)
-
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-    service = build('bigquery', 'v2', http=http, discoveryServiceUrl=service_url)
+    http = credentials.authorize(Http())
+    service = build('bigquery', 'v2', http=http,
+                    discoveryServiceUrl=service_url)
 
     return service
 
 
 def _credentials():
     """Import and return SignedJwtAssertionCredentials class"""
-    from oauth2client.client import SignedJwtAssertionCredentials
+    from oauth2client.service_account import ServiceAccountCredentials
 
-    return SignedJwtAssertionCredentials
+    return ServiceAccountCredentials
 
 
 class BigQueryClient(object):

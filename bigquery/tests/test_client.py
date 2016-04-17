@@ -2,18 +2,16 @@ import unittest
 
 import mock
 import six
-from nose.tools import raises
-
-from apiclient.errors import HttpError
 from bigquery import client
 from bigquery.errors import (
     JobInsertException, JobExecutingException,
     BigQueryTimeoutException
 )
+from googleapiclient.errors import HttpError
+from nose.tools import raises
 
 
 class HttpResponse(object):
-
     def __init__(self, status, reason='There was an error'):
         """
         Args:
@@ -24,7 +22,6 @@ class HttpResponse(object):
 
 
 class TestGetClient(unittest.TestCase):
-
     def setUp(self):
         client._bq_client = None
 
@@ -51,7 +48,7 @@ class TestGetClient(unittest.TestCase):
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
         mock_service_url = mock.Mock()
-        mock_cred.return_value.authorize.return_value = mock_http
+        mock_cred.from_p12_keyfile_buffer.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         key = 'key'
@@ -65,9 +62,11 @@ class TestGetClient(unittest.TestCase):
             readonly=True)
 
         mock_return_cred.assert_called_once_with()
-        mock_cred.assert_called_once_with(service_account, key,
-                                          scope=BIGQUERY_SCOPE_READ_ONLY)
-        self.assertTrue(mock_cred.return_value.authorize.called)
+        mock_cred.from_p12_keyfile_buffer.assert_called_once_with(
+            service_account, mock.ANY,
+            scopes=BIGQUERY_SCOPE_READ_ONLY)
+        self.assertTrue(
+            mock_cred.from_p12_keyfile_buffer.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
                                            discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
@@ -84,7 +83,7 @@ class TestGetClient(unittest.TestCase):
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
         mock_service_url = mock.Mock()
-        mock_cred.return_value.authorize.return_value = mock_http
+        mock_cred.from_p12_keyfile_buffer.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         key = 'key'
@@ -98,9 +97,10 @@ class TestGetClient(unittest.TestCase):
             readonly=False)
 
         mock_return_cred.assert_called_once_with()
-        mock_cred.assert_called_once_with(service_account, key,
-                                          scope=BIGQUERY_SCOPE)
-        self.assertTrue(mock_cred.return_value.authorize.called)
+        mock_cred.from_p12_keyfile_buffer.assert_called_once_with(
+            service_account, mock.ANY, scopes=BIGQUERY_SCOPE)
+        self.assertTrue(
+            mock_cred.from_p12_keyfile_buffer.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
                                            discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
@@ -108,9 +108,7 @@ class TestGetClient(unittest.TestCase):
 
     @mock.patch('bigquery.client._credentials')
     @mock.patch('bigquery.client.build')
-    @mock.patch('__builtin__.open' if six.PY2 else 'builtins.open')
-    def test_initialize_key_file(self, mock_open, mock_build,
-                                 mock_return_cred):
+    def test_initialize_key_file(self, mock_build, mock_return_cred):
         """Ensure that a BigQueryClient is initialized and returned with
         read/write permissions using a private key file.
         """
@@ -119,12 +117,10 @@ class TestGetClient(unittest.TestCase):
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
         mock_service_url = mock.Mock()
-        mock_cred.return_value.authorize.return_value = mock_http
+        mock_cred.from_p12_keyfile.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         key_file = 'key.pem'
-        key = 'key'
-        mock_open.return_value.__enter__.return_value.read.return_value = key
         service_account = 'account'
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
@@ -134,11 +130,12 @@ class TestGetClient(unittest.TestCase):
             service_account=service_account,
             private_key_file=key_file, readonly=False)
 
-        mock_open.assert_called_once_with(key_file, 'rb')
         mock_return_cred.assert_called_once_with()
-        mock_cred.assert_called_once_with(service_account, key,
-                                          scope=BIGQUERY_SCOPE)
-        self.assertTrue(mock_cred.return_value.authorize.called)
+        mock_cred.from_p12_keyfile.assert_called_once_with(service_account,
+                                                           key_file,
+                                                           scopes=BIGQUERY_SCOPE)
+        self.assertTrue(
+            mock_cred.from_p12_keyfile.return_value.authorize.called)
         mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
                                            discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
@@ -146,34 +143,33 @@ class TestGetClient(unittest.TestCase):
 
     @mock.patch('bigquery.client._credentials')
     @mock.patch('bigquery.client.build')
-    @mock.patch('__builtin__.open' if six.PY2 else 'builtins.open')
-    def test_initialize_json_key_file(self, mock_open, mock_build, mock_return_cred):
+    def test_initialize_json_key_file(self, mock_build, mock_return_cred):
         """Ensure that a BigQueryClient is initialized and returned with
         read/write permissions using a JSON key file.
         """
         from bigquery.client import BIGQUERY_SCOPE
-        import json
 
         mock_cred = mock.Mock()
         mock_http = mock.Mock()
         mock_service_url = mock.Mock()
-        mock_cred.return_value.authorize.return_value = mock_http
+        mock_cred.from_json_keyfile_name.return_value.authorize.return_value = mock_http
         mock_bq = mock.Mock()
         mock_build.return_value = mock_bq
         json_key_file = 'key.json'
-        json_key = {'client_email': 'mail', 'private_key': 'pkey'}
-        mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(json_key)
         project_id = 'project'
         mock_return_cred.return_value = mock_cred
 
         bq_client = client.get_client(
-            project_id, service_url=mock_service_url, json_key_file=json_key_file, readonly=False)
+            project_id, service_url=mock_service_url,
+            json_key_file=json_key_file, readonly=False)
 
-        mock_open.assert_called_once_with(json_key_file, 'r')
         mock_return_cred.assert_called_once_with()
-        mock_cred.assert_called_once_with(json_key['client_email'], json_key['private_key'], scope=BIGQUERY_SCOPE)
-        self.assertTrue(mock_cred.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http, discoveryServiceUrl=mock_service_url)
+        mock_cred.from_json_keyfile_name.assert_called_once_with(json_key_file,
+                                                                 scopes=BIGQUERY_SCOPE)
+        self.assertTrue(
+            mock_cred.from_json_keyfile_name.return_value.authorize.called)
+        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
+                                           discoveryServiceUrl=mock_service_url)
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
