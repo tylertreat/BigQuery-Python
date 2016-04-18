@@ -2108,6 +2108,47 @@ class TestPushRows(unittest.TestCase):
         self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
             execute_calls)
 
+    def test_request_data_with_options(self):
+        """Ensure that insertAll body has optional property only when
+        the optional parameter of push_rows passed.
+        """
+        expected_body = self.data.copy()
+
+        self.client.push_rows(
+            self.dataset, self.table, self.rows,
+            insert_id_key='one')
+        self.mock_table_data.insertAll.assert_called_with(
+            projectId=self.project,
+            datasetId=self.dataset,
+            tableId=self.table,
+            body=expected_body)
+
+        self.client.push_rows(
+            self.dataset, self.table, self.rows,
+            insert_id_key='one',
+            ignore_unknown_values=False,
+            skip_invalid_rows=False)
+        expected_body['ignoreUnknownValues'] = False
+        expected_body['skipInvalidRows'] = False
+        self.mock_table_data.insertAll.assert_called_with(
+            projectId=self.project,
+            datasetId=self.dataset,
+            tableId=self.table,
+            body=expected_body)
+
+        self.client.push_rows(
+            self.dataset, self.table, self.rows,
+            insert_id_key='one',
+            ignore_unknown_values=True,
+            skip_invalid_rows=True)
+        expected_body['ignoreUnknownValues'] = True
+        expected_body['skipInvalidRows'] = True
+        self.mock_table_data.insertAll.assert_called_with(
+            projectId=self.project,
+            datasetId=self.dataset,
+            tableId=self.table,
+            body=expected_body)
+
 
 class TestGetAllTables(unittest.TestCase):
 
