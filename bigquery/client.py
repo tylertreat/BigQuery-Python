@@ -1,6 +1,6 @@
 import calendar
 import json
-import logging
+from logging import getLogger
 from collections import defaultdict
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -41,6 +41,8 @@ JOB_DESTINATION_FORMAT_AVRO = 'AVRO'
 JOB_DESTINATION_FORMAT_NEWLINE_DELIMITED_JSON = \
     JOB_FORMAT_NEWLINE_DELIMITED_JSON
 JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
+
+logger = getLogger(__name__)
 
 
 def get_client(project_id, credentials=None,
@@ -186,7 +188,7 @@ class BigQueryClient(object):
             On timeout
         """
 
-        logging.debug('Submitting query job: %s' % query_data)
+        logger.debug('Submitting query job: %s' % query_data)
 
         job_collection = self.bigquery.jobs()
 
@@ -206,7 +208,7 @@ class BigQueryClient(object):
         # raise exceptions if it's not an async query
         # and job is not completed after timeout
         if not job_complete and query_data.get("timeoutMs", False):
-            logging.error('BigQuery job %s timeout' % job_id)
+            logger.error('BigQuery job %s timeout' % job_id)
             raise BigQueryTimeoutException()
 
         return job_id, [self._transform_row(row, schema) for row in rows]
@@ -235,7 +237,7 @@ class BigQueryClient(object):
         BigQueryTimeoutException on timeout
         """
 
-        logging.debug('Submitting job: %s' % body_object)
+        logger.debug('Submitting job: %s' % body_object)
 
         job_collection = self.bigquery.jobs()
 
@@ -274,7 +276,7 @@ class BigQueryClient(object):
             on timeout
         """
 
-        logging.debug('Executing query: %s' % query)
+        logger.debug('Executing query: %s' % query)
 
         query_data = {
             'query': query,
@@ -301,7 +303,7 @@ class BigQueryClient(object):
         query_reply = self.get_query_results(job_id, offset=0, limit=0)
 
         if not query_reply['jobComplete']:
-            logging.warning('BigQuery job %s not complete' % job_id)
+            logger.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
 
         return query_reply['schema']['fields']
@@ -330,7 +332,7 @@ class BigQueryClient(object):
                 datasetId=dataset).execute()
         except HttpError as e:
             if int(e.resp['status']) == 404:
-                logging.warn('Table %s.%s does not exist', dataset, table)
+                logger.warn('Table %s.%s does not exist', dataset, table)
                 return None
             raise
 
@@ -383,7 +385,7 @@ class BigQueryClient(object):
         # Get query results
         query_reply = self.get_query_results(job_id, offset=offset, limit=limit, timeout=timeout)
         if not query_reply['jobComplete']:
-            logging.warning('BigQuery job %s not complete' % job_id)
+            logger.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
 
         schema = query_reply["schema"]["fields"]
@@ -524,7 +526,7 @@ class BigQueryClient(object):
                 return table
 
         except HttpError as e:
-            logging.error(('Cannot create table {0}.{1}\n'
+            logger.error(('Cannot create table {0}.{1}\n'
                            'Http Error: {2}').format(dataset, table,
                                                      e.content))
             if self.swallow_results:
@@ -572,7 +574,7 @@ class BigQueryClient(object):
                 return result
 
         except HttpError as e:
-            logging.error(('Cannot update table {0}.{1}\n'
+            logger.error(('Cannot update table {0}.{1}\n'
                            'Http Error: {2}').format(dataset, table,
                                                      e.content))
             if self.swallow_results:
@@ -620,7 +622,7 @@ class BigQueryClient(object):
                 return result
 
         except HttpError as e:
-            logging.error(('Cannot patch table {0}.{1}\n'
+            logger.error(('Cannot patch table {0}.{1}\n'
                            'Http Error: {2}').format(dataset, table,
                                                      e.content))
             if self.swallow_results:
@@ -670,7 +672,7 @@ class BigQueryClient(object):
                 return view
 
         except HttpError as e:
-            logging.error(('Cannot create view {0}.{1}\n'
+            logger.error(('Cannot create view {0}.{1}\n'
                            'Http Error: {2}').format(dataset, view,
                                                      e.content))
             if self.swallow_results:
@@ -707,7 +709,7 @@ class BigQueryClient(object):
                 return response
 
         except HttpError as e:
-            logging.error(('Cannot delete table {0}.{1}\n'
+            logger.error(('Cannot delete table {0}.{1}\n'
                            'Http Error: {2}').format(dataset, table,
                                                      e.content))
             if self.swallow_results:
@@ -900,7 +902,7 @@ class BigQueryClient(object):
             }
         }
 
-        logging.debug("Creating load job %s" % body)
+        logger.debug("Creating load job %s" % body)
         job_resource = self._insert_job(body)
         self._raise_insert_exception_if_error(job_resource)
         return job_resource
@@ -994,7 +996,7 @@ class BigQueryClient(object):
             }
         }
 
-        logging.info("Creating export job %s" % body)
+        logger.info("Creating export job %s" % body)
         job_resource = self._insert_job(body)
         self._raise_insert_exception_if_error(job_resource)
         return job_resource
@@ -1090,7 +1092,7 @@ class BigQueryClient(object):
             }
         }
 
-        logging.info("Creating write to table job %s" % body)
+        logger.info("Creating write to table job %s" % body)
         job_resource = self._insert_job(body)
         self._raise_insert_exception_if_error(job_resource)
         return job_resource
@@ -1139,7 +1141,7 @@ class BigQueryClient(object):
 
         # raise exceptions if timeout
         if not complete:
-            logging.error('BigQuery job %s timeout' % job_id)
+            logger.error('BigQuery job %s timeout' % job_id)
             raise BigQueryTimeoutException()
 
         return job_resource
@@ -1200,7 +1202,7 @@ class BigQueryClient(object):
             ).execute()
 
             if response.get('insertErrors'):
-                logging.error('BigQuery insert errors: %s' % response)
+                logger.error('BigQuery insert errors: %s' % response)
                 if self.swallow_results:
                     return False
                 else:
@@ -1212,7 +1214,7 @@ class BigQueryClient(object):
                 return response
 
         except HttpError as e:
-            logging.exception('Problem with BigQuery insertAll')
+            logger.exception('Problem with BigQuery insertAll')
             if self.swallow_results:
                 return False
             else:
@@ -1573,7 +1575,7 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot create dataset {0}, {1}'.format(dataset_id,
+            logger.error('Cannot create dataset {0}, {1}'.format(dataset_id,
                                                                   e))
             if self.swallow_results:
                 return False
@@ -1594,7 +1596,7 @@ class BigQueryClient(object):
             result = request.execute()
             return result.get('datasets', [])
         except HttpError as e:
-            logging.error("Cannot list datasets: {0}".format(e))
+            logger.error("Cannot list datasets: {0}".format(e))
             return None
 
     def delete_dataset(self, dataset_id, delete_contents=False):
@@ -1630,7 +1632,7 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot delete dataset {0}: {1}'.format(dataset_id,
+            logger.error('Cannot delete dataset {0}: {1}'.format(dataset_id,
                                                                   e))
             if self.swallow_results:
                 return False
@@ -1673,7 +1675,7 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot update dataset {0}: {1}'.format(dataset_id,
+            logger.error('Cannot update dataset {0}: {1}'.format(dataset_id,
                                                                   e))
             if self.swallow_results:
                 return False
@@ -1715,7 +1717,7 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot patch dataset {0}: {1}'.format(dataset_id,
+            logger.error('Cannot patch dataset {0}: {1}'.format(dataset_id,
                                                                  e))
             if self.swallow_results:
                 return False
