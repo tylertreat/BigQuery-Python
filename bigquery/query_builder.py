@@ -133,7 +133,7 @@ def _render_sources(dataset, tables):
         The data set to fetch log data from.
     tables : Union[dict, list]
         The tables to fetch log data from
-Returns
+    Returns
     -------
     str
         A string that represents the "from" part of a query.
