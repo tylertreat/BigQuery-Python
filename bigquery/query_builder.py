@@ -1,4 +1,6 @@
-import logging
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def render_query(dataset, tables, select=None, conditions=None,
@@ -147,8 +149,7 @@ def _render_sources(dataset, tables):
                                                  tables['from_date'],
                                                  tables['to_date'])
             except KeyError as exp:
-                logging.warn('Missing parameter %s in selecting sources' %
-                             (exp))
+                logger.warn('Missing parameter %s in selecting sources' % (exp))
 
     else:
         return "FROM " + ", ".join(
@@ -184,7 +185,7 @@ def _render_conditions(conditions):
         comparators = condition.get('comparators')
 
         if None in (field, field_type, comparators) or not comparators:
-            logging.warn('Invalid condition passed in: %s' % condition)
+            logger.warn('Invalid condition passed in: %s' % condition)
             continue
 
         rendered_conditions.append(
@@ -239,7 +240,7 @@ def _render_condition(field, field_type, comparators):
                             for v in value])
                 )
             elif isinstance(value, (tuple, list, set)) and len(value) != 2:
-                logging.warn('Invalid condition passed in: %s' % condition)
+                logger.warn('Invalid condition passed in: %s' % condition)
 
         else:
             value = _render_condition_value(value, field_type)
@@ -335,7 +336,7 @@ def _render_having(having_conditions):
         comparators = condition.get('comparators')
 
         if None in (field, field_type, comparators) or not comparators:
-            logging.warn('Invalid condition passed in: %s' % condition)
+            logger.warn('Invalid condition passed in: %s' % condition)
             continue
 
         rendered_conditions.append(
