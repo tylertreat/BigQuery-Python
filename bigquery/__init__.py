@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__version__ = '1.7.0'
+from .version import __version__
 
 from .client import get_client
 from .client import (
