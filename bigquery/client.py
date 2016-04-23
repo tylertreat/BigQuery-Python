@@ -45,7 +45,7 @@ JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 logger = getLogger(__name__)
 
 
-def get_client(project_id, credentials=None,
+def get_client(project_id=None, credentials=None,
                service_url=None, service_account=None,
                private_key=None, private_key_file=None,
                json_key=None, json_key_file=None,
@@ -56,8 +56,8 @@ def get_client(project_id, credentials=None,
 
     Parameters
     ----------
-    project_id : str
-        The BigQuery project id
+    project_id : str, optional
+        The BigQuery project id, required unless json_key or json_key_file is provided.
     credentials : oauth2client.client.SignedJwtAssertionCredentials, optional
         AssertionCredentials instance to authenticate requests to BigQuery (optional,
         must provide `service_account` and (`private_key` or `private_key_file`) or
@@ -96,6 +96,10 @@ def get_client(project_id, credentials=None,
             json_key or json_key_file), \
             'Must provide AssertionCredentials or service account and P12 key or JSON key'
 
+    if not project_id:
+        assert json_key or json_key_file, \
+            'Must provide project_id unless json_key or json_key_file is provided'
+
     if service_url is None:
         service_url = DISCOVERY_URI
 
@@ -119,12 +123,14 @@ def get_client(project_id, credentials=None,
             scopes=scope)
 
     if json_key_file:
-        credentials = _credentials().from_json_keyfile_name(json_key_file,
-                                                            scopes=scope)
+        with open(json_key_file, 'r') as key_file:
+            json_key = json.load(key_file)
 
     if json_key:
         credentials = _credentials().from_json_keyfile_dict(json_key,
                                                             scopes=scope)
+        if not project_id:
+            project_id = json_key['project_id']
 
     bq_service = _get_bq_service(credentials=credentials,
                                  service_url=service_url)

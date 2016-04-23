@@ -31,7 +31,7 @@ client = get_client(project_id, service_account=service_account,
 # JSON key provided by Google
 json_key = 'key.json'
  
-client = get_client(project_id, json_key_file=json_key, readonly=True)
+client = get_client(json_key_file=json_key, readonly=True)
 
 # Submit an async query.
 job_id, _results = client.query('SELECT * FROM dataset.my_table LIMIT 1000')
