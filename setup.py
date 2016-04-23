@@ -1,13 +1,12 @@
 from setuptools import find_packages
 from setuptools import setup
-
-VERSION = '1.6.0'
+from bigquery import __version__
 
 setup_args = dict(
     name='BigQuery-Python',
     description='Simple Python client for interacting with Google BigQuery.',
     url='https://github.com/tylertreat/BigQuery-Python',
-    version=VERSION,
+    version=__version__,
     license='Apache',
     packages=find_packages(),
     include_package_data=True,
