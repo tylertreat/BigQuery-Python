@@ -15,21 +15,24 @@ def render_query(dataset, tables, select=None, conditions=None,
     tables : Union[dict, list]
         The table in `dataset` to query.
     select : dict, optional
-        The keys function as column names and the values function as options to apply to
-        the select field such as alias and format.  For example, select['start_time'] might
-        have the form {'alias': 'StartTime', 'format': 'INTEGER-FORMAT_UTC_USEC'}, which would
-        be represented as 'SEC_TO_TIMESTAMP(INTEGER(start_time)) as StartTime' in a query. Pass
-        `None` to seoect all.
+        The keys function as column names and the values function as options to
+        apply to the select field such as alias and format.  For example,
+        select['start_time'] might have the form
+        {'alias': 'StartTime', 'format': 'INTEGER-FORMAT_UTC_USEC'}, which
+        would be represented as 'SEC_TO_TIMESTAMP(INTEGER(start_time)) as
+        StartTime' in a query. Pass `None` to select all.
     conditions : list, optional
-        a ``list`` of ``dict`` objects to filter results by.  Each dict should have the keys 'field',
-        'type', and 'comparators'. The first two map to strings representing the field (e.g. 'foo')
-        and type (e.g. 'FLOAT'). 'comparators' maps to another ``dict`` containing the keys 'condition',
-        'negate', and 'value'.  If 'comparators' = {'condition': '>=', 'negate': False, 'value': 1}, this
-        example will be rdnered as 'foo >= FLOAT('1')' in the query.
+        a ``list`` of ``dict`` objects to filter results by.  Each dict should
+        have the keys 'field', 'type', and 'comparators'. The first two map to
+        strings representing the field (e.g. 'foo') and type (e.g. 'FLOAT').
+        'comparators' maps to another ``dict`` containing the keys 'condition',
+        'negate', and 'value'.
+        If 'comparators' = {'condition': '>=', 'negate': False, 'value': 1},
+        this example will be rdnered as 'foo >= FLOAT('1')' in the query.
         ``list`` of field names to group by
     order_by : dict, optional
-        Keys = {'field', 'direction'}. `dict` should be formatted as {'field':'TimeStamp, 'direction':'desc'}
-        or similar
+        Keys = {'field', 'direction'}. `dict` should be formatted as
+        {'field':'TimeStamp, 'direction':'desc'} or similar
 
     Returns
     -------
@@ -149,7 +152,8 @@ def _render_sources(dataset, tables):
                                                  tables['from_date'],
                                                  tables['to_date'])
             except KeyError as exp:
-                logger.warn('Missing parameter %s in selecting sources' % (exp))
+                logger.warn(
+                    'Missing parameter %s in selecting sources' % (exp))
 
     else:
         return "FROM " + ", ".join(
