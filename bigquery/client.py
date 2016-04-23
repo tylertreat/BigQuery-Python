@@ -10,13 +10,17 @@ from time import sleep, time
 import six
 from bigquery.errors import (BigQueryTimeoutException, JobExecutingException,
                              JobInsertException, UnfinishedQueryException)
-from bigquery.schema_builder import schema_from_record
 from googleapiclient.discovery import build, DISCOVERY_URI
 from googleapiclient.errors import HttpError
 from httplib2 import Http
 
-BIGQUERY_SCOPE = ['https://www.googleapis.com/auth/bigquery']
-BIGQUERY_SCOPE_READ_ONLY = ['https://www.googleapis.com/auth/bigquery.readonly']
+BIGQUERY_SCOPE = [
+    'https://www.googleapis.com/auth/bigquery'
+]
+
+BIGQUERY_SCOPE_READ_ONLY = [
+    'https://www.googleapis.com/auth/bigquery.readonly'
+]
 
 CACHE_TIMEOUT = timedelta(seconds=30)
 
@@ -57,33 +61,37 @@ def get_client(project_id=None, credentials=None,
     Parameters
     ----------
     project_id : str, optional
-        The BigQuery project id, required unless json_key or json_key_file is provided.
+        The BigQuery project id, required unless json_key or json_key_file is
+        provided.
     credentials : oauth2client.client.SignedJwtAssertionCredentials, optional
-        AssertionCredentials instance to authenticate requests to BigQuery (optional,
-        must provide `service_account` and (`private_key` or `private_key_file`) or
-        (`json_key` or `json_key_file`) if not included
+        AssertionCredentials instance to authenticate requests to BigQuery
+        (optional, must provide `service_account` and (`private_key` or
+        `private_key_file`) or (`json_key` or `json_key_file`) if not included
     service_url : str, optional
-        A URI string template pointing to the location of Google's API discovery
-        service. Requires two parameters {api} and {apiVersion} that when filled in
-        produce an absolute URI to the discovery document for that service. If not set
-        then the default googleapiclient discovery URI is used. See `credentials`
+        A URI string template pointing to the location of Google's API
+        discovery service. Requires two parameters {api} and {apiVersion} that
+        when filled in produce an absolute URI to the discovery document for
+        that service. If not set then the default googleapiclient discovery URI
+        is used. See `credentials`
     service_account : str, optional
         The Google API service account name. See `credentials`
     private_key : str, optional
-        The private key associated with the service account in PKCS12 or PEM format. See `credentials`
+        The private key associated with the service account in PKCS12 or PEM
+        format. See `credentials`
     private_key_file : str, optional
-        The name of the file containing the private key associated with the service
-        account in PKCS12 or PEM format. See `credentials`
+        The name of the file containing the private key associated with the
+        service account in PKCS12 or PEM format. See `credentials`
     json_key : dict, optional
         The JSON key associated with the service account. See `credentials`
     json_key_file : str, optional
-        The name of the JSON key file associated with the service account. See `credentials`.
+        The name of the JSON key file associated with the service account. See
+        `credentials`.
     readonly : bool
-        Bool indicating if BigQuery access is read-only. Has no effect if credentials are
-        provided. Default True.
+        Bool indicating if BigQuery access is read-only. Has no effect if
+        credentials are provided. Default True.
     swallow_results : bool
-        If set to False, then return the actual response value instead of converting to
-        boolean. Default True.
+        If set to False, then return the actual response value instead of
+        converting to boolean. Default True.
 
     Returns
     -------
@@ -94,11 +102,13 @@ def get_client(project_id=None, credentials=None,
     if not credentials:
         assert (service_account and (private_key or private_key_file)) or (
             json_key or json_key_file), \
-            'Must provide AssertionCredentials or service account and P12 key or JSON key'
+            'Must provide AssertionCredentials or service account and P12 key\
+            or JSON key'
 
     if not project_id:
         assert json_key or json_key_file, \
-            'Must provide project_id unless json_key or json_key_file is provided'
+            'Must provide project_id unless json_key or json_key_file is\
+            provided'
 
     if service_url is None:
         service_url = DISCOVERY_URI
@@ -266,15 +276,15 @@ class BigQueryClient(object):
             the request times out and returns.
         dry_run : bool, optional
             If True, the query isn't actually run. A valid query will return an
-            empty response, while an invalid one will return the same error message
-            it would if it wasn't a dry run.
+            empty response, while an invalid one will return the same error
+            message it would if it wasn't a dry run.
 
         Returns
         -------
         tuple
-            (job id, query results) if the query completed. If dry_run is True, job id
-            will be None and results will be empty if the query is valid or a ``dict`` containing
-            the response if invalid.
+            (job id, query results) if the query completed. If dry_run is True,
+            job id will be None and results will be empty if the query is valid
+            or a ``dict`` containing the response if invalid.
 
         Raises
         ------
@@ -356,8 +366,8 @@ class BigQueryClient(object):
         -------
         tuple
             (``bool``, ``int``) Whether or not the query has completed and the
-            total number of rows included in the query table if it has completed
-            (else 0)
+            total number of rows included in the query table if it has
+            completed (else 0)
         """
 
         query_reply = self.get_query_results(job_id, offset=0, limit=0)
@@ -367,8 +377,8 @@ class BigQueryClient(object):
 
     def get_query_rows(self, job_id, offset=None, limit=None, timeout=0):
         """Retrieve a list of rows from a query table by job id.
-        This method will append results from multiple pages together. If you want
-        to manually page through results, you can use `get_query_results`
+        This method will append results from multiple pages together. If you
+        want to manually page through results, you can use `get_query_results`
         method directly.
 
         Parameters
@@ -389,7 +399,8 @@ class BigQueryClient(object):
         """
 
         # Get query results
-        query_reply = self.get_query_results(job_id, offset=offset, limit=limit, timeout=timeout)
+        query_reply = self.get_query_results(job_id, offset=offset,
+                                             limit=limit, timeout=timeout)
         if not query_reply['jobComplete']:
             logger.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
@@ -401,8 +412,9 @@ class BigQueryClient(object):
 
         # Append to records if there are multiple pages for query results
         while page_token and (not limit or len(records) < limit):
-            query_reply = self.get_query_results(job_id, offset=offset, limit=limit,
-                                                 page_token=page_token, timeout=timeout)
+            query_reply = self.get_query_results(
+                job_id, offset=offset, limit=limit, page_token=page_token,
+                timeout=timeout)
             page_token = query_reply.get("pageToken")
             rows = query_reply.get('rows', [])
             records += [self._transform_row(row, schema) for row in rows]
@@ -533,8 +545,7 @@ class BigQueryClient(object):
 
         except HttpError as e:
             logger.error(('Cannot create table {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, table,
-                                                     e.content))
+                          'Http Error: {2}').format(dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -581,8 +592,7 @@ class BigQueryClient(object):
 
         except HttpError as e:
             logger.error(('Cannot update table {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, table,
-                                                     e.content))
+                          'Http Error: {2}').format(dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -629,8 +639,7 @@ class BigQueryClient(object):
 
         except HttpError as e:
             logger.error(('Cannot patch table {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, table,
-                                                     e.content))
+                          'Http Error: {2}').format(dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -679,8 +688,7 @@ class BigQueryClient(object):
 
         except HttpError as e:
             logger.error(('Cannot create view {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, view,
-                                                     e.content))
+                          'Http Error: {2}').format(dataset, view, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -716,8 +724,7 @@ class BigQueryClient(object):
 
         except HttpError as e:
             logger.error(('Cannot delete table {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, table,
-                                                     e.content))
+                          'Http Error: {2}').format(dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -775,21 +782,23 @@ class BigQueryClient(object):
             skip_leading_rows=None,
     ):
         """
-        Imports data into a BigQuery table from cloud storage. Optional arguments that are not
-        specified are determined by BigQuery as described:
-        https://developers.google.com/bigquery/docs/reference/v2/jobs
+        Imports data into a BigQuery table from cloud storage. Optional
+        arguments that are not specified are determined by BigQuery as
+        described:
+            https://developers.google.com/bigquery/docs/reference/v2/jobs
 
         Parameters
         ----------
         source_urls : list
-            A ``list`` of ``str`` objects representing the urls on cloud storage
-            of the form: gs://bucket/filename
+            A ``list`` of ``str`` objects representing the urls on cloud
+            storage of the form: gs://bucket/filename
         dataset : str
             String id of the dataset
         table : str
             String id of the table
         job : str, optional
-            Identifies the job (a unique job id is automatically generated if not provided)
+            Identifies the job (a unique job id is automatically generated if
+            not provided)
         schema : list, optional
             Represents the BigQuery schema
         source_format : str, optional
@@ -925,8 +934,8 @@ class BigQueryClient(object):
             field_delimiter=None,
     ):
         """
-        Export data from a BigQuery table to cloud storage. Optional arguments that are
-        not specified are determined by BigQuery as described:
+        Export data from a BigQuery table to cloud storage. Optional arguments
+        that are not specified are determined by BigQuery as described:
         https://developers.google.com/bigquery/docs/reference/v2/jobs
 
         Parameters
@@ -939,8 +948,8 @@ class BigQueryClient(object):
         table : str
             String id of the table
         job : str, optional
-            String identifying the job (a unique jobid is automatically generated if
-            not provided)
+            String identifying the job (a unique jobid is automatically
+            generated if not provided)
         compression : str, optional
             One of the JOB_COMPRESSION_* constants
         destination_format : str, optional
@@ -1110,8 +1119,8 @@ class BigQueryClient(object):
         Parameters
         ----------
         job : Union[dict, str]
-            ``dict`` representing a BigQuery job resource, or a ``str`` representing
-            the BigQuery job id
+            ``dict`` representing a BigQuery job resource, or a ``str``
+            representing the BigQuery job id
         interval : float, optional
             Polling interval in seconds, default = 5
         timeout : float, optional
@@ -1323,7 +1332,8 @@ class BigQueryClient(object):
         Returns
         -------
         tuple
-            (year/month, app id), or (None, None) if the table id cannot be parsed.
+            (year/month, app id), or (None, None) if the table id cannot be
+            parsed.
         """
 
         # Prefix date
@@ -1394,9 +1404,11 @@ class BigQueryClient(object):
             time <= start_time <= time + ONE_MONTH or \
             time <= end_time <= time + ONE_MONTH
 
-    def get_query_results(self, job_id, offset=None, limit=None, page_token=None, timeout=0):
-        """Execute the query job indicated by the given job id. This is direct mapping to
-        bigquery api https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults
+    def get_query_results(self, job_id, offset=None, limit=None,
+                          page_token=None, timeout=0):
+        """Execute the query job indicated by the given job id. This is direct
+        mapping to bigquery api
+        https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults
 
         Parameters
         ----------
@@ -1407,7 +1419,8 @@ class BigQueryClient(object):
         limit : int, optional
             The maximum number of results to retrieve.
         page_token : optional
-            Page token, returned by previous call, to request the next page of results.
+            Page token, returned by previous call, to request the next page of
+            results.
         timeout : float, optional
             Timeout in seconds
 
@@ -1551,8 +1564,8 @@ class BigQueryClient(object):
         Parameters
         ----------
         dataset_id : str
-            Unique ``str`` identifying the dataset with the project (the referenceID
-            of the dataset, not the integer id of the dataset)
+            Unique ``str`` identifying the dataset with the project (the
+            referenceID of the dataset, not the integer id of the dataset)
         friendly_name: str, optional
             A human readable name
         description: str, optional
@@ -1581,8 +1594,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logger.error('Cannot create dataset {0}, {1}'.format(dataset_id,
-                                                                  e))
+            logger.error(
+                'Cannot create dataset {0}, {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1611,10 +1624,11 @@ class BigQueryClient(object):
         Parameters
         ----------
         dataset_id : str
-            Unique ``str`` identifying the datset with the project (the referenceId of the dataset)
+            Unique ``str`` identifying the datset with the project (the
+            referenceId of the dataset)
         delete_contents : bool, optional
-            If True, forces the deletion of the dataset even when the dataset contains data
-            (Default = False)
+            If True, forces the deletion of the dataset even when the dataset
+            contains data (Default = False)
 
         Returns
         -------
@@ -1638,8 +1652,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logger.error('Cannot delete dataset {0}: {1}'.format(dataset_id,
-                                                                  e))
+            logger.error(
+                'Cannot delete dataset {0}: {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1654,7 +1668,8 @@ class BigQueryClient(object):
         Parameters
         ----------
         dataset_id : str
-            Unique ``str`` identifying the dataset with the project (the referencedId of the dataset)
+            Unique ``str`` identifying the dataset with the project (the
+            referencedId of the dataset)
         friendly_name : str, optional
             An optional descriptive name for the dataset.
         description : str, optional
@@ -1665,8 +1680,8 @@ class BigQueryClient(object):
         Returns
         -------
         Union[bool, dict]
-            ``bool`` indicating if the update was successful or not, or response
-            from BigQuery if swallow_results is set for False.
+            ``bool`` indicating if the update was successful or not, or
+            response from BigQuery if swallow_results is set for False.
         """
         try:
             datasets = self.bigquery.datasets()
@@ -1681,8 +1696,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logger.error('Cannot update dataset {0}: {1}'.format(dataset_id,
-                                                                  e))
+            logger.error(
+                'Cannot update dataset {0}: {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1697,7 +1712,8 @@ class BigQueryClient(object):
         Parameters
         ----------
         dataset_id : str
-            Unique string idenfitying the dataset with the project (the referenceId of the dataset)
+            Unique string idenfitying the dataset with the project (the
+            referenceId of the dataset)
         friendly_name : str, optional
             An optional descriptive name for the dataset.
         description : str, optional
@@ -1723,8 +1739,7 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logger.error('Cannot patch dataset {0}: {1}'.format(dataset_id,
-                                                                 e))
+            logger.error('Cannot patch dataset {0}: {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1732,7 +1747,8 @@ class BigQueryClient(object):
 
     def dataset_resource(self, ref_id, friendly_name=None, description=None,
                          access=None):
-        """See https://developers.google.com/bigquery/docs/reference/v2/datasets#resource
+        """See
+        https://developers.google.com/bigquery/docs/reference/v2/datasets#resource
 
         Parameters
         ----------
@@ -1775,9 +1791,10 @@ class BigQueryClient(object):
         record : dict
             representing a record to be inserted into big query,
             where all keys are ``str`` objects (representing column names in
-            the record) and all values are of type ``int``, ``str``, ``unicode``,
-            ``float``, ``bool``, ``datetime``, or ``dict``. A ``dict`` value represents a
-            record, and must conform to the same restrictions as record
+            the record) and all values are of type ``int``, ``str``,
+            ``unicode``, ``float``, ``bool``, ``datetime``, or ``dict``. A
+            ``dict`` value represents a record, and must conform to the same
+            restrictions as record.
 
         Returns
         -------
@@ -1786,9 +1803,10 @@ class BigQueryClient(object):
 
         Notes
         -----
-        Results are undefined if a different value type is provided for a repeated
-        field: E.g.
+        Results are undefined if a different value type is provided for a
+        repeated field: E.g.
 
         >>> { rfield: [ { x: 1}, {x: "a string"} ] } # undefined!
         """
+        from bigquery.schema_builder import schema_from_record
         return schema_from_record(record)
