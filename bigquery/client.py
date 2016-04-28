@@ -1162,7 +1162,8 @@ class BigQueryClient(object):
         return job_resource
 
     def push_rows(self, dataset, table, rows, insert_id_key=None,
-                  skip_invalid_rows=None, ignore_unknown_values=None):
+                  skip_invalid_rows=None, ignore_unknown_values=None,
+                  template_suffix=None):
         """Upload rows to BigQuery table.
 
         Parameters
@@ -1179,6 +1180,9 @@ class BigQueryClient(object):
             Insert all valid rows of a request, even if invalid rows exist.
         ignore_unknown_values : bool, optional
             Accept rows that contain values that do not match the schema.
+        template_suffix : str, optional
+            Inserts the rows into an {table}{template_suffix}.
+            If table {table}{template_suffix} doesn't exist, create from {table}.
 
         Returns
         -------
@@ -1207,6 +1211,9 @@ class BigQueryClient(object):
 
         if ignore_unknown_values is not None:
             data['ignoreUnknownValues'] = ignore_unknown_values
+
+        if template_suffix is not None:
+            data['templateSuffix'] = template_suffix
 
         try:
             response = table_data.insertAll(

@@ -2176,9 +2176,12 @@ class TestPushRows(unittest.TestCase):
             self.dataset, self.table, self.rows,
             insert_id_key='one',
             ignore_unknown_values=True,
-            skip_invalid_rows=True)
+            skip_invalid_rows=True,
+            template_suffix='20160428'
+        )
         expected_body['ignoreUnknownValues'] = True
         expected_body['skipInvalidRows'] = True
+        expected_body['templateSuffix'] = '20160428'
         self.mock_table_data.insertAll.assert_called_with(
             projectId=self.project,
             datasetId=self.dataset,
