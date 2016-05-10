@@ -1,22 +1,26 @@
 import calendar
 import json
-import logging
+from logging import getLogger
 from collections import defaultdict
 from datetime import datetime, timedelta
 from hashlib import sha256
+from io import StringIO
 from time import sleep, time
 
-import httplib2
 import six
-from apiclient.discovery import build
-from apiclient.errors import HttpError
-
 from bigquery.errors import (BigQueryTimeoutException, JobExecutingException,
                              JobInsertException, UnfinishedQueryException)
-from bigquery.schema_builder import schema_from_record
+from googleapiclient.discovery import build, DISCOVERY_URI
+from googleapiclient.errors import HttpError
+from httplib2 import Http
 
-BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
-BIGQUERY_SCOPE_READ_ONLY = 'https://www.googleapis.com/auth/bigquery.readonly'
+BIGQUERY_SCOPE = [
+    'https://www.googleapis.com/auth/bigquery'
+]
+
+BIGQUERY_SCOPE_READ_ONLY = [
+    'https://www.googleapis.com/auth/bigquery.readonly'
+]
 
 CACHE_TIMEOUT = timedelta(seconds=30)
 
@@ -42,8 +46,11 @@ JOB_DESTINATION_FORMAT_NEWLINE_DELIMITED_JSON = \
     JOB_FORMAT_NEWLINE_DELIMITED_JSON
 JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
+logger = getLogger(__name__)
 
-def get_client(project_id, credentials=None, service_account=None,
+
+def get_client(project_id=None, credentials=None,
+               service_url=None, service_account=None,
                private_key=None, private_key_file=None,
                json_key=None, json_key_file=None,
                readonly=True, swallow_results=True):
@@ -51,75 +58,113 @@ def get_client(project_id, credentials=None, service_account=None,
     AssertionCredentials or a service account and private key combination need
     to be provided in order to authenticate requests to BigQuery.
 
-    Args:
-        project_id: the BigQuery project id.
-        credentials: an AssertionCredentials instance to authenticate requests
-                     to BigQuery.
-        service_account: the Google API service account name.
-        private_key: the private key associated with the service account in
-                     PKCS12 or PEM format.
-        private_key_file: the name of the file containing the private key
-                          associated with the service account in PKCS12 or PEM
-                          format.
-        json_key: the JSON key associated with the service account
-        json_key_file: the name of the JSON key file associated with
-                       the service account
-        readonly: bool indicating if BigQuery access is read-only. Has no
-                  effect if credentials are provided.
-        swallow_results: If set to false then return the actual response value
-                         instead of converting to a boolean.
+    Parameters
+    ----------
+    project_id : str, optional
+        The BigQuery project id, required unless json_key or json_key_file is
+        provided.
+    credentials : oauth2client.client.SignedJwtAssertionCredentials, optional
+        AssertionCredentials instance to authenticate requests to BigQuery
+        (optional, must provide `service_account` and (`private_key` or
+        `private_key_file`) or (`json_key` or `json_key_file`) if not included
+    service_url : str, optional
+        A URI string template pointing to the location of Google's API
+        discovery service. Requires two parameters {api} and {apiVersion} that
+        when filled in produce an absolute URI to the discovery document for
+        that service. If not set then the default googleapiclient discovery URI
+        is used. See `credentials`
+    service_account : str, optional
+        The Google API service account name. See `credentials`
+    private_key : str, optional
+        The private key associated with the service account in PKCS12 or PEM
+        format. See `credentials`
+    private_key_file : str, optional
+        The name of the file containing the private key associated with the
+        service account in PKCS12 or PEM format. See `credentials`
+    json_key : dict, optional
+        The JSON key associated with the service account. See `credentials`
+    json_key_file : str, optional
+        The name of the JSON key file associated with the service account. See
+        `credentials`.
+    readonly : bool
+        Bool indicating if BigQuery access is read-only. Has no effect if
+        credentials are provided. Default True.
+    swallow_results : bool
+        If set to False, then return the actual response value instead of
+        converting to boolean. Default True.
 
-    Returns:
-        an instance of BigQueryClient.
+    Returns
+    -------
+    BigQueryClient
+        An instance of the BigQuery client.
     """
 
     if not credentials:
-        assert (service_account and (private_key or private_key_file)) or (json_key or json_key_file), \
-            'Must provide AssertionCredentials or service account and P12 key or JSON key'
+        assert (service_account and (private_key or private_key_file)) or (
+            json_key or json_key_file), \
+            'Must provide AssertionCredentials or service account and P12 key\
+            or JSON key'
+
+    if not project_id:
+        assert json_key or json_key_file, \
+            'Must provide project_id unless json_key or json_key_file is\
+            provided'
+
+    if service_url is None:
+        service_url = DISCOVERY_URI
+
+    scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
 
     if private_key_file:
-        with open(private_key_file, 'rb') as key_file:
-            private_key = key_file.read()
+        credentials = _credentials().from_p12_keyfile(service_account,
+                                                      private_key_file,
+                                                      scopes=scope)
+
+    if private_key:
+        try:
+            if isinstance(private_key, basestring):
+                private_key = private_key.decode('utf-8')
+        except NameError:
+            # python3 -- private_key is already unicode
+            pass
+        credentials = _credentials().from_p12_keyfile_buffer(
+            service_account,
+            StringIO(private_key),
+            scopes=scope)
 
     if json_key_file:
         with open(json_key_file, 'r') as key_file:
             json_key = json.load(key_file)
 
     if json_key:
-        service_account = json_key['client_email']
-        private_key = json_key['private_key']
+        credentials = _credentials().from_json_keyfile_dict(json_key,
+                                                            scopes=scope)
+        if not project_id:
+            project_id = json_key['project_id']
 
     bq_service = _get_bq_service(credentials=credentials,
-                                 service_account=service_account,
-                                 private_key=private_key,
-                                 readonly=readonly)
+                                 service_url=service_url)
 
     return BigQueryClient(bq_service, project_id, swallow_results)
 
 
-def _get_bq_service(credentials=None, service_account=None, private_key=None,
-                    readonly=True):
+def _get_bq_service(credentials=None, service_url=None):
     """Construct an authorized BigQuery service object."""
 
-    assert credentials or (service_account and private_key), \
-        'Must provide AssertionCredentials or service account and key'
+    assert credentials, 'Must provide ServiceAccountCredentials'
 
-    if not credentials:
-        scope = BIGQUERY_SCOPE_READ_ONLY if readonly else BIGQUERY_SCOPE
-        credentials = _credentials()(service_account, private_key, scope=scope)
-
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-    service = build('bigquery', 'v2', http=http)
+    http = credentials.authorize(Http())
+    service = build('bigquery', 'v2', http=http,
+                    discoveryServiceUrl=service_url)
 
     return service
 
 
 def _credentials():
     """Import and return SignedJwtAssertionCredentials class"""
-    from oauth2client.client import SignedJwtAssertionCredentials
+    from oauth2client.service_account import ServiceAccountCredentials
 
-    return SignedJwtAssertionCredentials
+    return ServiceAccountCredentials
 
 
 class BigQueryClient(object):
@@ -140,22 +185,26 @@ class BigQueryClient(object):
             For fine-grained control over a query job, see:
             https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#query
 
+        Parameters
+        ----------
+        query_data
+            query object as per "configuration.query" in
+            https://cloud.google.com/bigquery/docs/reference/v2/jobs#configuration.query
 
-
-        Args:
-            query_data: query object as per "configuration.query" in
-                        https://cloud.google.com/bigquery/docs/reference/v2/jobs#configuration.query
-
-        Returns:
+        Returns
+        -------
+        tuple
             job id and query results if query completed. If dry_run is True,
             job id will be None and results will be empty if the query is valid
             or a dict containing the response if invalid.
 
-        Raises:
-            BigQueryTimeoutException on timeout
+        Raises
+        ------
+        BigQueryTimeoutException
+            On timeout
         """
 
-        logging.debug('Submitting query job: %s' % query_data)
+        logger.debug('Submitting query job: %s' % query_data)
 
         job_collection = self.bigquery.jobs()
 
@@ -175,7 +224,7 @@ class BigQueryClient(object):
         # raise exceptions if it's not an async query
         # and job is not completed after timeout
         if not job_complete and query_data.get("timeoutMs", False):
-            logging.error('BigQuery job %s timeout' % job_id)
+            logger.error('BigQuery job %s timeout' % job_id)
             raise BigQueryTimeoutException()
 
         return job_id, [self._transform_row(row, schema) for row in rows]
@@ -191,18 +240,20 @@ class BigQueryClient(object):
             For more details, see:
             https://google-api-client-libraries.appspot.com/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#insert
 
+        Parameters
+        ----------
+        body_object : body object passed to bigquery.jobs().insert()
 
-        Args:
-            body_object: body object passed to bigquery.jobs().insert()
+        Returns
+        -------
+        response of the bigquery.jobs().insert().execute() call
 
-        Returns:
-            response of the bigquery.jobs().insert().execute() call
-
-        Raises:
-            BigQueryTimeoutException on timeout
+        Raises
+        ------
+        BigQueryTimeoutException on timeout
         """
 
-        logging.debug('Submitting job: %s' % body_object)
+        logger.debug('Submitting job: %s' % body_object)
 
         job_collection = self.bigquery.jobs()
 
@@ -214,25 +265,34 @@ class BigQueryClient(object):
     def query(self, query, max_results=None, timeout=0, dry_run=False):
         """Submit a query to BigQuery.
 
-        Args:
-            query: BigQuery query string.
-            max_results: maximum number of rows to return per page of results.
-            timeout: how long to wait for the query to complete, in seconds,
-                     before the request times out and returns.
-            dry_run: if True, the query isn't actually run. A valid query will
-                     return an empty response, while an invalid one will return
-                     the same error message it would if it wasn't a dry run.
+        Parameters
+        ----------
+        query : str
+            BigQuery query string
+        max_results : int, optional
+            The maximum number of rows to return per page of results.
+        timeout : float, optional
+            How long to wait for the query to complete, in seconds before
+            the request times out and returns.
+        dry_run : bool, optional
+            If True, the query isn't actually run. A valid query will return an
+            empty response, while an invalid one will return the same error
+            message it would if it wasn't a dry run.
 
-        Returns:
-            job id and query results if query completed. If dry_run is True,
+        Returns
+        -------
+        tuple
+            (job id, query results) if the query completed. If dry_run is True,
             job id will be None and results will be empty if the query is valid
-            or a dict containing the response if invalid.
+            or a ``dict`` containing the response if invalid.
 
-        Raises:
-            BigQueryTimeoutException on timeout
+        Raises
+        ------
+        BigQueryTimeoutException
+            on timeout
         """
 
-        logging.debug('Executing query: %s' % query)
+        logger.debug('Executing query: %s' % query)
 
         query_data = {
             'query': query,
@@ -245,16 +305,21 @@ class BigQueryClient(object):
     def get_query_schema(self, job_id):
         """Retrieve the schema of a query by job id.
 
-        Args:
-            job_id: The job_id that references a BigQuery query.
-        Returns:
-            A list of dictionaries that represent the schema.
+        Parameters
+        ----------
+        job_id : str
+            The job_id that references a BigQuery query
+
+        Returns
+        -------
+        list
+            A ``list`` of ``dict`` objects that represent the schema.
         """
 
         query_reply = self.get_query_results(job_id, offset=0, limit=0)
 
         if not query_reply['jobComplete']:
-            logging.warning('BigQuery job %s not complete' % job_id)
+            logger.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
 
         return query_reply['schema']['fields']
@@ -262,13 +327,18 @@ class BigQueryClient(object):
     def get_table_schema(self, dataset, table):
         """Return the table schema.
 
-        Args:
-            dataset: the dataset containing the table.
-            table: the table to get the schema for.
+        Parameters
+        ----------
+        dataset : str
+            The dataset containing the `table`.
+        table : str
+            The table to get the schema for
 
-        Returns:
-            A list of dicts that represent the table schema. If the table
-            doesn't exist, None is returned.
+        Returns
+        -------
+        list
+            A ``list`` of ``dict`` objects that represent the table schema. If
+            the table doesn't exist, None is returned.
         """
 
         try:
@@ -278,7 +348,7 @@ class BigQueryClient(object):
                 datasetId=dataset).execute()
         except HttpError as e:
             if int(e.resp['status']) == 404:
-                logging.warn('Table %s.%s does not exist', dataset, table)
+                logger.warn('Table %s.%s does not exist', dataset, table)
                 return None
             raise
 
@@ -287,12 +357,17 @@ class BigQueryClient(object):
     def check_job(self, job_id):
         """Return the state and number of results of a query by job id.
 
-        Args:
-            job_id: The job id of the query to check.
+        Parameters
+        ----------
+        job_id : str
+            The job id of the query to check.
 
-        Returns:
-            Whether or not the query has completed and the total number of rows
-            included in the query table if it has completed.
+        Returns
+        -------
+        tuple
+            (``bool``, ``int``) Whether or not the query has completed and the
+            total number of rows included in the query table if it has
+            completed (else 0)
         """
 
         query_reply = self.get_query_results(job_id, offset=0, limit=0)
@@ -302,23 +377,32 @@ class BigQueryClient(object):
 
     def get_query_rows(self, job_id, offset=None, limit=None, timeout=0):
         """Retrieve a list of rows from a query table by job id.
-        This method will append results from multiple pages together. If you want
-        to manually page through results, you can use `get_query_results`
+        This method will append results from multiple pages together. If you
+        want to manually page through results, you can use `get_query_results`
         method directly.
 
-        Args:
-            job_id: The job id that references a BigQuery query.
-            offset: The offset of the rows to pull from BigQuery.
-            limit: The number of rows to retrieve from a query table.
-            timeout: Timeout in seconds.
-        Returns:
-            A list of dictionaries that represent table rows.
+        Parameters
+        ----------
+        job_id : str
+            The job id that references a BigQuery query.
+        offset : int, optional
+            The offset of the rows to pull from BigQuery
+        limit : int, optional
+            The number of rows to retrieve from a query table.
+        timeout : float, optional
+            Timeout in seconds.
+
+        Returns
+        -------
+        list
+            A ``list`` of ``dict`` objects that represent table rows.
         """
 
         # Get query results
-        query_reply = self.get_query_results(job_id, offset=offset, limit=limit, timeout=timeout)
+        query_reply = self.get_query_results(job_id, offset=offset,
+                                             limit=limit, timeout=timeout)
         if not query_reply['jobComplete']:
-            logging.warning('BigQuery job %s not complete' % job_id)
+            logger.warning('BigQuery job %s not complete' % job_id)
             raise UnfinishedQueryException()
 
         schema = query_reply["schema"]["fields"]
@@ -327,32 +411,43 @@ class BigQueryClient(object):
         records = [self._transform_row(row, schema) for row in rows]
 
         # Append to records if there are multiple pages for query results
-        while page_token:
-            query_reply = self.get_query_results(job_id, offset=offset, limit=limit,
-                                                 page_token=page_token, timeout=timeout)
+        while page_token and (not limit or len(records) < limit):
+            query_reply = self.get_query_results(
+                job_id, offset=offset, limit=limit, page_token=page_token,
+                timeout=timeout)
             page_token = query_reply.get("pageToken")
             rows = query_reply.get('rows', [])
             records += [self._transform_row(row, schema) for row in rows]
-        return records
+        return records[:limit] if limit else records
 
     def check_dataset(self, dataset_id):
         """Check to see if a dataset exists.
-        Args:
-            dataset: dataset unique id
-        Returns:
-            bool indicating if the table exists.
+
+        Parameters
+        ----------
+        dataset_id : str
+            Dataset unique id
+
+        Returns
+        -------
+        bool
+            True if dataset at `dataset_id` exists, else Fasle
         """
         dataset = self.get_dataset(dataset_id)
         return bool(dataset)
 
     def get_dataset(self, dataset_id):
-        """
-        Retrieve a dataset if it exists, otherwise return an empty dict.
-        Args:
-            dataset: dataset unique id
-        Returns:
-            dictionary containing the dataset object if it exists, otherwise
-            an empty dictionary
+        """Retrieve a dataset if it exists, otherwise return an empty dict.
+
+        Parameters
+        ----------
+        dataset_id : str
+            Dataset unique id
+
+        Returns
+        -------
+        dict
+            Contains dataset object if it exists, else empty
         """
         try:
             dataset = self.bigquery.datasets().get(
@@ -365,27 +460,35 @@ class BigQueryClient(object):
     def check_table(self, dataset, table):
         """Check to see if a table exists.
 
-        Args:
-            dataset: the dataset to check.
-            table: the name of the table.
+        Parameters
+        ----------
+        dataset : str
+            The dataset to check
+        table : str
+            The name of the table
 
-        Returns:
-            bool indicating if the table exists.
+        Returns
+        -------
+        bool
+            True if table exists, else False
         """
         table = self.get_table(dataset, table)
         return bool(table)
 
     def get_table(self, dataset, table):
-        """
-        Retrieve a table if it exists, otherwise return an empty dict.
+        """ Retrieve a table if it exists, otherwise return an empty dict.
 
-        Args:
-            dataset: the dataset that the table is in
-            table: the name of the table
+        Parameters
+        ----------
+        dataset : str
+            The dataset that the table is in
+        table : str
+            The name of the table
 
-        Returns:
-            dictionary containing the table object if it exists, otherwise
-            an empty dictionary
+        Returns
+        -------
+        dict
+            Containing the table object if it exists, else empty
         """
         try:
             table = self.bigquery.tables().get(
@@ -399,15 +502,22 @@ class BigQueryClient(object):
     def create_table(self, dataset, table, schema, expiration_time=None):
         """Create a new table in the dataset.
 
-        Args:
-            dataset: the dataset to create the table in.
-            table: the name of table to create.
-            schema: table schema dict.
-            expiration_time: the expiry time in milliseconds since the epoch.
+        Parameters
+        ----------
+        dataset : str
+            The dataset to create the table in
+        table : str
+            The name of the table to create
+        schema : dict
+            The table schema
+        expiration_time : float, optional
+            The expiry time in milliseconds since the epoch.
 
-        Returns:
-            bool indicating if the table was successfully created or not,
-            or response from BigQuery if swallow_results is set for False.
+        Returns
+        -------
+        Union[bool, dict]
+            If the table was successfully created, or response from BigQuery
+            if swallow_results is set to False
         """
 
         body = {
@@ -434,9 +544,102 @@ class BigQueryClient(object):
                 return table
 
         except HttpError as e:
-            logging.error(('Cannot create table {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, table,
-                                                     e.content))
+            logger.error(('Cannot create table {0}.{1}\n'
+                          'Http Error: {2}').format(dataset, table, e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
+    def update_table(self, dataset, table, schema):
+        """Update an existing table in the dataset.
+
+        Parameters
+        ----------
+        dataset : str
+            The dataset to update the table in
+        table : str
+            The name of the table to update
+        schema : dict
+            Table schema
+
+        Returns
+        -------
+        Union[bool, dict]
+            bool indicating if the table was successfully updated or not,
+            or response from BigQuery if swallow_results is set to False.
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        try:
+            result = self.bigquery.tables().update(
+                projectId=self.project_id,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return result
+
+        except HttpError as e:
+            logger.error(('Cannot update table {0}.{1}\n'
+                          'Http Error: {2}').format(dataset, table, e.content))
+            if self.swallow_results:
+                return False
+            else:
+                return {}
+
+    def patch_table(self, dataset, table, schema):
+        """Patch an existing table in the dataset.
+
+        Parameters
+        ----------
+        dataset : str
+            The dataset to patch the table in
+        table : str
+            The name of the table to patch
+        schema : dict
+            The table schema
+
+        Returns
+        -------
+        Union[bool, dict]
+            Bool indicating if the table was successfully patched or not,
+            or response from BigQuery if swallow_results is set to False
+        """
+
+        body = {
+            'schema': {'fields': schema},
+            'tableReference': {
+                'tableId': table,
+                'projectId': self.project_id,
+                'datasetId': dataset
+            }
+        }
+
+        try:
+            result = self.bigquery.tables().patch(
+                projectId=self.project_id,
+                datasetId=dataset,
+                body=body
+            ).execute()
+            if self.swallow_results:
+                return True
+            else:
+                return result
+
+        except HttpError as e:
+            logger.error(('Cannot patch table {0}.{1}\n'
+                          'Http Error: {2}').format(dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -445,14 +648,20 @@ class BigQueryClient(object):
     def create_view(self, dataset, view, query):
         """Create a new view in the dataset.
 
-        Args:
-            dataset: the dataset to create the view in.
-            view: the name of view to create.
-            query: a query that BigQuery executes when the view is referenced.
+        Parameters
+        ----------
+        dataset : str
+            The dataset to create the view in
+        view : str
+            The name of the view to create
+        query : dict
+            A query that BigQuery executes when the view is referenced.
 
-        Returns:
+        Returns
+        -------
+        Union[bool, dict]
             bool indicating if the view was successfully created or not,
-            or response from BigQuery if swallow_results is set for False.
+            or response from BigQuery if swallow_results is set to False.
         """
 
         body = {
@@ -478,9 +687,8 @@ class BigQueryClient(object):
                 return view
 
         except HttpError as e:
-            logging.error(('Cannot create view {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, view,
-                                                     e.content))
+            logger.error(('Cannot create view {0}.{1}\n'
+                          'Http Error: {2}').format(dataset, view, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -489,11 +697,16 @@ class BigQueryClient(object):
     def delete_table(self, dataset, table):
         """Delete a table from the dataset.
 
-        Args:
-            dataset: the dataset to delete the table from.
-            table: the name of the table to delete.
+        Parameters
+        ----------
+        dataset : str
+            The dataset to delete the table from.
+        table : str
+            The name of the table to delete
 
-        Returns:
+        Returns
+        -------
+        Union[bool, dict]
             bool indicating if the table was successfully deleted or not,
             or response from BigQuery if swallow_results is set for False.
         """
@@ -510,9 +723,8 @@ class BigQueryClient(object):
                 return response
 
         except HttpError as e:
-            logging.error(('Cannot delete table {0}.{1}\n'
-                           'Http Error: {2}').format(dataset, table,
-                                                     e.content))
+            logger.error(('Cannot delete table {0}.{1}\n'
+                          'Http Error: {2}').format(dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
@@ -522,16 +734,21 @@ class BigQueryClient(object):
         """Retrieve a list of tables that are related to the given app id
         and are inside the range of start and end times.
 
-        Args:
-            dataset_id: The BigQuery dataset id to consider.
-            app_id: The appspot name
-            start_time: The datetime or unix time after which records will be
-                        fetched.
-            end_time: The datetime or unix time up to which records will be
-                      fetched.
+        Parameters
+        ----------
+        dataset_id : str
+            The BigQuery dataset id to consider.
+        app_id : str
+            The appspot name
+        start_time : Union[datetime, int]
+            The datetime or unix time after which records will be fetched.
+        end_time : Union[datetime, int]
+            The datetime or unix time up to which records will be fetched.
 
-        Returns:
-            A list of table names.
+        Returns
+        -------
+        list
+            A ``list`` of table names.
         """
 
         if isinstance(start_time, datetime):
@@ -565,40 +782,57 @@ class BigQueryClient(object):
             skip_leading_rows=None,
     ):
         """
-        Imports data into a BigQuery table from cloud storage.
-        Args:
-            source_uris: required string or list of strings representing
-                            the uris on cloud storage of the form:
-                             gs://bucket/filename
-            dataset: required string id of the dataset
-            table: required string id of the table
-            job: optional string identifying the job (a unique jobid
-                    is automatically generated if not provided)
-            schema: optional list representing the bigquery schema
-            source_format: optional string
-                    (one of the JOB_SOURCE_FORMAT_* constants)
-            create_disposition: optional string
-                    (one of the JOB_CREATE_* constants)
-            write_disposition: optional string
-                    (one of the JOB_WRITE_* constants)
-            encoding: optional string default
-                    (one of the JOB_ENCODING_* constants)
-            ignore_unknown_values: optional boolean
-            max_bad_records: optional boolean
-            allow_jagged_rows: optional boolean for csv only
-            allow_quoted_newlines: optional boolean for csv only
-            field_delimiter: optional string for csv only
-            quote: optional string the quote character for csv only
-            skip_leading_rows: optional int for csv only
-
-            Optional arguments with value None are determined by
-            BigQuery as described:
+        Imports data into a BigQuery table from cloud storage. Optional
+        arguments that are not specified are determined by BigQuery as
+        described:
             https://developers.google.com/bigquery/docs/reference/v2/jobs
 
-        Returns:
-            dict, a BigQuery job resource
-        Raises:
-            JobInsertException on http/auth failures or error in result
+        Parameters
+        ----------
+        source_urls : list
+            A ``list`` of ``str`` objects representing the urls on cloud
+            storage of the form: gs://bucket/filename
+        dataset : str
+            String id of the dataset
+        table : str
+            String id of the table
+        job : str, optional
+            Identifies the job (a unique job id is automatically generated if
+            not provided)
+        schema : list, optional
+            Represents the BigQuery schema
+        source_format : str, optional
+            One of the JOB_SOURCE_FORMAT_* constants
+        create_disposition : str, optional
+            One of the JOB_CREATE_* constants
+        write_disposition : str, optional
+            One of the JOB_WRITE_* constants
+        encoding : str, optional
+            One of the JOB_ENCODING_* constants
+        ignore_unknown_values : bool, optional
+            Whether or not to ignore unknown values
+        max_bad_records : int, optional
+            Maximum number of bad records
+        allow_jagged_rows : bool, optional
+            For csv only
+        allow_quoted_newlines : bool, optional
+            For csv only
+        field_delimiter : str, optional
+            For csv only
+        quote : str, optional
+            Quote character for csv only
+        skip_leading_rows : int, optional
+            For csv only
+
+        Returns
+        -------
+        dict
+            A BigQuery job response
+
+        Raises
+        ------
+        JobInsertException
+            on http/auth failures or error in result
         """
         source_uris = source_uris if isinstance(source_uris, list) \
             else [source_uris]
@@ -683,7 +917,7 @@ class BigQueryClient(object):
             }
         }
 
-        logging.debug("Creating load job %s" % body)
+        logger.debug("Creating load job %s" % body)
         job_resource = self._insert_job(body)
         self._raise_insert_exception_if_error(job_resource)
         return job_resource
@@ -700,30 +934,40 @@ class BigQueryClient(object):
             field_delimiter=None,
     ):
         """
-        Export data from a BigQuery table to cloud storage.
-        Args:
-            destination_uris: required string or list of strings representing
-                              the uris on cloud storage of the form:
-                              gs://bucket/filename
-            dataset: required string id of the dataset
-            table: required string id of the table
-            job: optional string identifying the job (a unique jobid
-                    is automatically generated if not provided)
-            compression: optional string
-                    (one of the JOB_COMPRESSION_* constants)
-            destination_format: optional string
-                    (one of the JOB_DESTINATION_FORMAT_* constants)
-            print_header: optional boolean
-            field_delimiter: optional string
+        Export data from a BigQuery table to cloud storage. Optional arguments
+        that are not specified are determined by BigQuery as described:
+        https://developers.google.com/bigquery/docs/reference/v2/jobs
 
-            Optional arguments with value None are determined by
-            BigQuery as described:
-            https://developers.google.com/bigquery/docs/reference/v2/jobs
+        Parameters
+        ----------
+        destination_urls : Union[str, list]
+            ``str`` or ``list`` of ``str`` objects representing the URIs on
+            cloud storage of the form: gs://bucket/filename
+        dataset : str
+            String id of the dataset
+        table : str
+            String id of the table
+        job : str, optional
+            String identifying the job (a unique jobid is automatically
+            generated if not provided)
+        compression : str, optional
+            One of the JOB_COMPRESSION_* constants
+        destination_format : str, optional
+            One of the JOB_DESTination_FORMAT_* constants
+        print_header : bool, optional
+            Whether or not to print the header
+        field_delimiter : str, optional
+            Character separating fields in delimited file
 
-        Returns:
-            dict, a BigQuery job resource
-        Raises:
-            JobInsertException on http/auth failures or error in result
+        Returns
+        -------
+        dict
+            A BigQuery job resource
+
+        Raises
+        ------
+        JobInsertException
+            On http/auth failures or error in result
         """
         destination_uris = destination_uris \
             if isinstance(destination_uris, list) else [destination_uris]
@@ -767,7 +1011,7 @@ class BigQueryClient(object):
             }
         }
 
-        logging.info("Creating export job %s" % body)
+        logger.info("Creating export job %s" % body)
         job_resource = self._insert_job(body)
         self._raise_insert_exception_if_error(job_resource)
         return job_resource
@@ -777,6 +1021,7 @@ class BigQueryClient(object):
             query,
             dataset=None,
             table=None,
+            external_udf_uris=[],
             allow_large_results=None,
             use_query_cache=None,
             priority=None,
@@ -785,28 +1030,41 @@ class BigQueryClient(object):
     ):
         """
         Write query result to table. If dataset or table is not provided,
-        Bigquery will write the result to temporary table.
-        Args:
-            query: required BigQuery query string.
-            dataset: optional string id of the dataset
-            table: optional string id of the table
-            allow_large_results: optional boolean
-            use_query_cache: optional boolean
-            priority: optional string
-                    (one of the JOB_PRIORITY_* constants)
-            create_disposition: optional string
-                    (one of the JOB_CREATE_* constants)
-            write_disposition: optional string
-                    (one of the JOB_WRITE_* constants)
+        Bigquery will write the result to temporary table. Optional arguments
+        that are not specified are determined by BigQuery as described:
+        https://developers.google.com/bigquery/docs/reference/v2/jobs
 
-            Optional arguments with value None are determined by
-            BigQuery as described:
-            https://developers.google.com/bigquery/docs/reference/v2/jobs
+        Parameters
+        ----------
+        query : str
+            BigQuery query string
+        dataset : str, optional
+            String id of the dataset
+        table : str, optional
+            String id of the table
+        external_udf_uris : list, optional
+            Contains extternal UDF URIs. If given, URIs must be Google Cloud
+            Storage and have .js extensions.
+        allow_large_results : bool, optional
+            Whether or not to allow large results
+        use_query_cache : bool, optional
+            Whether or not to use query cache
+        priority : str, optional
+            One of the JOB_PRIORITY_* constants
+        create_disposition : str, optional
+            One of the JOB_CREATE_* constants
+        write_disposition : str, optional
+            One of the JOB_WRITE_* constants
 
-        Returns:
-            dict, a BigQuery job resource
-        Raises:
-            JobInsertException on http/auth failures or error in result
+        Returns
+        -------
+        dict
+            A BigQuery job resource
+
+        Raises
+        ------
+        JobInsertException
+            On http/auth failures or error in result
         """
 
         configuration = {
@@ -835,13 +1093,21 @@ class BigQueryClient(object):
         if write_disposition:
             configuration['writeDisposition'] = write_disposition
 
+        configuration['userDefinedFunctionResources'] = []
+        for external_udf_uri in external_udf_uris:
+            configuration['userDefinedFunctionResources'].append(
+                {
+                    "resourceUri": external_udf_uri
+                }
+            )
+
         body = {
             "configuration": {
                 'query': configuration
             }
         }
 
-        logging.info("Creating write to table job %s" % body)
+        logger.info("Creating write to table job %s" % body)
         job_resource = self._insert_job(body)
         self._raise_insert_exception_if_error(job_resource)
         return job_resource
@@ -849,18 +1115,27 @@ class BigQueryClient(object):
     def wait_for_job(self, job, interval=5, timeout=60):
         """
         Waits until the job indicated by job_resource is done or has failed
-        Args:
-            job: dict, representing a BigQuery job resource
-                 or str, representing a BigQuery job id
-            interval: optional float polling interval in seconds, default = 5
-            timeout: optional float timeout in seconds, default = 60
-        Returns:
-            dict, final state of the job_resource, as described here:
-            https://developers.google.com/resources/api-libraries/documentation
-            /bigquery/v2/python/latest/bigquery_v2.jobs.html#get
-        Raises:
-            JobExecutingException on http/auth failures or error in result
-            BigQueryTimeoutException on timeout
+
+        Parameters
+        ----------
+        job : Union[dict, str]
+            ``dict`` representing a BigQuery job resource, or a ``str``
+            representing the BigQuery job id
+        interval : float, optional
+            Polling interval in seconds, default = 5
+        timeout : float, optional
+            Timeout in seconds, default = 60
+
+        Returns
+        -------
+        dict
+            Final state of the job resouce, as described here:
+            https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#get
+
+        Raises
+        ------
+        Union[JobExecutingException, BigQueryTimeoutException]
+            On http/auth failures or timeout
         """
         complete = False
         job_id = str(job if isinstance(job,
@@ -881,21 +1156,37 @@ class BigQueryClient(object):
 
         # raise exceptions if timeout
         if not complete:
-            logging.error('BigQuery job %s timeout' % job_id)
+            logger.error('BigQuery job %s timeout' % job_id)
             raise BigQueryTimeoutException()
 
         return job_resource
 
-    def push_rows(self, dataset, table, rows, insert_id_key=None):
+    def push_rows(self, dataset, table, rows, insert_id_key=None,
+                  skip_invalid_rows=None, ignore_unknown_values=None,
+                  template_suffix=None):
         """Upload rows to BigQuery table.
 
-        Args:
-            dataset: the dataset to upload to.
-            table: the name of the table to insert rows into.
-            rows: list of rows to add to table
-            insert_id_key: key for insertId in row
+        Parameters
+        ----------
+        dataset : str
+            The dataset to upload to
+        table : str
+            The name of the table to insert rows into
+        rows : list
+            A ``list`` of rows (``dict`` objects) to add to the table
+        insert_id_key : str, optional
+            Key for insertId in row
+        skip_invalid_rows : bool, optional
+            Insert all valid rows of a request, even if invalid rows exist.
+        ignore_unknown_values : bool, optional
+            Accept rows that contain values that do not match the schema.
+        template_suffix : str, optional
+            Inserts the rows into an {table}{template_suffix}.
+            If table {table}{template_suffix} doesn't exist, create from {table}.
 
-        Returns:
+        Returns
+        -------
+        Union[bool, dict]
             bool indicating if insert succeeded or not, or response
             from BigQuery if swallow_results is set for False.
         """
@@ -915,6 +1206,15 @@ class BigQueryClient(object):
             "rows": rows_data
         }
 
+        if skip_invalid_rows is not None:
+            data['skipInvalidRows'] = skip_invalid_rows
+
+        if ignore_unknown_values is not None:
+            data['ignoreUnknownValues'] = ignore_unknown_values
+
+        if template_suffix is not None:
+            data['templateSuffix'] = template_suffix
+
         try:
             response = table_data.insertAll(
                 projectId=self.project_id,
@@ -924,7 +1224,7 @@ class BigQueryClient(object):
             ).execute()
 
             if response.get('insertErrors'):
-                logging.error('BigQuery insert errors: %s' % response)
+                logger.error('BigQuery insert errors: %s' % response)
                 if self.swallow_results:
                     return False
                 else:
@@ -936,7 +1236,7 @@ class BigQueryClient(object):
                 return response
 
         except HttpError as e:
-            logging.exception('Problem with BigQuery insertAll')
+            logger.exception('Problem with BigQuery insertAll')
             if self.swallow_results:
                 return False
             else:
@@ -952,12 +1252,18 @@ class BigQueryClient(object):
     def _get_all_tables(self, dataset_id, cache=False):
         """Retrieve a list of all tables for the dataset.
 
-        Args:
-            dataset_id: the dataset to retrieve table names for.
-            cache: To use cached value or not. Timeout value
-                   equals CACHE_TIMEOUT.
-        Returns:
-            a dictionary of app ids mapped to their table names.
+        Parameters
+        ----------
+        dataset_id : str
+            The dataset to retrieve table names for
+        cache : bool, optional
+            To use cached value or not (default False). Timeout value equals
+            CACHE_TIMEOUT.
+
+        Returns
+        -------
+        dict
+            A ``dict`` of app ids mapped to their table names
         """
         do_fetch = True
         if cache and self.cache.get(dataset_id):
@@ -986,12 +1292,15 @@ class BigQueryClient(object):
     def _parse_table_list_response(self, list_response):
         """Parse the response received from calling list on tables.
 
-        Args:
-            list_response: The response found by calling list on a BigQuery
-                           table object.
+        Parameters
+        ----------
+        list_response
+            The response found by calling list on a BigQuery table object.
 
-        Returns:
-            The dictionary of dates referenced by table names.
+        Returns
+        -------
+        dict
+            Dates referenced by table names
         """
 
         tables = defaultdict(dict)
@@ -1022,12 +1331,16 @@ class BigQueryClient(object):
         """Parse a table name in the form of appid_YYYY_MM or
         YYYY_MM_appid and return a tuple consisting of YYYY-MM and the app id.
 
-        Args:
-            table_id: The table id as listed by BigQuery.
+        Parameters
+        ----------
+        table_id : str
+            The table id as listed by BigQuery
 
-        Returns:
-            Tuple containing year/month and app id. Returns None, None if the
-            table id cannot be parsed.
+        Returns
+        -------
+        tuple
+            (year/month, app id), or (None, None) if the table id cannot be
+            parsed.
         """
 
         # Prefix date
@@ -1056,13 +1369,19 @@ class BigQueryClient(object):
         """Filter a table dictionary and return table names based on the range
         of start and end times in unix seconds.
 
-        Args:
-            tables: The dictionary of dates referenced by table names
-            start_time: The unix time after which records will be fetched.
-            end_time: The unix time up to which records will be fetched.
+        Parameters
+        ----------
+        tables : dict
+            Dates referenced by table names
+        start_time : int
+            The unix time after which records will be fetched
+        end_time : int
+            The unix time up to which records will be fetched
 
-        Returns:
-            A list of table names that are inside the time range.
+        Returns
+        -------
+        list
+            Table names that are inside the time range
         """
 
         return [table_name for (table_name, unix_seconds) in tables.items()
@@ -1071,12 +1390,18 @@ class BigQueryClient(object):
     def _in_range(self, start_time, end_time, time):
         """Indicate if the given time falls inside of the given range.
 
-        Args:
-            start_time: The unix time for the start of the range.
-            end_time: The unix time for the end of the range.
-            time: The unix time to check.
+        Parameters
+        ----------
+        start_time : int
+            The unix time for the start of the range
+        end_time : int
+            The unix time for the end of the range
+        time : int
+            The unix time to check
 
-        Returns:
+        Returns
+        -------
+        bool
             True if the time falls within the range, False otherwise.
         """
 
@@ -1086,18 +1411,30 @@ class BigQueryClient(object):
             time <= start_time <= time + ONE_MONTH or \
             time <= end_time <= time + ONE_MONTH
 
-    def get_query_results(self, job_id, offset=None, limit=None, page_token=None, timeout=0):
-        """Execute the query job indicated by the given job id. This is direct mapping to
-        bigquery api https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults
+    def get_query_results(self, job_id, offset=None, limit=None,
+                          page_token=None, timeout=0):
+        """Execute the query job indicated by the given job id. This is direct
+        mapping to bigquery api
+        https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults
 
-        Args:
-            job_id: The job id of the query to check.
-            offset: The index the result set should start at.
-            limit: The maximum number of results to retrieve.
-            page_token: Page token, returned by a previous call, to request the next page of results.
-            timeout: Timeout in seconds.
-        Returns:
-            The query reply.
+        Parameters
+        ----------
+        job_id : str
+            The job id of the query to check
+        offset : optional
+            The index the result set should start at.
+        limit : int, optional
+            The maximum number of results to retrieve.
+        page_token : optional
+            Page token, returned by previous call, to request the next page of
+            results.
+        timeout : float, optional
+            Timeout in seconds
+
+        Returns
+        -------
+        out
+            The query reply
         """
 
         job_collection = self.bigquery.jobs()
@@ -1112,14 +1449,18 @@ class BigQueryClient(object):
     def _transform_row(self, row, schema):
         """Apply the given schema to the given BigQuery data row.
 
-        Args:
-            row: A single BigQuery row to transform.
-            schema: The BigQuery table schema to apply to the row, specifically
-                    the list of field dicts.
+        Parameters
+        ----------
+        row
+            A single BigQuery row to transform
+        schema : list
+            The BigQuery table schema to apply to the row, specifically
+            the list of field dicts.
 
-        Returns:
-            Dict containing keys that match the schema and values that match
-            the row.
+        Returns
+        -------
+        dict
+            Mapping schema to row
         """
 
         log = {}
@@ -1146,7 +1487,7 @@ class BigQueryClient(object):
 
             elif col_dict['type'] == 'BOOLEAN':
                 row_value = row_value in ('True', 'true', 'TRUE')
-            
+
             elif col_dict['type'] == 'TIMESTAMP':
                 row_value = float(row_value)
 
@@ -1158,12 +1499,16 @@ class BigQueryClient(object):
         """Apply the schema specified by the given dict to the nested value by
         recursing on it.
 
-        Args:
-            col_dict: A dict containing the schema to apply to the nested
-                      value.
-            nested_value: A value nested in a BigQuery row.
-        Returns:
-            Dict or list of dicts from applied schema.
+        Parameters
+        ----------
+        col_dict : dict
+            The schema to apply to the nested value.
+        nested_value : A value nested in a BigQuery row.
+
+        Returns
+        -------
+        Union[dict, list]
+            ``dict`` or ``list`` of ``dict`` objects from applied schema.
         """
 
         row_value = None
@@ -1182,10 +1527,15 @@ class BigQueryClient(object):
     def _generate_hex_for_uris(self, uris):
         """Given uris, generate and return hex version of it
 
-        Args:
-            uris: A list containing all uris
-        Returns:
-            string of hexed uris
+        Parameters
+        ----------
+        uris : list
+            Containing all uris
+
+        Returns
+        -------
+        str
+            Hexed uris
         """
         return sha256((":".join(uris) + str(time())).encode()).hexdigest()
 
@@ -1218,18 +1568,23 @@ class BigQueryClient(object):
                        access=None):
         """Create a new BigQuery dataset.
 
-        Args:
-            dataset_id: required unique string identifying the dataset with the
-                        project (the referenceId of the dataset, not the
-                        integer id of the dataset)
-            friendly_name: optional string providing a human readable name
-            description: optional longer string providing a description
-            access: optional object indicating access permissions (see
-                    https://developers.google.com/bigquery/docs/reference/v2/
-                    datasets#resource)
+        Parameters
+        ----------
+        dataset_id : str
+            Unique ``str`` identifying the dataset with the project (the
+            referenceID of the dataset, not the integer id of the dataset)
+        friendly_name: str, optional
+            A human readable name
+        description: str, optional
+            Longer string providing a description
+        access : list, optional
+            Indicating access permissions (see
+            https://developers.google.com/bigquery/docs/reference/v2/datasets#resource)
 
-        Returns:
-            bool indicating if dataset was created or not, or response
+        Returns
+        -------
+        Union[bool, dict]
+            ``bool`` indicating if dataset was created or not, or response
             from BigQuery if swallow_results is set for False
         """
         try:
@@ -1246,8 +1601,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot create dataset {0}, {1}'.format(dataset_id,
-                                                                  e))
+            logger.error(
+                'Cannot create dataset {0}, {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1256,8 +1611,10 @@ class BigQueryClient(object):
     def get_datasets(self):
         """List all datasets in the project.
 
-        Returns:
-            a list of dataset resources
+        Returns
+        -------
+        list
+            Dataset resources
         """
         try:
             datasets = self.bigquery.datasets()
@@ -1265,23 +1622,31 @@ class BigQueryClient(object):
             result = request.execute()
             return result.get('datasets', [])
         except HttpError as e:
-            logging.error("Cannot list datasets: {0}".format(e))
+            logger.error("Cannot list datasets: {0}".format(e))
             return None
 
     def delete_dataset(self, dataset_id, delete_contents=False):
         """Delete a BigQuery dataset.
 
-        Args:
-            dataset_id: required unique string identifying the dataset with the
-                        project (the referenceId of the dataset)
-            delete_contents: forces deletion of the dataset even when the
-                        dataset contains data
-        Returns:
-            bool indicating if the delete was successful or not, or response
+        Parameters
+        ----------
+        dataset_id : str
+            Unique ``str`` identifying the datset with the project (the
+            referenceId of the dataset)
+        delete_contents : bool, optional
+            If True, forces the deletion of the dataset even when the dataset
+            contains data (Default = False)
+
+        Returns
+        -------
+        Union[bool, dict[
+            ool indicating if the delete was successful or not, or response
             from BigQuery if swallow_results is set for False
 
-        Raises:
-            HttpError 404 when dataset with dataset_id does not exist
+        Raises
+        -------
+        HttpError
+            404 when dataset with dataset_id does not exist
         """
         try:
             datasets = self.bigquery.datasets()
@@ -1294,8 +1659,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot delete dataset {0}: {1}'.format(dataset_id,
-                                                                  e))
+            logger.error(
+                'Cannot delete dataset {0}: {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1307,16 +1672,23 @@ class BigQueryClient(object):
         replaces the entire dataset resource, whereas the patch method only
         replaces fields that are provided in the submitted dataset resource.
 
-        Args:
-            dataset_id: required unique string identifying the dataset with the
-                        project (the referenceId of the dataset).
-            friendly_name: an optional descriptive name for the dataset.
-            description: an optional description of the dataset.
-            access: an optional object indicating access permissions.
+        Parameters
+        ----------
+        dataset_id : str
+            Unique ``str`` identifying the dataset with the project (the
+            referencedId of the dataset)
+        friendly_name : str, optional
+            An optional descriptive name for the dataset.
+        description : str, optional
+            An optional description of the dataset.
+        access : list, optional
+            Indicating access permissions
 
-        Returns:
-            bool indicating if the update was successful or not, or response
-            from BigQuery if swallow_results is set for False.
+        Returns
+        -------
+        Union[bool, dict]
+            ``bool`` indicating if the update was successful or not, or
+            response from BigQuery if swallow_results is set for False.
         """
         try:
             datasets = self.bigquery.datasets()
@@ -1331,8 +1703,8 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot update dataset {0}: {1}'.format(dataset_id,
-                                                                  e))
+            logger.error(
+                'Cannot update dataset {0}: {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1344,14 +1716,22 @@ class BigQueryClient(object):
         replaces the entire dataset resource, whereas the patch method only
         replaces fields that are provided in the submitted dataset resource.
 
-        Args:
-            dataset_id: required unique string identifying the dataset with the
-                        projedct (the referenceId of the dataset).
-            friendly_name: an optional descriptive name for the dataset.
-            description: an optional description of the dataset.
-            access: an optional object indicating access permissions.
-        Returns:
-            bool indicating if the patch was successful or not, or response
+        Parameters
+        ----------
+        dataset_id : str
+            Unique string idenfitying the dataset with the project (the
+            referenceId of the dataset)
+        friendly_name : str, optional
+            An optional descriptive name for the dataset.
+        description : str, optional
+            An optional description of the dataset.
+        access : list, optional
+            Indicating access permissions.
+
+        Returns
+        -------
+        Union[bool, dict]
+            ``bool`` indicating if the patch was successful or not, or response
             from BigQuery if swallow_results is set for False.
         """
         try:
@@ -1366,8 +1746,7 @@ class BigQueryClient(object):
             else:
                 return response
         except HttpError as e:
-            logging.error('Cannot patch dataset {0}: {1}'.format(dataset_id,
-                                                                 e))
+            logger.error('Cannot patch dataset {0}: {1}'.format(dataset_id, e))
             if self.swallow_results:
                 return False
             else:
@@ -1375,17 +1754,24 @@ class BigQueryClient(object):
 
     def dataset_resource(self, ref_id, friendly_name=None, description=None,
                          access=None):
-        """See https://developers.google.com/bigquery/docs/reference/v2/
-        datasets#resource
+        """See
+        https://developers.google.com/bigquery/docs/reference/v2/datasets#resource
 
-        Args:
-            ref_id: string dataset id (the reference id, not the integer id)
-            friendly_name: opt string
-            description: opt string
-            access: opt list
+        Parameters
+        ----------
+        ref_id : str
+            Dataset id (the reference id, not the integer id)
+        friendly_name : str, optional
+            An optional descriptive name for the dataset
+        description : str, optional
+            An optional description for the dataset
+        access : list, optional
+            Indicating access permissions
 
-        Returns:
-            a dictionary representing a BigQuery dataset resource
+        Returns
+        -------
+        dict
+            Representing BigQuery dataset resource
         """
         data = {
             "datasetReference": {
@@ -1407,18 +1793,27 @@ class BigQueryClient(object):
         """Given a dict representing a record instance to be inserted into
         BigQuery, calculate the schema.
 
-         Args:
-            record: dict representing a record to be inserted into big query,
-                    where all keys are strings (representing column names in
-                    the record) and all values are of type int, str, unicode,
-                    float,bool, timestamp or dict. A dict value represents a
-                    record, and must conform to the same restrictions as record
+        Parameters
+        ----------
+        record : dict
+            representing a record to be inserted into big query,
+            where all keys are ``str`` objects (representing column names in
+            the record) and all values are of type ``int``, ``str``,
+            ``unicode``, ``float``, ``bool``, ``datetime``, or ``dict``. A
+            ``dict`` value represents a record, and must conform to the same
+            restrictions as record.
 
-        Returns:
-            a list representing a BigQuery schema
+        Returns
+        -------
+        list
+            BigQuery schema
 
-        Note: results are undefined if a different value types are provided for
-              a repeated field: E.g.
-              { rfield: [ { x: 1}, {x: "a string"} ] } # undefined!
+        Notes
+        -----
+        Results are undefined if a different value type is provided for a
+        repeated field: E.g.
+
+        >>> { rfield: [ { x: 1}, {x: "a string"} ] } # undefined!
         """
+        from bigquery.schema_builder import schema_from_record
         return schema_from_record(record)

@@ -1,4 +1,7 @@
 from __future__ import absolute_import
+
+from .version import __version__
+
 from .client import get_client
 from .client import (
     BIGQUERY_SCOPE,

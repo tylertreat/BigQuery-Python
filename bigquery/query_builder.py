@@ -1,57 +1,55 @@
-import logging
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def render_query(dataset, tables, select=None, conditions=None,
-                 groupings=None, order_by=None):
+                 groupings=None, having=None, order_by=None):
     """Render a query that will run over the given tables using the specified
     parameters.
 
-    Args:
-        dataset: the BigQuery data set to query data from.
-        tables: the tables in dataset to query.
-        select: a dictionary of selections for a table. The keys function as
-                column names and the values function as options to apply to
-                the select field such as alias and format.  For example,
-                    {
-                        'start_time': {
-                            'alias': 'StartTime',
-                            'format': 'INTEGER-FORMAT_UTC_USEC'
-                        }
-                    }
-                is represented as 'SEC_TO_TIMESTAMP(INTEGER(start_time)) as
-                StartTime' in a query. Pass None to select all.
-        conditions: a list of dicts to filter results by.
-                    Each dict should be formatted as the following:
-                        {
-                            'field': 'foo',
-                            'type': 'FLOAT',
-                            'comparators': [
-                                {
-                                    'condition': '>=',
-                                    'negate': False,
-                                    'value': '1'
-                                }
-                            ]
-                        }
-                    which is rendered as 'foo >= FLOAT('1')' in the query.
-        groupings: a list of field names to group by.
-        order_by: a dict with two keys, field and direction.
-            Such that the dictionary should be formatted as
-            {'field':'TimeStamp, 'direction':'desc'}.
+    Parameters
+    ----------
+    dataset : str
+        The BigQuery dataset to query data from
+    tables : Union[dict, list]
+        The table in `dataset` to query.
+    select : dict, optional
+        The keys function as column names and the values function as options to
+        apply to the select field such as alias and format.  For example,
+        select['start_time'] might have the form
+        {'alias': 'StartTime', 'format': 'INTEGER-FORMAT_UTC_USEC'}, which
+        would be represented as 'SEC_TO_TIMESTAMP(INTEGER(start_time)) as
+        StartTime' in a query. Pass `None` to select all.
+    conditions : list, optional
+        a ``list`` of ``dict`` objects to filter results by.  Each dict should
+        have the keys 'field', 'type', and 'comparators'. The first two map to
+        strings representing the field (e.g. 'foo') and type (e.g. 'FLOAT').
+        'comparators' maps to another ``dict`` containing the keys 'condition',
+        'negate', and 'value'.
+        If 'comparators' = {'condition': '>=', 'negate': False, 'value': 1},
+        this example will be rdnered as 'foo >= FLOAT('1')' in the query.
+        ``list`` of field names to group by
+    order_by : dict, optional
+        Keys = {'field', 'direction'}. `dict` should be formatted as
+        {'field':'TimeStamp, 'direction':'desc'} or similar
 
-    Returns:
-        a query string.
+    Returns
+    -------
+    str
+        A rendered query
     """
 
     if None in (dataset, tables):
         return None
 
-    query = "%s %s %s %s %s" % (
+    query = "%s %s %s %s %s %s" % (
         _render_select(select),
         _render_sources(dataset, tables),
         _render_conditions(conditions),
         _render_groupings(groupings),
-        _render_order(order_by),
+        _render_having(having),
+        _render_order(order_by)
     )
 
     return query
@@ -60,17 +58,19 @@ def render_query(dataset, tables, select=None, conditions=None,
 def _render_select(selections):
     """Render the selection part of a query.
 
-    Args:
-        selections: a dictionary of selections for a table. The
-            keys function as column names and the values function as
-            options to apply to the select field such as alias and format.
-            For example {'start_time': {'alias': 'StartTime', 'format':
-            'INTEGER-FORMAT_UTC_USEC'}} is represented as
-            'SEC_TO_TIMESTAMP(INTEGER(start_time))' in a query. Pass None to
-            select all.
+    Parameters
+    ----------
+    selections : dict
+        Selections for a table
 
-    Returns:
-        a string that represents the select part of a query.
+    Returns
+    -------
+    str
+        A string for the "select" part of a query
+
+    See Also
+    --------
+    render_query : Further clarification of `selections` dict formatting
     """
 
     if not selections:
@@ -99,15 +99,20 @@ def _render_select(selections):
 def _format_select(formatter, name):
     """Modify the query selector by applying any formatters to it.
 
-    Args:
-        formatter: hyphen-delimited formatter string where formatters are
-                   applied inside-out, e.g. the formatter string
-                   SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC applied to the selector
-                   foo would result in FORMAT_UTC_USEC(INTEGER(foo*1000000)).
-        name: the name of the selector to apply formatters to.
+    Parameters
+    ----------
+    formatter : str
+       Hyphen-delimited formatter string where formatters are
+       applied inside-out, e.g. the formatter string
+       SEC_TO_MICRO-INTEGER-FORMAT_UTC_USEC applied to the selector
+       foo would result in FORMAT_UTC_USEC(INTEGER(foo*1000000)).
+    name: str
+        The name of the selector to apply formatters to.
 
-    Returns:
-        formatted selector.
+    Returns
+    -------
+    str
+        The formatted selector
     """
 
     for caster in formatter.split('-'):
@@ -125,30 +130,52 @@ def _format_select(formatter, name):
 def _render_sources(dataset, tables):
     """Render the source part of a query.
 
-    Args:
-        dataset: the data set to fetch log data from.
-        tables: the tables to fetch log data from.
+    Parameters
+    ----------
+    dataset : str
+        The data set to fetch log data from.
+    tables : Union[dict, list]
+        The tables to fetch log data from
 
-    Returns:
-        a string that represents the from part of a query.
+    Returns
+    -------
+    str
+        A string that represents the "from" part of a query.
     """
 
-    return "FROM " + ", ".join(
-        ["[%s.%s]" % (dataset, table) for table in tables])
+    if isinstance(tables, dict):
+        if tables.get('date_range', False):
+            try:
+                dataset_table = '.'.join([dataset, tables['table']])
+                return "FROM (TABLE_DATE_RANGE([{}], TIMESTAMP('{}'),"\
+                    " TIMESTAMP('{}'))) ".format(dataset_table,
+                                                 tables['from_date'],
+                                                 tables['to_date'])
+            except KeyError as exp:
+                logger.warn(
+                    'Missing parameter %s in selecting sources' % (exp))
+
+    else:
+        return "FROM " + ", ".join(
+            ["[%s.%s]" % (dataset, table) for table in tables])
 
 
 def _render_conditions(conditions):
     """Render the conditions part of a query.
 
-    Args:
-        conditions: a list of dictionary items to filter a table.
-            Each dict should be formatted as {'field': 'start_time',
-            'value': {'value': 1, 'negate': False}, 'comparator': '>',
-            'type': 'FLOAT'} which is represetned as
-            'start_time > FLOAT('1')' in the query.
+    Parameters
+    ----------
+    conditions : list
+        A list of dictionay items to filter a table.
 
-    Returns:
-        a string that represents the where part of a query.
+    Returns
+    -------
+    str
+        A string that represents the "where" part of a query
+
+    See Also
+    --------
+    render_query : Further clarification of `conditions` formatting.
     """
 
     if not conditions:
@@ -162,7 +189,7 @@ def _render_conditions(conditions):
         comparators = condition.get('comparators')
 
         if None in (field, field_type, comparators) or not comparators:
-            logging.warn('Invalid condition passed in: %s' % condition)
+            logger.warn('Invalid condition passed in: %s' % condition)
             continue
 
         rendered_conditions.append(
@@ -177,14 +204,18 @@ def _render_conditions(conditions):
 def _render_condition(field, field_type, comparators):
     """Render a single query condition.
 
-    Args:
-        field: the field the condition applies to.
-        field_type: the data type of the field.
-        comparator: the logic operator to use.
-        value_dicts: a list of value dicts of the form
-                     {'value': 'foo', 'negate': False}
+    Parameters
+    ----------
+    field : str
+        The field the condition applies to
+    field_type : str
+        The data type of the field.
+    comparators : array_like
+        An iterable of logic operators to use.
 
-    Returns:
+    Returns
+    -------
+    str
         a condition string.
     """
 
@@ -206,6 +237,15 @@ def _render_condition(field, field_type, comparators):
             else:
                 value = _render_condition_value(value, field_type)
             value = "(" + value + ")"
+        elif condition == "BETWEEN":
+            if isinstance(value, (tuple, list, set)) and len(value) == 2:
+                value = ' AND '.join(
+                    sorted([_render_condition_value(v, field_type)
+                            for v in value])
+                )
+            elif isinstance(value, (tuple, list, set)) and len(value) != 2:
+                logger.warn('Invalid condition passed in: %s' % condition)
+
         else:
             value = _render_condition_value(value, field_type)
 
@@ -229,12 +269,17 @@ def _render_condition(field, field_type, comparators):
 def _render_condition_value(value, field_type):
     """Render a query condition value.
 
-    Args:
-        value: the value of the condition.
-        field_type: the data type of the field.
+    Parameters
+    ----------
+    value : Union[bool, int, float, str, datetime]
+        The value of the condition
+    field_type : str
+        The data type of the field
 
-    Returns:
-        a value string.
+    Returns
+    -------
+    str
+        A value string.
     """
 
     # BigQuery cannot cast strings to booleans, convert to ints
@@ -242,38 +287,88 @@ def _render_condition_value(value, field_type):
         value = 1 if value else 0
     elif field_type in ("STRING", "INTEGER", "FLOAT"):
         value = "'%s'" % (value)
+    elif field_type in ("TIMESTAMP"):
+        value = "'%s'" % (str(value))
     return "%s(%s)" % (field_type, value)
-
-
-def _render_order(order):
-    """Render the order by part of a query.
-
-    Args:
-        order: a dictionary with two keys, field and direction.
-            Such that the dictionary should be formatted as
-            {'field':'TimeStamp, 'direction':'desc'}.
-
-    Returns:
-        a string that represents the order by part of a query.
-    """
-
-    if not order or 'field' not in order or 'direction' not in order:
-        return ''
-
-    return "ORDER BY %s %s" % (order['field'], order['direction'])
 
 
 def _render_groupings(fields):
     """Render the group by part of a query.
 
-    Args:
-        fields: a list of fields to group by.
+    Parameters
+    ----------
+    fields : list
+        A list of fields to group by.
 
-    Returns:
-        a string that represents the group by part of a query.
+    Returns
+    -------
+    str
+        A string that represents the "group by" part of a query.
     """
 
     if not fields:
         return ""
 
     return "GROUP BY " + ", ".join(fields)
+
+
+def _render_having(having_conditions):
+    """Render the having part of a query.
+
+    Parameters
+    ----------
+    having_conditions : list
+        A ``list`` of ``dict``s to filter the rows
+
+    Returns
+    -------
+    str
+        A string that represents the "having" part of a query.
+
+    See Also
+    --------
+    render_query : Further clarification of `conditions` formatting.
+    """
+    if not having_conditions:
+        return ""
+
+    rendered_conditions = []
+
+    for condition in having_conditions:
+        field = condition.get('field')
+        field_type = condition.get('type')
+        comparators = condition.get('comparators')
+
+        if None in (field, field_type, comparators) or not comparators:
+            logger.warn('Invalid condition passed in: %s' % condition)
+            continue
+
+        rendered_conditions.append(
+            _render_condition(field, field_type, comparators))
+
+    if not rendered_conditions:
+        return ""
+
+    return "HAVING %s" % (" AND ".join(rendered_conditions))
+
+
+def _render_order(order):
+    """Render the order by part of a query.
+
+    Parameters
+    ----------
+    order : dict
+        A dictionary with two keys, fields and direction.
+        Such that the dictionary should be formatted as
+        {'fields': ['TimeStamp'], 'direction':'desc'}.
+
+    Returns
+    -------
+    str
+        A string that represents the "order by" part of a query.
+    """
+
+    if not order or 'fields' not in order or 'direction' not in order:
+        return ''
+
+    return "ORDER BY %s %s" % (", ".join(order['fields']), order['direction'])
