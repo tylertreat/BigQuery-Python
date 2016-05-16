@@ -1249,8 +1249,31 @@ class BigQueryClient(object):
                     }]
                 }
 
+    def get_all_tables(self, dataset_id):
+        """Retrieve a list of tables for the dataset.
+
+        Parameters
+        ----------
+        dataset_id : str
+            The dataset to retrieve table data for.
+
+        Returns
+        -------
+        A ``list`` with all table names
+        """
+        tables_data = self._get_all_tables_for_dataset(dataset_id)
+
+        tables = []
+        for table in tables_data['tables']:
+            table_name = table.get('tableReference', {}).get('tableId')
+            if table_name:
+                tables.append(table_name)
+        return tables
+
     def _get_all_tables(self, dataset_id, cache=False):
-        """Retrieve a list of all tables for the dataset.
+        """Retrieve the list of tables for dataset, that respect the formats:
+            * appid_YYYY_MM
+            * YYYY_MM_appid
 
         Parameters
         ----------
@@ -1272,22 +1295,38 @@ class BigQueryClient(object):
                 do_fetch = False
 
         if do_fetch:
-            result = self.bigquery.tables().list(
-                projectId=self.project_id,
-                datasetId=dataset_id).execute()
-
-            page_token = result.get('nextPageToken')
-            while page_token:
-                res = self.bigquery.tables().list(
-                    projectId=self.project_id,
-                    datasetId=dataset_id,
-                    pageToken=page_token
-                ).execute()
-                page_token = res.get('nextPageToken')
-                result['tables'] += res.get('tables', [])
+            result = self._get_all_tables_for_dataset(dataset_id)
             self.cache[dataset_id] = (datetime.now(), result)
 
         return self._parse_table_list_response(result)
+
+    def _get_all_tables_for_dataset(self, dataset_id):
+        """Retrieve a list of all tables for the dataset.
+
+        Parameters
+        ----------
+        dataset_id : str
+            The dataset to retrieve table names for
+
+        Returns
+        -------
+        dict
+            A ``dict`` containing tables key with all tables
+        """
+        result = self.bigquery.tables().list(
+            projectId=self.project_id,
+            datasetId=dataset_id).execute()
+
+        page_token = result.get('nextPageToken')
+        while page_token:
+            res = self.bigquery.tables().list(
+                projectId=self.project_id,
+                datasetId=dataset_id,
+                pageToken=page_token
+            ).execute()
+            page_token = res.get('nextPageToken')
+            result['tables'] += res.get('tables', [])
+        return result
 
     def _parse_table_list_response(self, list_response):
         """Parse the response received from calling list on tables.
