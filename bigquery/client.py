@@ -1259,8 +1259,7 @@ class BigQueryClient(object):
 
         Returns
         -------
-        dict
-            A ``list`` with all table names
+        A ``list`` with all table names
         """
         tables_data = self._get_all_tables_for_dataset(dataset_id)
 
