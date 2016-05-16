@@ -1292,10 +1292,19 @@ FULL_TABLE_LIST_RESPONSE = {
         },
         {
             "kind": "bigquery#table",
+            "id": "project:dataset.table_not_matching_naming",
+            "tableReference": {
+                "projectId": "project",
+                "datasetId": "dataset",
+                "tableId": "table_not_matching_naming"
+            }
+        },
+        {
+            "kind": "bigquery#table",
             "id": "bad table data"
-        }
+        },
     ],
-    "totalItems": 8
+    "totalItems": 9
 }
 
 
@@ -2191,8 +2200,31 @@ class TestPushRows(unittest.TestCase):
 
 class TestGetAllTables(unittest.TestCase):
 
-    def test_get_tables(self):
+    def test_get_all_tables(self):
         """Ensure get_all_tables fetches table names from BigQuery."""
+
+        mock_execute = mock.Mock()
+        mock_execute.execute.return_value = FULL_TABLE_LIST_RESPONSE
+
+        mock_tables = mock.Mock()
+        mock_tables.list.return_value = mock_execute
+
+        mock_bq_service = mock.Mock()
+        mock_bq_service.tables.return_value = mock_tables
+
+        bq = client.BigQueryClient(mock_bq_service, 'project')
+
+        expected_result = [
+            '2013_05_appspot', '2013_06_appspot_1', '2013_06_appspot_2',
+            '2013_06_appspot_3', '2013_06_appspot_4', '2013_06_appspot_5',
+            'appspot_6_2013_06', 'table_not_matching_naming'
+        ]
+
+        tables = bq.get_all_tables('dataset')
+        self.assertEquals(expected_result, tables)
+
+    def test_get_tables(self):
+        """Ensure _get_all_tables fetches table names from BigQuery."""
 
         mock_execute = mock.Mock()
         mock_execute.execute.return_value = FULL_TABLE_LIST_RESPONSE
