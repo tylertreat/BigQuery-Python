@@ -1264,7 +1264,7 @@ class BigQueryClient(object):
         tables_data = self._get_all_tables_for_dataset(dataset_id)
 
         tables = []
-        for table in tables_data['tables']:
+        for table in tables_data.get('tables', []):
             table_name = table.get('tableReference', {}).get('tableId')
             if table_name:
                 tables.append(table_name)
