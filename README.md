@@ -126,7 +126,8 @@ query = render_query(
     conditions=conditions,
     groupings=grouping,
     having=having,
-    order_by=order_by
+    order_by=order_by,
+    limit=47
 )
 
 job_id, _ = client.query(query)
