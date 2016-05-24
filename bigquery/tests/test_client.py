@@ -253,6 +253,7 @@ class TestQuery(unittest.TestCase):
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
 
+
     def test_query_max_results_set(self):
         """Ensure that we retrieve the job id from the query and the maxResults
         parameter is set.
@@ -417,6 +418,30 @@ class TestQuery(unittest.TestCase):
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [{'foo': 10}])
+
+    def test_query_with_using_legacy_sql(self):
+        """Ensure that use_legacy_sql bool gets used"""
+
+        mock_query_job = mock.Mock()
+        expected_job_id = 'spiderman'
+        expected_job_ref = {'jobId': expected_job_id}
+
+        mock_query_job.execute.return_value = {
+            'jobReference': expected_job_ref,
+            'jobComplete': True
+        }
+
+        self.mock_job_collection.query.return_value = mock_query_job
+
+        job_id, results = self.client.query(self.query, use_legacy_sql=False)
+
+        self.mock_job_collection.query.assert_called_once_with(
+            projectId=self.project_id,
+            body={'query': self.query, 'timeoutMs': 0, 'dryRun': False,
+                  'maxResults': None, 'useLegacySql': False}
+        )
+        self.assertEquals(job_id, 'spiderman')
+        self.assertEquals(results, [])
 
 
 class TestGetQueryResults(unittest.TestCase):

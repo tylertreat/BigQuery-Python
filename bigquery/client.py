@@ -262,7 +262,7 @@ class BigQueryClient(object):
             body=body_object
         ).execute()
 
-    def query(self, query, max_results=None, timeout=0, dry_run=False):
+    def query(self, query, max_results=None, timeout=0, dry_run=False, use_legacy_sql=None):
         """Submit a query to BigQuery.
 
         Parameters
@@ -278,6 +278,9 @@ class BigQueryClient(object):
             If True, the query isn't actually run. A valid query will return an
             empty response, while an invalid one will return the same error
             message it would if it wasn't a dry run.
+        use_legacy_sql : bool, optional. Default True.
+            If False, the query will use BigQuery's standard SQL (https://cloud.google.com/bigquery/sql-reference/)
+
 
         Returns
         -------
@@ -298,8 +301,12 @@ class BigQueryClient(object):
             'query': query,
             'timeoutMs': timeout * 1000,
             'dryRun': dry_run,
-            'maxResults': max_results,
+            'maxResults': max_results
         }
+
+        if use_legacy_sql is not None:
+            query_data['useLegacySql'] = use_legacy_sql
+
         return self._submit_query_job(query_data)
 
     def get_query_schema(self, job_id):
@@ -1027,6 +1034,7 @@ class BigQueryClient(object):
             priority=None,
             create_disposition=None,
             write_disposition=None,
+            use_legacy_sql=None
     ):
         """
         Write query result to table. If dataset or table is not provided,
@@ -1055,6 +1063,9 @@ class BigQueryClient(object):
             One of the JOB_CREATE_* constants
         write_disposition : str, optional
             One of the JOB_WRITE_* constants
+        use_legacy_sql:
+            If False, the query will use BigQuery's standard SQL (https://cloud.google.com/bigquery/sql-reference/)
+
 
         Returns
         -------
@@ -1083,6 +1094,9 @@ class BigQueryClient(object):
 
         if use_query_cache is not None:
             configuration['useQueryCache'] = use_query_cache
+
+        if use_legacy_sql is not None:
+            configuration['useLegacySql'] = use_legacy_sql
 
         if priority:
             configuration['priority'] = priority
