@@ -214,6 +214,35 @@ class TestGetClient(unittest.TestCase):
         self.assertEquals(json_key['project_id'], bq_client.project_id)
 
 
+class TestGetProjectIds(unittest.TestCase):
+
+    def test_get_project_ids(self):
+        mock_bq_service = mock.Mock()
+        mock_bq_service.projects().list().execute.return_value = {
+            'kind': 'bigquery#projectList',
+            'projects': [
+                {
+                    'friendlyName': 'Big Query Test',
+                    'id': 'big-query-test',
+                    'kind': 'bigquery#project',
+                    'numericId': '1435372465',
+                    'projectReference': {'projectId': 'big-query-test'}
+                },
+                {
+                    'friendlyName': 'Company',
+                    'id': 'company',
+                    'kind': 'bigquery#project',
+                    'numericId': '4263574685796',
+                    'projectReference': {'projectId': 'company'}
+                }
+            ],
+            'totalItems': 2
+        }
+
+        project_ids = client.get_project_ids(mock_bq_service)
+        self.assertEqual(project_ids, ['big-query-test', 'company'])
+
+
 class TestQuery(unittest.TestCase):
 
     def setUp(self):
