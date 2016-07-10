@@ -148,6 +148,20 @@ def get_client(project_id=None, credentials=None,
     return BigQueryClient(bq_service, project_id, swallow_results)
 
 
+def get_projects(bq_service):
+    """Given the BigQuery service, return data about all projects."""
+    projects_request = bq_service.projects().list().execute()
+
+    projects = []
+    for project in projects_request.get('projects', []):
+        project_data = {
+            'id': project['id'],
+            'name': project['friendlyName']
+        }
+        projects.append(project_data)
+    return projects
+
+
 def _get_bq_service(credentials=None, service_url=None):
     """Construct an authorized BigQuery service object."""
 
