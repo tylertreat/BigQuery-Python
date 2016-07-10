@@ -229,18 +229,22 @@ class TestGetProjectIds(unittest.TestCase):
                     'projectReference': {'projectId': 'big-query-test'}
                 },
                 {
-                    'friendlyName': 'Company',
-                    'id': 'company',
+                    'friendlyName': 'BQ Company project',
+                    'id': 'bq-project',
                     'kind': 'bigquery#project',
                     'numericId': '4263574685796',
-                    'projectReference': {'projectId': 'company'}
+                    'projectReference': {'projectId': 'bq-project'}
                 }
             ],
             'totalItems': 2
         }
 
-        project_ids = client.get_project_ids(mock_bq_service)
-        self.assertEqual(project_ids, ['big-query-test', 'company'])
+        projects = client.get_projects(mock_bq_service)
+        expected_projects_data = [
+            {'id': 'big-query-test', 'name': 'Big Query Test'},
+            {'id': 'bq-project', 'name': 'BQ Company project'}
+        ]
+        self.assertEqual(projects, expected_projects_data)
 
 
 class TestQuery(unittest.TestCase):
