@@ -421,8 +421,7 @@ class TestRenderQuery(unittest.TestCase):
                           " WHERE (start_time <= INTEGER('1371566954')) AND "
                           "(start_time >= INTEGER('1371556954')) GROUP BY "
                           "timestamp, status HAVING (status == INTEGER('1')) "
-                          "ORDER BY timestamp desc "
-                          "LIMIT 10")
+                          "ORDER BY timestamp desc LIMIT 10")
         expected_select = (expected_query[len('SELECT '):]
                            .split('FROM')[0].strip().split(', '))
         expected_from = expected_query[len('SELECT '):].split('FROM')[1]
@@ -755,7 +754,7 @@ class TestRenderQuery(unittest.TestCase):
         expected_query = ("SELECT status , start_time , resource  FROM "
                           "[dataset.2013_06_appspot_1] WHERE (start_time "
                           "<= INTEGER('1371566954')) AND (start_time >= "
-                          "INTEGER('1371556954'))   ORDER BY start_time desc")
+                          "INTEGER('1371556954'))   ORDER BY start_time desc ")
         expected_select = (field.strip() for field in
                            expected_query[len('SELECT '):]
                            .split('FROM')[0].strip().split(', '))
@@ -931,7 +930,8 @@ class TestRenderQuery(unittest.TestCase):
                                                          'negate': False}],
                  'type': 'INTEGER'},
             ],
-            order_by={'fields': ['timestamp'], 'direction': 'desc'})
+            order_by={'fields': ['timestamp'], 'direction': 'desc'},
+            limit=10)
 
         self.assertIsNone(result)
 
