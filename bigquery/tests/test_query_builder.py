@@ -340,6 +340,27 @@ class TestRenderHaving(unittest.TestCase):
         self.assertEqual(result, "")
 
 
+class TestLimit(unittest.TestCase):
+
+    def test_with_limit(self):
+        """Ensure that render limit works."""
+        from bigquery.query_builder \
+            import _render_limit
+
+        result = _render_limit(8)
+
+        self.assertEqual(result, "LIMIT 8")
+
+    def test_no_fields(self):
+        """Ensure that render limit can work without any arguments."""
+        from bigquery.query_builder \
+            import _render_limit
+
+        result = _render_limit(None)
+
+        self.assertEqual(result, "")
+
+
 class TestRenderQuery(unittest.TestCase):
 
     def test_full_query(self):
@@ -392,14 +413,16 @@ class TestRenderQuery(unittest.TestCase):
                     'type': 'INTEGER'
                 }
             ],
-            order_by={'fields': ['timestamp'], 'direction': 'desc'})
+            order_by={'fields': ['timestamp'], 'direction': 'desc'},
+            limit=10)
 
         expected_query = ("SELECT status as status, start_time as timestamp, "
                           "resource as url FROM [dataset.2013_06_appspot_1]"
                           " WHERE (start_time <= INTEGER('1371566954')) AND "
                           "(start_time >= INTEGER('1371556954')) GROUP BY "
                           "timestamp, status HAVING (status == INTEGER('1')) "
-                          "ORDER BY timestamp desc ")
+                          "ORDER BY timestamp desc "
+                          "LIMIT 10")
         expected_select = (expected_query[len('SELECT '):]
                            .split('FROM')[0].strip().split(', '))
         expected_from = expected_query[len('SELECT '):].split('FROM')[1]
