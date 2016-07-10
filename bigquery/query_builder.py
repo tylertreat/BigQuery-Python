@@ -4,7 +4,7 @@ logger = getLogger(__name__)
 
 
 def render_query(dataset, tables, select=None, conditions=None,
-                 groupings=None, having=None, order_by=None):
+                 groupings=None, having=None, order_by=None, limit=None):
     """Render a query that will run over the given tables using the specified
     parameters.
 
@@ -33,6 +33,8 @@ def render_query(dataset, tables, select=None, conditions=None,
     order_by : dict, optional
         Keys = {'field', 'direction'}. `dict` should be formatted as
         {'field':'TimeStamp, 'direction':'desc'} or similar
+    limit : int, optional
+        Limit the amount of data needed to be returned.
 
     Returns
     -------
@@ -43,13 +45,14 @@ def render_query(dataset, tables, select=None, conditions=None,
     if None in (dataset, tables):
         return None
 
-    query = "%s %s %s %s %s %s" % (
+    query = "%s %s %s %s %s %s %s" % (
         _render_select(select),
         _render_sources(dataset, tables),
         _render_conditions(conditions),
         _render_groupings(groupings),
         _render_having(having),
-        _render_order(order_by)
+        _render_order(order_by),
+        _render_limit(limit)
     )
 
     return query
@@ -372,3 +375,22 @@ def _render_order(order):
         return ''
 
     return "ORDER BY %s %s" % (", ".join(order['fields']), order['direction'])
+
+
+def _render_limit(limit):
+    """Render the limit part of a query.
+
+    Parameters
+    ----------
+    limit : int, optional
+        Limit the amount of data needed to be returned.
+
+    Returns
+    -------
+    str
+        A string that represents the "limit" part of a query.
+    """
+    if not limit:
+        return ''
+
+    return "LIMIT %s" % limit
