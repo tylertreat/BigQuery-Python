@@ -1048,7 +1048,8 @@ class BigQueryClient(object):
             priority=None,
             create_disposition=None,
             write_disposition=None,
-            use_legacy_sql=None
+            use_legacy_sql=None,
+            maximum_billing_tier=None
     ):
         """
         Write query result to table. If dataset or table is not provided,
@@ -1077,9 +1078,10 @@ class BigQueryClient(object):
             One of the JOB_CREATE_* constants
         write_disposition : str, optional
             One of the JOB_WRITE_* constants
-        use_legacy_sql:
+        use_legacy_sql: bool, optional
             If False, the query will use BigQuery's standard SQL (https://cloud.google.com/bigquery/sql-reference/)
-
+        maximum_billing_tier : integer, optional
+            Limits the billing tier for this job. Queries that have resource usage beyond this tier will fail (without incurring a charge). If unspecified, this will be set to your project default. For more information, see https://cloud.google.com/bigquery/pricing#high-compute
 
         Returns
         -------
@@ -1105,6 +1107,9 @@ class BigQueryClient(object):
 
         if allow_large_results is not None:
             configuration['allowLargeResults'] = allow_large_results
+
+        if maximum_billing_tier is not None:
+            configuration['maximumBillingTier'] = maximum_billing_tier
 
         if use_query_cache is not None:
             configuration['useQueryCache'] = use_query_cache
