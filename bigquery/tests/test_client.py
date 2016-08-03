@@ -1117,6 +1117,7 @@ class TestWriteToTable(unittest.TestCase):
         self.project_id = 'project'
         self.dataset_id = 'dataset'
         self.table_id = 'table'
+        self.maximum_billing_tier = 1000
         self.external_udf_uris = ['gs://bucket/external_udf.js']
         self.use_query_cache = False
         self.priority = "INTERACTIVE"
@@ -1154,6 +1155,44 @@ class TestWriteToTable(unittest.TestCase):
                                             external_udf_uris=self.external_udf_uris,
                                             use_query_cache=False,
                                             priority=self.priority)
+
+        self.mock_api.jobs().insert.assert_called_with(
+            projectId=self.project_id,
+            body=body
+        )
+
+        self.assertEqual(result, expected_result)
+
+    def test_write_maxbilltier(self):
+        """ Ensure that write is working when maximumBillingTier is set"""
+        expected_result = {
+            'status': {'state': u'RUNNING'},
+        }
+
+        body = {
+            "configuration": {
+                "query": {
+                    "destinationTable": {
+                        "projectId": self.project_id,
+                        "datasetId": self.dataset_id,
+                        "tableId": self.table_id
+                    },
+                    "query": self.query,
+                    "userDefinedFunctionResources": [{
+                        "resourceUri": self.external_udf_uris[0]
+                    }],
+                    "useQueryCache": self.use_query_cache,
+                    "priority": self.priority,
+                    "maximumBillingTier": self.maximum_billing_tier
+                }
+            }
+        }
+
+        self.mock_api.jobs().insert().execute.return_value = expected_result
+        result = self.client.write_to_table(
+            self.query, self.dataset_id, self.table_id, priority=self.priority,
+            external_udf_uris=self.external_udf_uris, use_query_cache=False,
+            maximum_billing_tier=self.maximum_billing_tier)
 
         self.mock_api.jobs().insert.assert_called_with(
             projectId=self.project_id,
