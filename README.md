@@ -294,11 +294,6 @@ from bigquery import schema_from_record
 schema_from_record({"id":123, "posts": [{"id":123, "text": "tihs is a post"}], "username": "bob"})
 ```
 
-# Caveats
-
-BigQuery [flattens](https://developers.google.com/bigquery/docs/data?hl=ja#flatten) results with repeated records, so a result might actually map to multiple rows. This means that the row count may be larger than the actual number of results because BigQuery reports the number of unrolled rows but the returned results are rolled back up.
-
-
 # Contributing
 
 Requirements to commit here:

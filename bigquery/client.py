@@ -1044,6 +1044,7 @@ class BigQueryClient(object):
             table=None,
             external_udf_uris=[],
             allow_large_results=None,
+            flatten=None,
             use_query_cache=None,
             priority=None,
             create_disposition=None,
@@ -1070,6 +1071,9 @@ class BigQueryClient(object):
             Storage and have .js extensions.
         allow_large_results : bool, optional
             Whether or not to allow large results
+        flatten : bool, optional
+            Whether or not to flatten nested and repeated fields
+            in query results
         use_query_cache : bool, optional
             Whether or not to use query cache
         priority : str, optional
@@ -1112,6 +1116,9 @@ class BigQueryClient(object):
 
         if allow_large_results is not None:
             configuration['allowLargeResults'] = allow_large_results
+
+        if flatten is not None:
+            configuration['flattenResults'] = flatten
 
         if maximum_billing_tier is not None:
             configuration['maximumBillingTier'] = maximum_billing_tier
