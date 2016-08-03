@@ -1044,13 +1044,13 @@ class BigQueryClient(object):
             table=None,
             external_udf_uris=[],
             allow_large_results=None,
-            flatten=None,
             use_query_cache=None,
             priority=None,
             create_disposition=None,
             write_disposition=None,
             use_legacy_sql=None,
-            maximum_billing_tier=None
+            maximum_billing_tier=None,
+            flatten=None
     ):
         """
         Write query result to table. If dataset or table is not provided,
