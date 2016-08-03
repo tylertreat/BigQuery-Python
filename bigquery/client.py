@@ -1071,9 +1071,6 @@ class BigQueryClient(object):
             Storage and have .js extensions.
         allow_large_results : bool, optional
             Whether or not to allow large results
-        flatten : bool, optional
-            Whether or not to flatten nested and repeated fields
-            in query results
         use_query_cache : bool, optional
             Whether or not to use query cache
         priority : str, optional
@@ -1091,6 +1088,9 @@ class BigQueryClient(object):
             unspecified, this will be set to your project default. For more
             information,
             see https://cloud.google.com/bigquery/pricing#high-compute
+        flatten : bool, optional
+            Whether or not to flatten nested and repeated fields
+            in query results
 
         Returns
         -------
