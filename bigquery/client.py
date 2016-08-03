@@ -1079,9 +1079,14 @@ class BigQueryClient(object):
         write_disposition : str, optional
             One of the JOB_WRITE_* constants
         use_legacy_sql: bool, optional
-            If False, the query will use BigQuery's standard SQL (https://cloud.google.com/bigquery/sql-reference/)
+            If False, the query will use BigQuery's standard SQL
+            (https://cloud.google.com/bigquery/sql-reference/)
         maximum_billing_tier : integer, optional
-            Limits the billing tier for this job. Queries that have resource usage beyond this tier will fail (without incurring a charge). If unspecified, this will be set to your project default. For more information, see https://cloud.google.com/bigquery/pricing#high-compute
+            Limits the billing tier for this job. Queries that have resource
+            usage beyond this tier will fail (without incurring a charge). If
+            unspecified, this will be set to your project default. For more
+            information,
+            see https://cloud.google.com/bigquery/pricing#high-compute
 
         Returns
         -------
