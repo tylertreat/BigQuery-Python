@@ -1121,6 +1121,7 @@ class TestWriteToTable(unittest.TestCase):
         self.external_udf_uris = ['gs://bucket/external_udf.js']
         self.use_query_cache = False
         self.priority = "INTERACTIVE"
+        self.flatten_results = False
         self.client = client.BigQueryClient(self.mock_api,
                                             self.project_id)
 
@@ -1144,6 +1145,7 @@ class TestWriteToTable(unittest.TestCase):
                     }],
                     "useQueryCache": self.use_query_cache,
                     "priority": self.priority,
+                    "flattenResults": self.flatten_results,
                 }
             }
         }
@@ -1154,6 +1156,7 @@ class TestWriteToTable(unittest.TestCase):
                                             self.table_id,
                                             external_udf_uris=self.external_udf_uris,
                                             use_query_cache=False,
+                                            flatten=False,
                                             priority=self.priority)
 
         self.mock_api.jobs().insert.assert_called_with(
