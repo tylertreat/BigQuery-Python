@@ -1049,7 +1049,8 @@ class BigQueryClient(object):
             create_disposition=None,
             write_disposition=None,
             use_legacy_sql=None,
-            maximum_billing_tier=None
+            maximum_billing_tier=None,
+            flatten=None
     ):
         """
         Write query result to table. If dataset or table is not provided,
@@ -1087,6 +1088,9 @@ class BigQueryClient(object):
             unspecified, this will be set to your project default. For more
             information,
             see https://cloud.google.com/bigquery/pricing#high-compute
+        flatten : bool, optional
+            Whether or not to flatten nested and repeated fields
+            in query results
 
         Returns
         -------
@@ -1112,6 +1116,9 @@ class BigQueryClient(object):
 
         if allow_large_results is not None:
             configuration['allowLargeResults'] = allow_large_results
+
+        if flatten is not None:
+            configuration['flattenResults'] = flatten
 
         if maximum_billing_tier is not None:
             configuration['maximumBillingTier'] = maximum_billing_tier
