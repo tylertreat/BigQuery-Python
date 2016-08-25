@@ -161,7 +161,7 @@ def _render_sources(dataset, tables):
         if tables.get('date_range', False):
             try:
                 table_list = tables['table']
-                if isinstance(table_list, basestring):
+                if isinstance(table_list, str):
                     table_list = [table_list]
 
                 from_list = []
