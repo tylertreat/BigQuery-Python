@@ -144,14 +144,12 @@ def _render_sources(dataset, tables):
             dict:
                 tables = {
                     'date_range': True,
-                    'include_intraday': True/False,
                     'table': 'ga_sessions_',
+                    # OR
+                    # 'table': ['ga_sessions_', 'ga_sessions_intraday_'],
                     'from_date': '2016-08-01',
                     'to_date': '2016-08-24'
                 }
-
-            Note! that when setting include_intraday to True, it is probable
-            that incomplete data is returned.
 
     Returns
     -------
