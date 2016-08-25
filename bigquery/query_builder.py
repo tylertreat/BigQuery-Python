@@ -138,7 +138,20 @@ def _render_sources(dataset, tables):
     dataset : str
         The data set to fetch log data from.
     tables : Union[dict, list]
-        The tables to fetch log data from
+        The tables to fetch log data from; detailed formats are described below:
+            list:
+                tables = [table1, table2, table3]
+            dict:
+                tables = {
+                    'date_range': True,
+                    'include_intraday': True/False,
+                    'table': 'ga_sessions_',
+                    'from_date': '2016-08-01',
+                    'to_date': '2016-08-24'
+                }
+
+            Note! that when setting include_intraday to True, it is probable
+            that incomplete data is returned.
 
     Returns
     -------
@@ -149,11 +162,20 @@ def _render_sources(dataset, tables):
     if isinstance(tables, dict):
         if tables.get('date_range', False):
             try:
-                dataset_table = '.'.join([dataset, tables['table']])
-                return "FROM (TABLE_DATE_RANGE([{}], TIMESTAMP('{}'),"\
-                    " TIMESTAMP('{}'))) ".format(dataset_table,
-                                                 tables['from_date'],
-                                                 tables['to_date'])
+                table_list = tables['table']
+                if isinstance(table_list, basestring):
+                    table_list = [table_list]
+
+                from_list = []
+                for single_table in table_list:
+                    from_string = _render_single_source(
+                        dataset, single_table,
+                        tables['from_date'], tables['to_date'])
+                    from_list.append(from_string)
+                from_strings = ', '.join(from_list)
+
+                return "FROM {}".format(from_strings)
+
             except KeyError as exp:
                 logger.warn(
                     'Missing parameter %s in selecting sources' % (exp))
@@ -161,6 +183,16 @@ def _render_sources(dataset, tables):
     else:
         return "FROM " + ", ".join(
             ["[%s.%s]" % (dataset, table) for table in tables])
+
+
+def _render_single_source(dataset, table, from_date, to_date):
+    dataset_table = '.'.join([dataset, table])
+    from_string = (
+        "(TABLE_DATE_RANGE([{}], "
+        "TIMESTAMP('{}'), TIMESTAMP('{}'))) ".format(
+            dataset_table, from_date, to_date)
+    )
+    return from_string
 
 
 def _render_conditions(conditions):
