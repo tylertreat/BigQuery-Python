@@ -1675,6 +1675,7 @@ class TestCreateTable(unittest.TestCase):
                 'datasetId': self.dataset}
         }
         self.expiration_time = 1437513693000
+        self.time_partitioning = True
 
     def test_table_create_failed(self):
         """Ensure that if creating the table fails, False is returned,
@@ -1741,6 +1742,27 @@ class TestCreateTable(unittest.TestCase):
         body = self.body.copy()
         body.update({
             'expirationTime': self.expiration_time
+        })
+
+        self.mock_tables.insert.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=body)
+
+        self.mock_tables.insert.return_value.execute.assert_called_with()
+
+    def test_table_create_body_with_time_partitioning(self):
+        """Ensure that if time_partitioning has specified,
+        it passed to the body."""
+
+        self.mock_tables.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        self.client.create_table(self.dataset, self.table,
+                                 self.schema,
+                                 time_partitioning=self.time_partitioning)
+
+        body = self.body.copy()
+        body.update({
+            'timePartitioning': "DAY"
         })
 
         self.mock_tables.insert.assert_called_with(
