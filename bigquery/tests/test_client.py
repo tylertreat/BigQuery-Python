@@ -1762,7 +1762,7 @@ class TestCreateTable(unittest.TestCase):
 
         body = self.body.copy()
         body.update({
-            'timePartitioning': "DAY"
+            'timePartitioning': {'type': 'DAY'}
         })
 
         self.mock_tables.insert.assert_called_with(
