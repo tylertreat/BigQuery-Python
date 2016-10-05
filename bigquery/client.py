@@ -557,7 +557,7 @@ class BigQueryClient(object):
             body['expirationTime'] = expiration_time
 
         if time_partitioning:
-            body['timePartitioning'] = "DAY"
+            body['timePartitioning'] = {'type': 'DAY'}
 
         try:
             table = self.bigquery.tables().insert(
