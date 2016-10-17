@@ -1655,7 +1655,7 @@ class BigQueryClient(object):
     # DataSet manipulation methods
     #
     def create_dataset(self, dataset_id, friendly_name=None, description=None,
-                       access=None):
+                       access=None, location=None):
         """Create a new BigQuery dataset.
 
         Parameters
@@ -1670,6 +1670,9 @@ class BigQueryClient(object):
         access : list, optional
             Indicating access permissions (see
             https://developers.google.com/bigquery/docs/reference/v2/datasets#resource)
+        location : str, optional
+            Indicating where dataset should be stored: EU or US (see
+            https://developers.google.com/bigquery/docs/reference/v2/datasets#resource)
 
         Returns
         -------
@@ -1682,7 +1685,8 @@ class BigQueryClient(object):
             dataset_data = self.dataset_resource(dataset_id,
                                                  friendly_name=friendly_name,
                                                  description=description,
-                                                 access=access)
+                                                 access=access,
+                                                 location=location)
 
             response = datasets.insert(projectId=self.project_id,
                                        body=dataset_data).execute()
@@ -1843,7 +1847,7 @@ class BigQueryClient(object):
                 return {}
 
     def dataset_resource(self, ref_id, friendly_name=None, description=None,
-                         access=None):
+                         access=None, location=None):
         """See
         https://developers.google.com/bigquery/docs/reference/v2/datasets#resource
 
@@ -1857,6 +1861,8 @@ class BigQueryClient(object):
             An optional description for the dataset
         access : list, optional
             Indicating access permissions
+        location: str, optional, 'EU' or 'US'
+            An optional geographical location for the dataset(EU or US)
 
         Returns
         -------
@@ -1875,6 +1881,8 @@ class BigQueryClient(object):
             data["description"] = description
         if access:
             data["access"] = access
+        if location:
+            data["location"] = location
 
         return data
 
