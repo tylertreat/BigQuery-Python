@@ -259,6 +259,7 @@ class TestQuery(unittest.TestCase):
 
         self.query = 'foo'
         self.project_id = 'project'
+        self.external_udf_uris = ['gs://bucket/external_udf.js']
         self.client = client.BigQueryClient(self.mock_bq_service,
                                             self.project_id)
 
@@ -276,12 +277,17 @@ class TestQuery(unittest.TestCase):
 
         self.mock_job_collection.query.return_value = mock_query_job
 
-        job_id, results = self.client.query(self.query)
+        job_id, results = self.client.query(self.query, external_udf_uris=self.external_udf_uris)
 
         self.mock_job_collection.query.assert_called_once_with(
             projectId=self.project_id,
-            body={'query': self.query, 'timeoutMs': 0, 'dryRun': False,
-                  'maxResults': None}
+            body={
+                'query': self.query,
+                'userDefinedFunctionResources': [ {'resourceUri': u} for u in self.external_udf_uris ],
+                'timeoutMs': 0,
+                'dryRun': False,
+                'maxResults': None
+            }
         )
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
