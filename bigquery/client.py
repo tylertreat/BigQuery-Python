@@ -276,7 +276,7 @@ class BigQueryClient(object):
             body=body_object
         ).execute()
 
-    def query(self, query, max_results=None, timeout=0, dry_run=False, use_legacy_sql=None):
+    def query(self, query, max_results=None, timeout=0, dry_run=False, use_legacy_sql=None, external_udf_uris=None):
         """Submit a query to BigQuery.
 
         Parameters
@@ -294,6 +294,9 @@ class BigQueryClient(object):
             message it would if it wasn't a dry run.
         use_legacy_sql : bool, optional. Default True.
             If False, the query will use BigQuery's standard SQL (https://cloud.google.com/bigquery/sql-reference/)
+        external_udf_uris : list, optional
+            Contains external UDF URIs. If given, URIs must be Google Cloud
+            Storage and have .js extensions.
 
 
         Returns
@@ -320,6 +323,10 @@ class BigQueryClient(object):
 
         if use_legacy_sql is not None:
             query_data['useLegacySql'] = use_legacy_sql
+
+        if external_udf_uris:
+            query_data['userDefinedFunctionResources'] = \
+                [ {'resourceUri': u} for u in external_udf_uris ]
 
         return self._submit_query_job(query_data)
 
@@ -1048,7 +1055,7 @@ class BigQueryClient(object):
             query,
             dataset=None,
             table=None,
-            external_udf_uris=[],
+            external_udf_uris=None,
             allow_large_results=None,
             use_query_cache=None,
             priority=None,
@@ -1073,7 +1080,7 @@ class BigQueryClient(object):
         table : str, optional
             String id of the table
         external_udf_uris : list, optional
-            Contains extternal UDF URIs. If given, URIs must be Google Cloud
+            Contains external UDF URIs. If given, URIs must be Google Cloud
             Storage and have .js extensions.
         allow_large_results : bool, optional
             Whether or not to allow large results
@@ -1144,13 +1151,9 @@ class BigQueryClient(object):
         if write_disposition:
             configuration['writeDisposition'] = write_disposition
 
-        configuration['userDefinedFunctionResources'] = []
-        for external_udf_uri in external_udf_uris:
-            configuration['userDefinedFunctionResources'].append(
-                {
-                    "resourceUri": external_udf_uri
-                }
-            )
+        if external_udf_uris:
+            configuration['userDefinedFunctionResources'] = \
+                [ {'resourceUri': u} for u in external_udf_uris ]
 
         body = {
             "configuration": {
