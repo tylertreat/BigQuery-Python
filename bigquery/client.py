@@ -1,16 +1,16 @@
 import calendar
 import json
-from logging import getLogger
 from collections import defaultdict
 from datetime import datetime, timedelta
 from hashlib import sha256
 from io import StringIO
+from logging import getLogger
 from time import sleep, time
 
 import six
 from bigquery.errors import (BigQueryTimeoutException, JobExecutingException,
                              JobInsertException, UnfinishedQueryException)
-from googleapiclient.discovery import build, DISCOVERY_URI
+from googleapiclient.discovery import DISCOVERY_URI, build
 from googleapiclient.errors import HttpError
 from httplib2 import Http
 
@@ -617,6 +617,7 @@ class BigQueryClient(object):
             result = self.bigquery.tables().update(
                 projectId=self.project_id,
                 datasetId=dataset,
+                tableId=table,
                 body=body
             ).execute()
             if self.swallow_results:
