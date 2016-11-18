@@ -1,6 +1,6 @@
 import calendar
 import json
-from logging import getLogger
+from logging import getLogger, NullHandler
 from collections import defaultdict
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -47,6 +47,7 @@ JOB_DESTINATION_FORMAT_NEWLINE_DELIMITED_JSON = \
 JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 logger = getLogger(__name__)
+logger.addHandler(NullHandler())
 
 
 def get_client(project_id=None, credentials=None,
