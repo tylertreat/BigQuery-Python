@@ -47,7 +47,7 @@ JOB_DESTINATION_FORMAT_NEWLINE_DELIMITED_JSON = \
 JOB_DESTINATION_FORMAT_CSV = JOB_FORMAT_CSV
 
 logger = getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+logger.addHandler(NullHandler())
 
 
 def get_client(project_id=None, credentials=None,

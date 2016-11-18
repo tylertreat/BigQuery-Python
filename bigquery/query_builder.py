@@ -1,6 +1,7 @@
-from logging import getLogger
+from logging import getLogger, NullHandler
 
 logger = getLogger(__name__)
+logger.addHandler(NullHandler())
 
 
 def render_query(dataset, tables, select=None, conditions=None,
