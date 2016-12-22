@@ -691,6 +691,9 @@ class BigQueryClient(object):
             The name of the view to create
         query : dict
             A query that BigQuery executes when the view is referenced.
+        use_legacy_sql : bool, optional
+            If False, the query will use BigQuery's standard SQL
+            (https://cloud.google.com/bigquery/sql-reference/)
 
         Returns
         -------
