@@ -680,7 +680,7 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def create_view(self, dataset, view, query):
+    def create_view(self, dataset, view, query, use_legacy_sql=None):
         """Create a new view in the dataset.
 
         Parameters
@@ -691,6 +691,9 @@ class BigQueryClient(object):
             The name of the view to create
         query : dict
             A query that BigQuery executes when the view is referenced.
+        use_legacy_sql : bool, optional
+            If False, the query will use BigQuery's standard SQL
+            (https://cloud.google.com/bigquery/sql-reference/)
 
         Returns
         -------
@@ -709,6 +712,9 @@ class BigQueryClient(object):
                 'query': query
             }
         }
+
+        if use_legacy_sql is not None:
+            body['view']['useLegacySql'] = use_legacy_sql
 
         try:
             view = self.bigquery.tables().insert(
