@@ -680,7 +680,7 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def create_view(self, dataset, view, query):
+    def create_view(self, dataset, view, query, use_legacy_sql=None):
         """Create a new view in the dataset.
 
         Parameters
@@ -709,6 +709,9 @@ class BigQueryClient(object):
                 'query': query
             }
         }
+
+        if use_legacy_sql is not None:
+            body['view']['useLegacySql'] = use_legacy_sql
 
         try:
             view = self.bigquery.tables().insert(
