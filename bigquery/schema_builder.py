@@ -126,7 +126,7 @@ def bigquery_type(o, timestamp_parser=default_timestamp_parser):
     """
 
     t = type(o)
-    if t == int:
+    if t == int or t == long:
         return "integer"
     elif (t == six.binary_type and six.PY2) or t == six.text_type:
         if timestamp_parser and timestamp_parser(o):
