@@ -17,7 +17,7 @@ setup_args = dict(
     include_package_data=True,
     install_requires=[
         'google-api-python-client',
-        'httplib2',
+        'httplib2==1.5.2',
         'python-dateutil'
     ],
     author='Tyler Treat',
