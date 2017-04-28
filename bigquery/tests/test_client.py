@@ -2325,6 +2325,52 @@ class TestPushRows(unittest.TestCase):
             tableId=self.table,
             body=expected_body)
 
+    def test_insert_id_key_with_nested_column(self):
+        """Ensure that dot separated insert_id_key properly extracted with nested column value."""
+        rows = [
+            {'nested': {'col': 'nested_col1'}, 'val': 1},
+            {'nested': {'col': 'nested_col2'}, 'val': 2},
+        ]
+        expected_body = self.data.copy()
+        expected_body['rows'] = [
+            {'insertId': 'nested_col1', 'json': {'nested': {'col': 'nested_col1'}, 'val': 1}},
+            {'insertId': 'nested_col2', 'json': {'nested': {'col': 'nested_col2'}, 'val': 2}},
+        ]
+
+        self.client.push_rows(self.dataset, self.table, rows,
+                              insert_id_key='nested.col')
+        self.mock_table_data.insertAll.assert_called_with(
+            projectId=self.project,
+            datasetId=self.dataset,
+            tableId=self.table,
+            body=expected_body)
+
+        expected_body = self.data.copy()
+        expected_body['rows'] = [
+            {'insertId': 1, 'json': {'nested': {'col': 'nested_col1'}, 'val': 1}},
+            {'insertId': 2, 'json': {'nested': {'col': 'nested_col2'}, 'val': 2}},
+        ]
+        self.client.push_rows(self.dataset, self.table, rows,
+                              insert_id_key='val')
+        self.mock_table_data.insertAll.assert_called_with(
+            projectId=self.project,
+            datasetId=self.dataset,
+            tableId=self.table,
+            body=expected_body)
+
+        expected_body = self.data.copy()
+        expected_body['rows'] = [
+            {'json': {'nested': {'col': 'nested_col1'}, 'val': 1}},
+            {'json': {'nested': {'col': 'nested_col2'}, 'val': 2}},
+        ]
+        self.client.push_rows(self.dataset, self.table, rows,
+                              insert_id_key='no_such.column')
+        self.mock_table_data.insertAll.assert_called_with(
+            projectId=self.project,
+            datasetId=self.dataset,
+            tableId=self.table,
+            body=expected_body)
+
 
 class TestGetAllTables(unittest.TestCase):
 
