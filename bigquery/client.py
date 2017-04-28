@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from hashlib import sha256
 from io import StringIO
 from time import sleep, time
+from functools import reduce
 
 import six
 from bigquery.errors import (BigQueryTimeoutException, JobExecutingException,
@@ -1236,7 +1237,8 @@ class BigQueryClient(object):
         rows : list
             A ``list`` of rows (``dict`` objects) to add to the table
         insert_id_key : str, optional
-            Key for insertId in row
+            Key for insertId in row.
+            You can use dot separated key for nested column.
         skip_invalid_rows : bool, optional
             Insert all valid rows of a request, even if invalid rows exist.
         ignore_unknown_values : bool, optional
@@ -1258,8 +1260,11 @@ class BigQueryClient(object):
         for row in rows:
             each_row = {}
             each_row["json"] = row
-            if insert_id_key in row:
-                each_row["insertId"] = row[insert_id_key]
+            if insert_id_key is not None:
+                keys = insert_id_key.split('.')
+                val = reduce(lambda d, key: d.get(key) if d else None, keys, row)
+                if val is not None:
+                    each_row["insertId"] = val
             rows_data.append(each_row)
 
         data = {
