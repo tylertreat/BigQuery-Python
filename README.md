@@ -5,6 +5,8 @@ Simple Python client for interacting with Google BigQuery.
 
 This client provides an API for retrieving and inserting BigQuery data by wrapping Google's low-level API client library. It also provides facilities that make it convenient to access data that is tied to an App Engine appspot, such as request logs.
 
+[Documentation](http://tylertreat.github.io/BigQuery-Python/)
+
 # Installation
 
 `pip install bigquery-python`
@@ -29,7 +31,7 @@ client = get_client(project_id, service_account=service_account,
 # JSON key provided by Google
 json_key = 'key.json'
  
-client = get_client(project_id, json_key_file=json_key, readonly=True)
+client = get_client(json_key_file=json_key, readonly=True)
 
 # Submit an async query.
 job_id, _results = client.query('SELECT * FROM dataset.my_table LIMIT 1000')
@@ -124,7 +126,8 @@ query = render_query(
     conditions=conditions,
     groupings=grouping,
     having=having,
-    order_by=order_by
+    order_by=order_by,
+    limit=47
 )
 
 job_id, _ = client.query(query)
@@ -290,11 +293,6 @@ from bigquery import schema_from_record
 
 schema_from_record({"id":123, "posts": [{"id":123, "text": "tihs is a post"}], "username": "bob"})
 ```
-
-# Caveats
-
-BigQuery [flattens](https://developers.google.com/bigquery/docs/data?hl=ja#flatten) results with repeated records, so a result might actually map to multiple rows. This means that the row count may be larger than the actual number of results because BigQuery reports the number of unrolled rows but the returned results are rolled back up.
-
 
 # Contributing
 

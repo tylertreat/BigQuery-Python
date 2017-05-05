@@ -1,8 +1,11 @@
-import logging
+from logging import getLogger, NullHandler
+
+logger = getLogger(__name__)
+logger.addHandler(NullHandler())
 
 
 def render_query(dataset, tables, select=None, conditions=None,
-                 groupings=None, having=None, order_by=None):
+                 groupings=None, having=None, order_by=None, limit=None):
     """Render a query that will run over the given tables using the specified
     parameters.
 
@@ -13,21 +16,26 @@ def render_query(dataset, tables, select=None, conditions=None,
     tables : Union[dict, list]
         The table in `dataset` to query.
     select : dict, optional
-        The keys function as column names and the values function as options to apply to
-        the select field such as alias and format.  For example, select['start_time'] might
-        have the form {'alias': 'StartTime', 'format': 'INTEGER-FORMAT_UTC_USEC'}, which would
-        be represented as 'SEC_TO_TIMESTAMP(INTEGER(start_time)) as StartTime' in a query. Pass
-        `None` to seoect all.
+        The keys function as column names and the values function as options to
+        apply to the select field such as alias and format.  For example,
+        select['start_time'] might have the form
+        {'alias': 'StartTime', 'format': 'INTEGER-FORMAT_UTC_USEC'}, which
+        would be represented as 'SEC_TO_TIMESTAMP(INTEGER(start_time)) as
+        StartTime' in a query. Pass `None` to select all.
     conditions : list, optional
-        a ``list`` of ``dict`` objects to filter results by.  Each dict should have the keys 'field',
-        'type', and 'comparators'. The first two map to strings representing the field (e.g. 'foo')
-        and type (e.g. 'FLOAT'). 'comparators' maps to another ``dict`` containing the keys 'condition',
-        'negate', and 'value'.  If 'comparators' = {'condition': '>=', 'negate': False, 'value': 1}, this
-        example will be rdnered as 'foo >= FLOAT('1')' in the query.
+        a ``list`` of ``dict`` objects to filter results by.  Each dict should
+        have the keys 'field', 'type', and 'comparators'. The first two map to
+        strings representing the field (e.g. 'foo') and type (e.g. 'FLOAT').
+        'comparators' maps to another ``dict`` containing the keys 'condition',
+        'negate', and 'value'.
+        If 'comparators' = {'condition': '>=', 'negate': False, 'value': 1},
+        this example will be rdnered as 'foo >= FLOAT('1')' in the query.
         ``list`` of field names to group by
     order_by : dict, optional
-        Keys = {'field', 'direction'}. `dict` should be formatted as {'field':'TimeStamp, 'direction':'desc'}
-        or similar
+        Keys = {'field', 'direction'}. `dict` should be formatted as
+        {'field':'TimeStamp, 'direction':'desc'} or similar
+    limit : int, optional
+        Limit the amount of data needed to be returned.
 
     Returns
     -------
@@ -38,13 +46,14 @@ def render_query(dataset, tables, select=None, conditions=None,
     if None in (dataset, tables):
         return None
 
-    query = "%s %s %s %s %s %s" % (
+    query = "%s %s %s %s %s %s %s" % (
         _render_select(select),
         _render_sources(dataset, tables),
         _render_conditions(conditions),
         _render_groupings(groupings),
         _render_having(having),
-        _render_order(order_by)
+        _render_order(order_by),
+        _render_limit(limit)
     )
 
     return query
@@ -147,8 +156,8 @@ def _render_sources(dataset, tables):
                                                  tables['from_date'],
                                                  tables['to_date'])
             except KeyError as exp:
-                logging.warn('Missing parameter %s in selecting sources' %
-                             (exp))
+                logger.warn(
+                    'Missing parameter %s in selecting sources' % (exp))
 
     else:
         return "FROM " + ", ".join(
@@ -184,7 +193,7 @@ def _render_conditions(conditions):
         comparators = condition.get('comparators')
 
         if None in (field, field_type, comparators) or not comparators:
-            logging.warn('Invalid condition passed in: %s' % condition)
+            logger.warn('Invalid condition passed in: %s' % condition)
             continue
 
         rendered_conditions.append(
@@ -239,7 +248,7 @@ def _render_condition(field, field_type, comparators):
                             for v in value])
                 )
             elif isinstance(value, (tuple, list, set)) and len(value) != 2:
-                logging.warn('Invalid condition passed in: %s' % condition)
+                logger.warn('Invalid condition passed in: %s' % condition)
 
         else:
             value = _render_condition_value(value, field_type)
@@ -335,7 +344,7 @@ def _render_having(having_conditions):
         comparators = condition.get('comparators')
 
         if None in (field, field_type, comparators) or not comparators:
-            logging.warn('Invalid condition passed in: %s' % condition)
+            logger.warn('Invalid condition passed in: %s' % condition)
             continue
 
         rendered_conditions.append(
@@ -367,3 +376,22 @@ def _render_order(order):
         return ''
 
     return "ORDER BY %s %s" % (", ".join(order['fields']), order['direction'])
+
+
+def _render_limit(limit):
+    """Render the limit part of a query.
+
+    Parameters
+    ----------
+    limit : int, optional
+        Limit the amount of data needed to be returned.
+
+    Returns
+    -------
+    str
+        A string that represents the "limit" part of a query.
+    """
+    if not limit:
+        return ''
+
+    return "LIMIT %s" % limit
