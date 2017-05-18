@@ -15,6 +15,9 @@ from googleapiclient.discovery import build, DISCOVERY_URI
 from googleapiclient.errors import HttpError
 from httplib2 import Http
 
+if sys.version_info >= (3, 0):
+    basestring = str
+
 BIGQUERY_SCOPE = [
     'https://www.googleapis.com/auth/bigquery'
 ]
@@ -124,7 +127,7 @@ def get_client(project_id=None, credentials=None,
 
     if private_key:
         try:
-            if isinstance(private_key, str):
+            if isinstance(private_key, basestring):
                 private_key = private_key.decode('utf-8')
         except NameError:
             # python3 -- private_key is already unicode
