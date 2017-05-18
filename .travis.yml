@@ -7,11 +7,5 @@ python:
 
 install:
   - python setup.py develop
-  - pip install tox
-script: tox -e $TOXENV
 notifications:
   email: false
-env:
-  - TOXENV=py27
-  - TOXENV=nightly
-  - TOXENV=pypy
