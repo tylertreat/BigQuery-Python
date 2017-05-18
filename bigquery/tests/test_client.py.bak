@@ -655,9 +655,9 @@ class TestWaitForJob(unittest.TestCase):
     def test_completed_jobs(self):
         """Ensure we can detect completed jobs"""
 
-        return_values = [{'status': {'state': 'RUNNING'},
+        return_values = [{'status': {'state': u'RUNNING'},
                           'jobReference': {'jobId': "testJob"}},
-                         {'status': {'state': 'DONE'},
+                         {'status': {'state': u'DONE'},
                           'jobReference': {'jobId': "testJob"}}]
 
         def side_effect(*args, **kwargs):
@@ -667,7 +667,7 @@ class TestWaitForJob(unittest.TestCase):
 
         job_resource = self.client.wait_for_job(
             {'jobReference': {'jobId': "testJob"},
-             'status': {'state': 'RUNNING'}},
+             'status': {'state': u'RUNNING'}},
             interval=.01,
             timeout=.05)
 
@@ -676,7 +676,7 @@ class TestWaitForJob(unittest.TestCase):
 
     def test_timeout_error(self):
         """Ensure that timeout raise exceptions"""
-        incomplete_job = {'status': {'state': 'RUNNING'},
+        incomplete_job = {'status': {'state': u'RUNNING'},
                           'jobReference': {'jobId': "testJob"}}
 
         self.api_mock.jobs().get().execute.return_value = incomplete_job
@@ -685,7 +685,7 @@ class TestWaitForJob(unittest.TestCase):
 
     def test_wait_job_http_error(self):
         """ Test wait job with http error"""
-        job = {'status': {'state': 'RUNNING'},
+        job = {'status': {'state': u'RUNNING'},
                'jobReference': {'jobId': "testJob"}}
 
         expected_result = {
@@ -709,7 +709,7 @@ class TestWaitForJob(unittest.TestCase):
 
     def test_wait_job_error_result(self):
         """ Test wait job with error result"""
-        job = {'status': {'state': 'RUNNING'},
+        job = {'status': {'state': u'RUNNING'},
                'jobReference': {'jobId': "testJob"}}
 
         expected_result = {
@@ -733,9 +733,9 @@ class TestWaitForJob(unittest.TestCase):
     def test_accepts_job_id(self):
         """Ensure it accepts a job Id rather than a full job resource"""
 
-        return_values = [{'status': {'state': 'RUNNING'},
+        return_values = [{'status': {'state': u'RUNNING'},
                           'jobReference': {'jobId': "testJob"}},
-                         {'status': {'state': 'DONE'},
+                         {'status': {'state': u'DONE'},
                           'jobReference': {'jobId': "testJob"}}]
 
         def side_effect(*args, **kwargs):
@@ -751,9 +751,9 @@ class TestWaitForJob(unittest.TestCase):
         self.assertIsInstance(job_resource, dict)
 
     def test_accepts_integer_job_id(self):
-        return_values = [{'status': {'state': 'RUNNING'},
+        return_values = [{'status': {'state': u'RUNNING'},
                           'jobReference': {'jobId': "testJob"}},
-                         {'status': {'state': 'DONE'},
+                         {'status': {'state': u'DONE'},
                           'jobReference': {'jobId': "testJob"}}]
 
         def side_effect(*args, **kwargs):
@@ -784,7 +784,7 @@ class TestImportDataFromURIs(unittest.TestCase):
 
     def test_csv_job_body_constructed_correctly(self):
         expected_result = {
-            'status': {'state': 'RUNNING'},
+            'status': {'state': u'RUNNING'},
         }
 
         body = {
@@ -843,7 +843,7 @@ class TestImportDataFromURIs(unittest.TestCase):
 
     def test_json_job_body_constructed_correctly(self):
         expected_result = {
-            'status': {'state': 'RUNNING'},
+            'status': {'state': u'RUNNING'},
         }
 
         body = {
@@ -938,7 +938,7 @@ class TestImportDataFromURIs(unittest.TestCase):
     def test_accepts_single_source_uri(self):
         """Ensure that a source_uri accepts a non-list"""
         expected_result = {
-            'status': {'state': 'RUNNING'},
+            'status': {'state': u'RUNNING'},
         }
 
         body = {
@@ -1033,7 +1033,7 @@ class TestExportDataToURIs(unittest.TestCase):
     def test_export(self, mock_generate_hex):
         """ Ensure that export is working in normal circumstances """
         expected_result = {
-            'status': {'state': 'RUNNING'},
+            'status': {'state': u'RUNNING'},
         }
 
         body = {
@@ -1134,7 +1134,7 @@ class TestWriteToTable(unittest.TestCase):
     def test_write(self):
         """ Ensure that write is working in normal circumstances."""
         expected_result = {
-            'status': {'state': 'RUNNING'},
+            'status': {'state': u'RUNNING'},
         }
 
         body = {
@@ -1175,7 +1175,7 @@ class TestWriteToTable(unittest.TestCase):
     def test_write_maxbilltier(self):
         """ Ensure that write is working when maximumBillingTier is set"""
         expected_result = {
-            'status': {'state': 'RUNNING'},
+            'status': {'state': u'RUNNING'},
         }
 
         body = {

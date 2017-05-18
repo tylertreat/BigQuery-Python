@@ -15,7 +15,7 @@ class TestBigQueryTypes(unittest.TestCase):
         six.assertCountEqual(self, bigquery_type("Bob"), 'string')
 
     def test_unicode_is_string(self):
-        six.assertCountEqual(self, bigquery_type("Here is a happy face \u263A"),
+        six.assertCountEqual(self, bigquery_type(u"Here is a happy face \u263A"),
                              'string')
 
     def test_int_is_integer(self):
