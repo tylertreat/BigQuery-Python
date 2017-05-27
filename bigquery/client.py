@@ -1436,6 +1436,8 @@ class BigQueryClient(object):
         """Parse a table name in the form of appid_YYYY_MM or
         YYYY_MM_appid and return a tuple consisting of YYYY-MM and the app id.
 
+        Returns (None, None) in the event of a name like <desc>_YYYYMMDD_<int>
+
         Parameters
         ----------
         table_id : str
@@ -1463,9 +1465,10 @@ class BigQueryClient(object):
         year_month = "-".join(attributes[-2:])
         app_id = "-".join(attributes[:-2])
 
+
         # Check if date parsed correctly
         if year_month.count("-") == 1 and all(
-                [num.isdigit() for num in year_month.split('-')]):
+                [num.isdigit() for num in year_month.split('-')]) and len(year_month) == 7:
             return year_month, app_id
 
         return None, None
