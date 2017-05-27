@@ -1335,6 +1335,15 @@ FULL_TABLE_LIST_RESPONSE = {
     "tables": [
         {
             "kind": "bigquery#table",
+            "id": "project:dataset.notanappspottable_20130515_0261",
+            "tableReference": {
+                "projectId": "project",
+                "datasetId": "dataset",
+                "tableId": "notanappspottable_20130515_0261"
+            }
+        },
+        {
+            "kind": "bigquery#table",
             "id": "project:dataset.2013_05_appspot_1",
             "tableReference": {
                 "projectId": "project",
@@ -2389,7 +2398,7 @@ class TestGetAllTables(unittest.TestCase):
         bq = client.BigQueryClient(mock_bq_service, 'project')
 
         expected_result = [
-            '2013_05_appspot', '2013_06_appspot_1', '2013_06_appspot_2',
+            'notanappspottable_20130515_0261', '2013_05_appspot', '2013_06_appspot_1', '2013_06_appspot_2',
             '2013_06_appspot_3', '2013_06_appspot_4', '2013_06_appspot_5',
             'appspot_6_2013_06', 'table_not_matching_naming'
         ]
