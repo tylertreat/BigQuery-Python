@@ -135,7 +135,7 @@ job_id, _ = client.query(query)
 
 # Managing Tables
 
-The BigQuery client provides facilities to manage dataset tables, including creating, deleting, and checking the existence of tables.
+The BigQuery client provides facilities to manage dataset tables, including creating, deleting, checking the existence, and getting the metadata of tables.
 
 ```python
 # Create a new table.
@@ -150,6 +150,10 @@ deleted = client.delete_table('dataset', 'my_table')
 
 # Check if a table exists.
 exists = client.check_table('dataset', 'my_table')
+
+# Get a table's full metadata. Includes numRows, numBytes, etc. 
+# See: https://cloud.google.com/bigquery/docs/reference/rest/v2/tables
+metadata = client.get_table('dataset', 'my_table')
 ```
 
 There is also functionality for retrieving tables that are associated with a Google App Engine appspot, assuming table names are in the form of appid_YYYY_MM or YYYY_MM_appid. This allows tables between a date range to be selected and queried on.
