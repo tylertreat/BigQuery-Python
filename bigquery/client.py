@@ -618,6 +618,7 @@ class BigQueryClient(object):
         try:
             result = self.bigquery.tables().update(
                 projectId=self.project_id,
+                tableId= table,
                 datasetId=dataset,
                 body=body
             ).execute()

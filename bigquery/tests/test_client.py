@@ -1830,7 +1830,7 @@ class TestUpdateTable(unittest.TestCase):
         self.client.swallow_results = True
 
         self.mock_tables.update.assert_called_with(
-            projectId=self.project, datasetId=self.dataset, body=self.body)
+            projectId=self.project, tableId=self.table, datasetId=self.dataset, body=self.body)
 
         self.mock_tables.update.return_value.execute.assert_called_with()
 
@@ -1856,7 +1856,7 @@ class TestUpdateTable(unittest.TestCase):
         self.client.swallow_results = True
 
         self.mock_tables.update.assert_called_with(
-            projectId=self.project, datasetId=self.dataset, body=self.body)
+            projectId=self.project, tableId=self.table, datasetId=self.dataset, body=self.body)
 
         self.mock_tables.update.return_value.execute.assert_called_with()
 
