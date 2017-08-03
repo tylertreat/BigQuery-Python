@@ -295,7 +295,7 @@ exists = client.check_dataset('mydataset')
 ```python
 from bigquery import schema_from_record
 
-schema_from_record({"id":123, "posts": [{"id":123, "text": "tihs is a post"}], "username": "bob"})
+schema_from_record({"id":123, "posts": [{"id":123, "text": "this is a post"}], "username": "bob"})
 ```
 
 # Contributing
