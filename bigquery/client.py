@@ -541,7 +541,7 @@ class BigQueryClient(object):
             The name of the table to create
         schema : dict
             The table schema
-        expiration_time : float, optional
+        expiration_time : int or double, optional
             The expiry time in milliseconds since the epoch.
         time_partitioning : bool, optional
             Create a time partitioning.
