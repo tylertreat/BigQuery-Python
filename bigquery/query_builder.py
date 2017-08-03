@@ -29,7 +29,7 @@ def render_query(dataset, tables, select=None, conditions=None,
         'comparators' maps to another ``dict`` containing the keys 'condition',
         'negate', and 'value'.
         If 'comparators' = {'condition': '>=', 'negate': False, 'value': 1},
-        this example will be rdnered as 'foo >= FLOAT('1')' in the query.
+        this example will be rendered as 'foo >= FLOAT('1')' in the query.
         ``list`` of field names to group by
     order_by : dict, optional
         Keys = {'field', 'direction'}. `dict` should be formatted as
@@ -170,7 +170,7 @@ def _render_conditions(conditions):
     Parameters
     ----------
     conditions : list
-        A list of dictionay items to filter a table.
+        A list of dictionary items to filter a table.
 
     Returns
     -------

@@ -983,7 +983,7 @@ class BigQueryClient(object):
 
         Parameters
         ----------
-        destination_urls : Union[str, list]
+        destination_uris : Union[str, list]
             ``str`` or ``list`` of ``str`` objects representing the URIs on
             cloud storage of the form: gs://bucket/filename
         dataset : str
