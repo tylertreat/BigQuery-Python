@@ -81,7 +81,7 @@ def _render_select(selections):
         return 'SELECT *'
 
     rendered_selections = []
-    for name, options in selections.items():
+    for name, options in list(selections.items()):
         if not isinstance(options, list):
             options = [options]
 

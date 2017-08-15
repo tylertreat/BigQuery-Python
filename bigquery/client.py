@@ -15,6 +15,9 @@ from googleapiclient.discovery import build, DISCOVERY_URI
 from googleapiclient.errors import HttpError
 from httplib2 import Http
 
+if sys.version_info >= (3, 0):
+    basestring = str
+
 BIGQUERY_SCOPE = [
     'https://www.googleapis.com/auth/bigquery'
 ]
@@ -1214,7 +1217,7 @@ class BigQueryClient(object):
                                                jobId=job_id)
             job_resource = request.execute()
             self._raise_executing_exception_if_error(job_resource)
-            complete = job_resource.get('status').get('state') == u'DONE'
+            complete = job_resource.get('status').get('state') == 'DONE'
             elapsed_time = time() - start_time
 
         # raise exceptions if timeout
@@ -1493,7 +1496,7 @@ class BigQueryClient(object):
             Table names that are inside the time range
         """
 
-        return [table_name for (table_name, unix_seconds) in tables.items()
+        return [table_name for (table_name, unix_seconds) in list(tables.items())
                 if self._in_range(start_time, end_time, unix_seconds)]
 
     def _in_range(self, start_time, end_time, time):
