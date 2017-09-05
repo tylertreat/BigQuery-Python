@@ -55,7 +55,8 @@ def get_client(project_id=None, credentials=None,
                service_url=None, service_account=None,
                private_key=None, private_key_file=None,
                json_key=None, json_key_file=None,
-               readonly=True, swallow_results=True):
+               readonly=True, swallow_results=True,
+               num_retries=0):
     """Return a singleton instance of BigQueryClient. Either
     AssertionCredentials or a service account and private key combination need
     to be provided in order to authenticate requests to BigQuery.
@@ -94,6 +95,9 @@ def get_client(project_id=None, credentials=None,
     swallow_results : bool
         If set to False, then return the actual response value instead of
         converting to boolean. Default True.
+    num_retries : int, optional
+        The number of times to retry the request. Default 0 (no retry).
+
 
     Returns
     -------
@@ -147,7 +151,7 @@ def get_client(project_id=None, credentials=None,
     bq_service = _get_bq_service(credentials=credentials,
                                  service_url=service_url)
 
-    return BigQueryClient(bq_service, project_id, swallow_results)
+    return BigQueryClient(bq_service, project_id, swallow_results, num_retries)
 
 
 def get_projects(bq_service):
@@ -185,10 +189,11 @@ def _credentials():
 
 class BigQueryClient(object):
 
-    def __init__(self, bq_service, project_id, swallow_results=True):
+    def __init__(self, bq_service, project_id, swallow_results=True, num_retries=0):
         self.bigquery = bq_service
         self.project_id = project_id
         self.swallow_results = swallow_results
+        self.num_retries = num_retries
         self.cache = {}
 
     def _submit_query_job(self, query_data):
@@ -226,7 +231,7 @@ class BigQueryClient(object):
 
         try:
             query_reply = job_collection.query(
-                projectId=self.project_id, body=query_data).execute()
+                projectId=self.project_id, body=query_data).execute(num_retries=self.num_retries)
         except HttpError as e:
             if query_data.get("dryRun", False):
                 return None, json.loads(e.content.decode('utf8'))
@@ -276,7 +281,7 @@ class BigQueryClient(object):
         return job_collection.insert(
             projectId=self.project_id,
             body=body_object
-        ).execute()
+        ).execute(num_retries=self.num_retries)
 
     def query(self, query, max_results=None, timeout=0, dry_run=False, use_legacy_sql=None, external_udf_uris=None):
         """Submit a query to BigQuery.
@@ -375,7 +380,7 @@ class BigQueryClient(object):
             result = self.bigquery.tables().get(
                 projectId=self.project_id,
                 tableId=table,
-                datasetId=dataset).execute()
+                datasetId=dataset).execute(num_retries=self.num_retries)
         except HttpError as e:
             if int(e.resp['status']) == 404:
                 logger.warn('Table %s.%s does not exist', dataset, table)
@@ -481,7 +486,7 @@ class BigQueryClient(object):
         """
         try:
             dataset = self.bigquery.datasets().get(
-                projectId=self.project_id, datasetId=dataset_id).execute()
+                projectId=self.project_id, datasetId=dataset_id).execute(num_retries=self.num_retries)
         except HttpError:
             dataset = {}
 
@@ -523,7 +528,7 @@ class BigQueryClient(object):
         try:
             table = self.bigquery.tables().get(
                 projectId=self.project_id, datasetId=dataset,
-                tableId=table).execute()
+                tableId=table).execute(num_retries=self.num_retries)
         except HttpError:
             table = {}
 
@@ -539,7 +544,7 @@ class BigQueryClient(object):
             The dataset to create the table in
         table : str
             The name of the table to create
-        schema : dict
+        schema : list[dict]
             The table schema
         expiration_time : int or double, optional
             The expiry time in milliseconds since the epoch.
@@ -573,7 +578,7 @@ class BigQueryClient(object):
                 projectId=self.project_id,
                 datasetId=dataset,
                 body=body
-            ).execute()
+            ).execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -596,7 +601,7 @@ class BigQueryClient(object):
             The dataset to update the table in
         table : str
             The name of the table to update
-        schema : dict
+        schema : list[dict]
             Table schema
 
         Returns
@@ -621,7 +626,7 @@ class BigQueryClient(object):
                 tableId= table,
                 datasetId=dataset,
                 body=body
-            ).execute()
+            ).execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -644,7 +649,7 @@ class BigQueryClient(object):
             The dataset to patch the table in
         table : str
             The name of the table to patch
-        schema : dict
+        schema : list[dict]
             The table schema
 
         Returns
@@ -668,7 +673,7 @@ class BigQueryClient(object):
                 projectId=self.project_id,
                 datasetId=dataset,
                 body=body
-            ).execute()
+            ).execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -691,7 +696,7 @@ class BigQueryClient(object):
             The dataset to create the view in
         view : str
             The name of the view to create
-        query : dict
+        query : str
             A query that BigQuery executes when the view is referenced.
         use_legacy_sql : bool, optional
             If False, the query will use BigQuery's standard SQL
@@ -723,7 +728,7 @@ class BigQueryClient(object):
                 projectId=self.project_id,
                 datasetId=dataset,
                 body=body
-            ).execute()
+            ).execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -759,7 +764,7 @@ class BigQueryClient(object):
                 projectId=self.project_id,
                 datasetId=dataset,
                 tableId=table
-            ).execute()
+            ).execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -1212,7 +1217,7 @@ class BigQueryClient(object):
             sleep(interval)
             request = self.bigquery.jobs().get(projectId=self.project_id,
                                                jobId=job_id)
-            job_resource = request.execute()
+            job_resource = request.execute(num_retries=self.num_retries)
             self._raise_executing_exception_if_error(job_resource)
             complete = job_resource.get('status').get('state') == u'DONE'
             elapsed_time = time() - start_time
@@ -1288,7 +1293,7 @@ class BigQueryClient(object):
                 datasetId=dataset,
                 tableId=table,
                 body=data
-            ).execute()
+            ).execute(num_retries=self.num_retries)
 
             if response.get('insertErrors'):
                 logger.error('BigQuery insert errors: %s' % response)
@@ -1382,7 +1387,7 @@ class BigQueryClient(object):
         """
         result = self.bigquery.tables().list(
             projectId=self.project_id,
-            datasetId=dataset_id).execute()
+            datasetId=dataset_id).execute(num_retries=self.num_retries)
 
         page_token = result.get('nextPageToken')
         while page_token:
@@ -1390,7 +1395,7 @@ class BigQueryClient(object):
                 projectId=self.project_id,
                 datasetId=dataset_id,
                 pageToken=page_token
-            ).execute()
+            ).execute(num_retries=self.num_retries)
             page_token = res.get('nextPageToken')
             result['tables'] += res.get('tables', [])
         return result
@@ -1553,7 +1558,7 @@ class BigQueryClient(object):
             startIndex=offset,
             maxResults=limit,
             pageToken=page_token,
-            timeoutMs=timeout * 1000).execute()
+            timeoutMs=timeout * 1000).execute(num_retries=self.num_retries)
 
     def _transform_row(self, row, schema):
         """Apply the given schema to the given BigQuery data row.
@@ -1708,7 +1713,7 @@ class BigQueryClient(object):
                                                  location=location)
 
             response = datasets.insert(projectId=self.project_id,
-                                       body=dataset_data).execute()
+                                       body=dataset_data).execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -1732,7 +1737,7 @@ class BigQueryClient(object):
         try:
             datasets = self.bigquery.datasets()
             request = datasets.list(projectId=self.project_id)
-            result = request.execute()
+            result = request.execute(num_retries=self.num_retries)
             return result.get('datasets', [])
         except HttpError as e:
             logger.error("Cannot list datasets: {0}".format(e))
@@ -1766,7 +1771,7 @@ class BigQueryClient(object):
             request = datasets.delete(projectId=self.project_id,
                                       datasetId=dataset_id,
                                       deleteContents=delete_contents)
-            response = request.execute()
+            response = request.execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -1810,7 +1815,7 @@ class BigQueryClient(object):
             request = datasets.update(projectId=self.project_id,
                                       datasetId=dataset_id,
                                       body=body)
-            response = request.execute()
+            response = request.execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
@@ -1853,7 +1858,7 @@ class BigQueryClient(object):
                                          description, access)
             request = datasets.patch(projectId=self.project_id,
                                      datasetId=dataset_id, body=body)
-            response = request.execute()
+            response = request.execute(num_retries=self.num_retries)
             if self.swallow_results:
                 return True
             else:
