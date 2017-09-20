@@ -1,4 +1,7 @@
 language: python
+before_install:
+  - sudo apt-get update -q
+  - sudo apt-get install pypy -y
 install:
   - python setup.py develop
   - pip install tox
@@ -7,7 +10,6 @@ notifications:
   email: false
 env:
   - TOXENV=py27
-  - TOXENV=py33
   - TOXENV=py34
   - TOXENV=nightly
   - TOXENV=pypy
