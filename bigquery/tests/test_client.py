@@ -292,7 +292,6 @@ class TestQuery(unittest.TestCase):
         self.assertEquals(job_id, 'spiderman')
         self.assertEquals(results, [])
 
-
     def test_query_max_results_set(self):
         """Ensure that we retrieve the job id from the query and the maxResults
         parameter is set.
@@ -520,7 +519,7 @@ class TestGetQueryResults(unittest.TestCase):
             projectId=self.project_id, jobId=job_id, startIndex=offset,
             maxResults=limit, pageToken=page_token, timeoutMs=1000)
 
-        mock_query_job.execute.assert_called_once_with()
+        mock_query_job.execute.assert_called_once_with(num_retries=0)
         self.assertEquals(actual, mock_query_reply)
 
 
@@ -1485,7 +1484,8 @@ class TestGetTableSchema(unittest.TestCase):
             expected, self.client.get_table_schema(self.dataset, self.table))
         self.mock_tables.get.assert_called_once_with(
             projectId=self.project, tableId=self.table, datasetId=self.dataset)
-        self.mock_tables.get.return_value.execute.assert_called_once_with()
+        self.mock_tables.get.return_value.execute. \
+            assert_called_once_with(num_retries=0)
 
     def test_table_does_not_exist(self):
         """Ensure that None is returned if the table doesn't exist."""
@@ -1496,7 +1496,8 @@ class TestGetTableSchema(unittest.TestCase):
             self.client.get_table_schema(self.dataset, self.table))
         self.mock_tables.get.assert_called_once_with(
             projectId=self.project, tableId=self.table, datasetId=self.dataset)
-        self.mock_tables.get.return_value.execute.assert_called_once_with()
+        self.mock_tables.get.return_value.execute. \
+            assert_called_once_with(num_retries=0)
 
 
 @mock.patch('bigquery.client.BigQueryClient.get_query_results')
@@ -1651,7 +1652,8 @@ class TestCheckTable(unittest.TestCase):
         self.mock_tables.get.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table)
 
-        self.mock_tables.get.return_value.execute.assert_called_once_with()
+        self.mock_tables.get.return_value.execute. \
+            assert_called_once_with(num_retries=0)
 
     def test_table_does_exist(self):
         """Ensure that if the table does exist, True is returned."""
@@ -1666,7 +1668,8 @@ class TestCheckTable(unittest.TestCase):
         self.mock_tables.get.assert_called_once_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table)
 
-        self.mock_tables.get.return_value.execute.assert_called_once_with()
+        self.mock_tables.get.return_value.execute. \
+            assert_called_once_with(num_retries=0)
 
 
 class TestCreateTable(unittest.TestCase):
@@ -1716,7 +1719,8 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_with()
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=0)
 
     def test_table_create_success(self):
         """Ensure that if creating the table succeeds, True is returned,
@@ -1742,7 +1746,8 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_with()
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=0)
 
     def test_table_create_body_with_expiration_time(self):
         """Ensure that if expiration_time has specified,
@@ -1762,7 +1767,8 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_with()
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=0)
 
     def test_table_create_body_with_time_partitioning(self):
         """Ensure that if time_partitioning has specified,
@@ -1783,7 +1789,8 @@ class TestCreateTable(unittest.TestCase):
         self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_with()
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=0)
 
 
 class TestUpdateTable(unittest.TestCase):
@@ -1830,9 +1837,11 @@ class TestUpdateTable(unittest.TestCase):
         self.client.swallow_results = True
 
         self.mock_tables.update.assert_called_with(
-            projectId=self.project, tableId=self.table, datasetId=self.dataset, body=self.body)
+            projectId=self.project, tableId=self.table, datasetId=self.dataset,
+            body=self.body)
 
-        self.mock_tables.update.return_value.execute.assert_called_with()
+        self.mock_tables.update.return_value.execute. \
+            assert_called_with(num_retries=0)
 
     def test_table_update_success(self):
         """Ensure that if updating the table succeeds, True is returned,
@@ -1856,9 +1865,11 @@ class TestUpdateTable(unittest.TestCase):
         self.client.swallow_results = True
 
         self.mock_tables.update.assert_called_with(
-            projectId=self.project, tableId=self.table, datasetId=self.dataset, body=self.body)
+            projectId=self.project, tableId=self.table, datasetId=self.dataset,
+            body=self.body)
 
-        self.mock_tables.update.return_value.execute.assert_called_with()
+        self.mock_tables.update.return_value.execute. \
+            assert_called_with(num_retries=0)
 
 
 class TestPatchTable(unittest.TestCase):
@@ -1907,7 +1918,8 @@ class TestPatchTable(unittest.TestCase):
         self.mock_tables.patch.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.patch.return_value.execute.assert_called_with()
+        self.mock_tables.patch.return_value.execute. \
+            assert_called_with(num_retries=0)
 
     def test_table_patch_success(self):
         """Ensure that if patching the table succeeds, True is returned,
@@ -1933,7 +1945,8 @@ class TestPatchTable(unittest.TestCase):
         self.mock_tables.patch.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.patch.return_value.execute.assert_called_with()
+        self.mock_tables.patch.return_value.execute. \
+            assert_called_with(num_retries=0)
 
 
 class TestCreateView(unittest.TestCase):
@@ -1978,7 +1991,8 @@ class TestCreateView(unittest.TestCase):
         self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_with()
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=0)
 
     def test_view_create_success(self):
         """Ensure that if creating the table succeeds, True is returned,
@@ -2004,7 +2018,8 @@ class TestCreateView(unittest.TestCase):
         self.mock_tables.insert.assert_called_with(
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
-        self.mock_tables.insert.return_value.execute.assert_called_with()
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=0)
 
 
 class TestDeleteTable(unittest.TestCase):
@@ -2040,7 +2055,8 @@ class TestDeleteTable(unittest.TestCase):
         self.mock_tables.delete.assert_called_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table)
 
-        self.mock_tables.delete.return_value.execute.assert_called_with()
+        self.mock_tables.delete.return_value.execute. \
+            assert_called_with(num_retries=0)
 
     def test_delete_table_success(self):
         """Ensure that if deleting table succeeds, True is returned,
@@ -2064,7 +2080,8 @@ class TestDeleteTable(unittest.TestCase):
         self.mock_tables.delete.assert_called_with(
             projectId=self.project, datasetId=self.dataset, tableId=self.table)
 
-        self.mock_tables.delete.return_value.execute.assert_called_with()
+        self.mock_tables.delete.return_value.execute. \
+            assert_called_with(num_retries=0)
 
 
 class TestParseTableListReponse(unittest.TestCase):
@@ -2200,7 +2217,7 @@ class TestPushRows(unittest.TestCase):
             projectId=self.project, datasetId=self.dataset, tableId=self.table,
             body=self.data)
 
-        execute_calls = [mock.call()]
+        execute_calls = [mock.call(num_retries=0)]
         self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
             execute_calls)
 
@@ -2254,7 +2271,7 @@ class TestPushRows(unittest.TestCase):
             projectId=self.project, datasetId=self.dataset, tableId=self.table,
             body=self.data)
 
-        execute_calls = [mock.call()]
+        execute_calls = [mock.call(num_retries=0)]
         self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
             execute_calls)
 
@@ -2286,7 +2303,7 @@ class TestPushRows(unittest.TestCase):
             projectId=self.project, datasetId=self.dataset, tableId=self.table,
             body=self.data)
 
-        execute_calls = [mock.call()]
+        execute_calls = [mock.call(num_retries=0)]
         self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
             execute_calls)
 
@@ -2604,7 +2621,7 @@ class TestCreateDataset(unittest.TestCase):
             projectId=self.project, body=self.body)
 
         self.mock_datasets.insert.return_value.execute. \
-            assert_called_with()
+            assert_called_with(num_retries=0)
 
     def test_dataset_create_success(self):
         """Ensure that if creating the table fails, False is returned."""
@@ -2633,7 +2650,7 @@ class TestCreateDataset(unittest.TestCase):
             projectId=self.project, body=self.body)
 
         self.mock_datasets.insert.return_value.execute. \
-            assert_called_with()
+            assert_called_with(num_retries=0)
 
 
 class TestDeleteDataset(unittest.TestCase):
@@ -2669,7 +2686,7 @@ class TestDeleteDataset(unittest.TestCase):
         self.client.swallow_results = True
 
         self.mock_datasets.delete.return_value.execute. \
-            assert_called_with()
+            assert_called_with(num_retries=0)
 
     def test_delete_datasets_success(self):
         """Ensure that if deleting table succeeds, True is returned."""
@@ -2694,7 +2711,7 @@ class TestDeleteDataset(unittest.TestCase):
             deleteContents=False)
 
         self.mock_datasets.delete.return_value.execute. \
-            assert_called_with()
+            assert_called_with(num_retries=0)
 
     def test_delete_datasets_delete_contents_success(self):
         """Ensure that if deleting table succeeds, True is returned."""
@@ -2719,7 +2736,7 @@ class TestDeleteDataset(unittest.TestCase):
             deleteContents=True)
 
         self.mock_datasets.delete.return_value.execute. \
-            assert_called_with()
+            assert_called_with(num_retries=0)
 
 
 FULL_DATASET_LIST_RESPONSE = {
@@ -2879,7 +2896,7 @@ class TestUpdateDataset(unittest.TestCase):
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
         self.mock_datasets.update.return_value.execute. \
-            assert_called_with()
+            assert_called_with(num_retries=0)
 
     def test_dataset_update_success(self):
         """Ensure that if creating the table fails, False is returned."""
@@ -2908,4 +2925,219 @@ class TestUpdateDataset(unittest.TestCase):
             projectId=self.project, datasetId=self.dataset, body=self.body)
 
         self.mock_datasets.update.return_value.execute. \
-            assert_called_with()
+            assert_called_with(num_retries=0)
+
+
+class TestNumRetries(unittest.TestCase):
+
+    def setUp(self):
+        client._bq_client = None
+
+        self.mock_bq_service = mock.Mock()
+        self.mock_tables = mock.Mock()
+        self.mock_job_collection = mock.Mock()
+        self.mock_datasets = mock.Mock()
+        self.mock_table_data = mock.Mock()
+        self.mock_bq_service.tables.return_value = self.mock_tables
+        self.mock_bq_service.jobs.return_value = self.mock_job_collection
+        self.mock_bq_service.datasets.return_value = self.mock_datasets
+        self.mock_bq_service.tabledata.return_value = self.mock_table_data
+
+        self.project_id = 'project'
+        self.num_retries = 5
+        self.client = client.BigQueryClient(self.mock_bq_service,
+                                            self.project_id,
+                                            num_retries=self.num_retries)
+        self.dataset = 'dataset'
+        self.project = 'project'
+        self.table = 'table'
+        self.schema = [
+            {'name': 'foo', 'type': 'STRING', 'mode': 'nullable'},
+            {'name': 'bar', 'type': 'FLOAT', 'mode': 'nullable'}
+        ]
+        self.friendly_name = "friendly name"
+        self.description = "description"
+        self.access = [{'userByEmail': "bob@gmail.com"}]
+        self.query = 'SELECT "bar" foo, "foo" bar'
+        self.rows = [
+            {'one': 'uno', 'two': 'dos'}, {'one': 'ein', 'two': 'zwei'},
+            {'two': 'kiwi'}]
+        self.data = {
+            "kind": "bigquery#tableDataInsertAllRequest",
+            "rows": [{'insertId': "uno", 'json': {'one': 'uno', 'two': 'dos'}},
+                     {'insertId': "ein", 'json':
+                         {'one': 'ein', 'two': 'zwei'}},
+                     {'json': {'two': 'kiwi'}}]
+        }
+
+    def test_get_response(self):
+        job_id = 'bar'
+
+        mock_query_job = mock.Mock()
+        mock_query_reply = mock.Mock()
+        mock_query_job.execute.return_value = mock_query_reply
+        self.mock_job_collection.getQueryResults.return_value = mock_query_job
+
+        offset = 5
+        limit = 10
+        page_token = "token"
+        timeout = 1
+
+        self.client.get_query_results(job_id, offset, limit,
+                                      page_token, timeout)
+
+        mock_query_job.execute. \
+            assert_called_once_with(num_retries=self.num_retries)
+
+    def test_table_exists(self):
+        expected = [
+            {'type': 'FLOAT', 'name': 'foo', 'mode': 'NULLABLE'},
+            {'type': 'INTEGER', 'name': 'bar', 'mode': 'NULLABLE'},
+            {'type': 'INTEGER', 'name': 'baz', 'mode': 'NULLABLE'},
+        ]
+
+        self.mock_tables.get.return_value.execute.return_value = \
+            {'schema': {'fields': expected}}
+
+        self.client.get_table_schema(self.dataset, self.table)
+        self.mock_tables.get.return_value.execute. \
+            assert_called_once_with(num_retries=self.num_retries)
+
+    def test_table_create(self):
+        self.mock_tables.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        self.client.create_table(self.dataset, self.table,
+                                 self.schema)
+
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
+
+    def test_table_update(self):
+        self.mock_tables.update.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        self.client.update_table(self.dataset, self.table,
+                                 self.schema)
+
+        self.mock_tables.update.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
+
+    def test_table_patch(self):
+        self.mock_tables.patch.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        self.client.patch_table(self.dataset, self.table,
+                                self.schema)
+
+        self.mock_tables.patch.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
+
+    def test_view_create(self):
+        body = {
+            'view': {'query': self.query},
+            'tableReference': {
+                'tableId': self.table, 'projectId': self.project,
+                'datasetId': self.dataset
+            }
+        }
+
+        self.mock_tables.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        actual = self.client.create_view(self.dataset, self.table,
+                                         self.query)
+
+        self.assertTrue(actual)
+
+        self.mock_tables.insert.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, body=body)
+
+        self.mock_tables.insert.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
+
+    def test_delete_table(self):
+        self.mock_tables.delete.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        actual = self.client.delete_table(self.dataset, self.table)
+
+        self.assertTrue(actual)
+
+        self.mock_tables.delete.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, tableId=self.table)
+
+        self.mock_tables.delete.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
+
+    def test_push(self):
+        self.mock_table_data.insertAll.return_value.execute.return_value = {
+            'status': 'foo'}
+
+        actual = self.client.push_rows(self.dataset, self.table, self.rows,
+                                       'one')
+
+        self.assertTrue(actual)
+
+        self.mock_bq_service.tabledata.assert_called_with()
+
+        self.mock_table_data.insertAll.assert_called_with(
+            projectId=self.project, datasetId=self.dataset, tableId=self.table,
+            body=self.data)
+
+        execute_calls = [mock.call(num_retries=self.num_retries)]
+        self.mock_table_data.insertAll.return_value.execute.assert_has_calls(
+            execute_calls)
+
+    def test_dataset_create(self):
+        body = {
+            'datasetReference': {
+                'datasetId': self.dataset,
+                'projectId': self.project},
+            'friendlyName': self.friendly_name,
+            'description': self.description,
+            'access': self.access
+        }
+
+        self.mock_datasets.insert.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        actual = self.client.create_dataset(self.dataset,
+                                            self.friendly_name,
+                                            self.description,
+                                            self.access)
+        self.assertTrue(actual)
+
+        self.mock_datasets.insert.assert_called_with(
+            projectId=self.project, body=body)
+
+        self.mock_datasets.insert.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
+
+    def test_delete_datasets(self):
+        self.mock_datasets.delete.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        actual = self.client.delete_dataset(self.dataset)
+
+        self.assertTrue(actual)
+
+        self.mock_datasets.delete.assert_called_with(
+            projectId=self.project, datasetId=self.dataset,
+            deleteContents=False)
+
+        self.mock_datasets.delete.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
+
+    def test_dataset_update(self):
+        self.mock_datasets.update.return_value.execute.side_effect = [{
+            'status': 'foo'}, {'status': 'bar'}]
+
+        actual = self.client.update_dataset(self.dataset,
+                                            self.friendly_name,
+                                            self.description,
+                                            self.access)
+        self.assertTrue(actual)
+
+        self.mock_datasets.update.return_value.execute. \
+            assert_called_with(num_retries=self.num_retries)
