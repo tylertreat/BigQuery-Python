@@ -1,0 +1,1440 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>client &mdash; BigQuery-Python 1.11.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.11.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="BigQuery-Python 1.11.1 documentation" href="../index.html" />
+    <link rel="prev" title="Welcome to BigQuery-Python’s documentation!" href="../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="Welcome to BigQuery-Python’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.11.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">client</a><ul>
+<li><a class="reference internal" href="#bigqueryclient-class"><code class="docutils literal"><span class="pre">BigQueryClient</span></code> Class</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../index.html"
+                        title="previous chapter">Welcome to BigQuery-Python&#8217;s documentation!</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/pages/client.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="client">
+<span id="id1"></span><h1>client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-bigquery.client"></span><dl class="function">
+<dt id="bigquery.client.get_client">
+<code class="descclassname">bigquery.client.</code><code class="descname">get_client</code><span class="sig-paren">(</span><em>project_id=None</em>, <em>credentials=None</em>, <em>service_url=None</em>, <em>service_account=None</em>, <em>private_key=None</em>, <em>private_key_file=None</em>, <em>json_key=None</em>, <em>json_key_file=None</em>, <em>readonly=True</em>, <em>swallow_results=True</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.get_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a singleton instance of BigQueryClient. Either
+AssertionCredentials or a service account and private key combination need
+to be provided in order to authenticate requests to BigQuery.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>project_id</strong> : str, optional</p>
+<blockquote>
+<div><p>The BigQuery project id, required unless json_key or json_key_file is
+provided.</p>
+</div></blockquote>
+<p><strong>credentials</strong> : oauth2client.client.SignedJwtAssertionCredentials, optional</p>
+<blockquote>
+<div><p>AssertionCredentials instance to authenticate requests to BigQuery
+(optional, must provide <cite>service_account</cite> and (<cite>private_key</cite> or
+<cite>private_key_file</cite>) or (<cite>json_key</cite> or <cite>json_key_file</cite>) if not included</p>
+</div></blockquote>
+<p><strong>service_url</strong> : str, optional</p>
+<blockquote>
+<div><p>A URI string template pointing to the location of Google&#8217;s API
+discovery service. Requires two parameters {api} and {apiVersion} that
+when filled in produce an absolute URI to the discovery document for
+that service. If not set then the default googleapiclient discovery URI
+is used. See <cite>credentials</cite></p>
+</div></blockquote>
+<p><strong>service_account</strong> : str, optional</p>
+<blockquote>
+<div><p>The Google API service account name. See <cite>credentials</cite></p>
+</div></blockquote>
+<p><strong>private_key</strong> : str, optional</p>
+<blockquote>
+<div><p>The private key associated with the service account in PKCS12 or PEM
+format. See <cite>credentials</cite></p>
+</div></blockquote>
+<p><strong>private_key_file</strong> : str, optional</p>
+<blockquote>
+<div><p>The name of the file containing the private key associated with the
+service account in PKCS12 or PEM format. See <cite>credentials</cite></p>
+</div></blockquote>
+<p><strong>json_key</strong> : dict, optional</p>
+<blockquote>
+<div><p>The JSON key associated with the service account. See <cite>credentials</cite></p>
+</div></blockquote>
+<p><strong>json_key_file</strong> : str, optional</p>
+<blockquote>
+<div><p>The name of the JSON key file associated with the service account. See
+<cite>credentials</cite>.</p>
+</div></blockquote>
+<p><strong>readonly</strong> : bool</p>
+<blockquote>
+<div><p>Bool indicating if BigQuery access is read-only. Has no effect if
+credentials are provided. Default True.</p>
+</div></blockquote>
+<p><strong>swallow_results</strong> : bool</p>
+<blockquote>
+<div><p>If set to False, then return the actual response value instead of
+converting to boolean. Default True.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">BigQueryClient</p>
+<blockquote class="last">
+<div><p>An instance of the BigQuery client.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="bigquery.client.get_projects">
+<code class="descclassname">bigquery.client.</code><code class="descname">get_projects</code><span class="sig-paren">(</span><em>bq_service</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.get_projects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the BigQuery service, return data about all projects.</p>
+</dd></dl>
+
+<div class="section" id="bigqueryclient-class">
+<h2><code class="xref py py-mod docutils literal"><span class="pre">BigQueryClient</span></code> Class<a class="headerlink" href="#bigqueryclient-class" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bigquery.client.BigQueryClient">
+<em class="property">class </em><code class="descclassname">bigquery.client.</code><code class="descname">BigQueryClient</code><span class="sig-paren">(</span><em>bq_service</em>, <em>project_id</em>, <em>swallow_results=True</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient" title="Permalink to this definition">¶</a></dt>
+<dd><p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.check_dataset" title="bigquery.client.BigQueryClient.check_dataset"><code class="xref py py-obj docutils literal"><span class="pre">check_dataset</span></code></a>(dataset_id)</td>
+<td>Check to see if a dataset exists.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.check_job" title="bigquery.client.BigQueryClient.check_job"><code class="xref py py-obj docutils literal"><span class="pre">check_job</span></code></a>(job_id)</td>
+<td>Return the state and number of results of a query by job id.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.check_table" title="bigquery.client.BigQueryClient.check_table"><code class="xref py py-obj docutils literal"><span class="pre">check_table</span></code></a>(dataset,&nbsp;table)</td>
+<td>Check to see if a table exists.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.create_dataset" title="bigquery.client.BigQueryClient.create_dataset"><code class="xref py py-obj docutils literal"><span class="pre">create_dataset</span></code></a>(dataset_id[,&nbsp;friendly_name,&nbsp;...])</td>
+<td>Create a new BigQuery dataset.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.create_table" title="bigquery.client.BigQueryClient.create_table"><code class="xref py py-obj docutils literal"><span class="pre">create_table</span></code></a>(dataset,&nbsp;table,&nbsp;schema[,&nbsp;...])</td>
+<td>Create a new table in the dataset.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.create_view" title="bigquery.client.BigQueryClient.create_view"><code class="xref py py-obj docutils literal"><span class="pre">create_view</span></code></a>(dataset,&nbsp;view,&nbsp;query[,&nbsp;...])</td>
+<td>Create a new view in the dataset.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.dataset_resource" title="bigquery.client.BigQueryClient.dataset_resource"><code class="xref py py-obj docutils literal"><span class="pre">dataset_resource</span></code></a>(ref_id[,&nbsp;friendly_name,&nbsp;...])</td>
+<td>See</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.delete_dataset" title="bigquery.client.BigQueryClient.delete_dataset"><code class="xref py py-obj docutils literal"><span class="pre">delete_dataset</span></code></a>(dataset_id[,&nbsp;delete_contents])</td>
+<td>Delete a BigQuery dataset.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.delete_table" title="bigquery.client.BigQueryClient.delete_table"><code class="xref py py-obj docutils literal"><span class="pre">delete_table</span></code></a>(dataset,&nbsp;table)</td>
+<td>Delete a table from the dataset.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.export_data_to_uris" title="bigquery.client.BigQueryClient.export_data_to_uris"><code class="xref py py-obj docutils literal"><span class="pre">export_data_to_uris</span></code></a>(destination_uris,&nbsp;...[,&nbsp;...])</td>
+<td>Export data from a BigQuery table to cloud storage.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_all_tables" title="bigquery.client.BigQueryClient.get_all_tables"><code class="xref py py-obj docutils literal"><span class="pre">get_all_tables</span></code></a>(dataset_id)</td>
+<td>Retrieve a list of tables for the dataset.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_dataset" title="bigquery.client.BigQueryClient.get_dataset"><code class="xref py py-obj docutils literal"><span class="pre">get_dataset</span></code></a>(dataset_id)</td>
+<td>Retrieve a dataset if it exists, otherwise return an empty dict.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_datasets" title="bigquery.client.BigQueryClient.get_datasets"><code class="xref py py-obj docutils literal"><span class="pre">get_datasets</span></code></a>()</td>
+<td>List all datasets in the project.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_query_results" title="bigquery.client.BigQueryClient.get_query_results"><code class="xref py py-obj docutils literal"><span class="pre">get_query_results</span></code></a>(job_id[,&nbsp;offset,&nbsp;limit,&nbsp;...])</td>
+<td>Execute the query job indicated by the given job id.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_query_rows" title="bigquery.client.BigQueryClient.get_query_rows"><code class="xref py py-obj docutils literal"><span class="pre">get_query_rows</span></code></a>(job_id[,&nbsp;offset,&nbsp;limit,&nbsp;timeout])</td>
+<td>Retrieve a list of rows from a query table by job id.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_query_schema" title="bigquery.client.BigQueryClient.get_query_schema"><code class="xref py py-obj docutils literal"><span class="pre">get_query_schema</span></code></a>(job_id)</td>
+<td>Retrieve the schema of a query by job id.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_table" title="bigquery.client.BigQueryClient.get_table"><code class="xref py py-obj docutils literal"><span class="pre">get_table</span></code></a>(dataset,&nbsp;table)</td>
+<td>Retrieve a table if it exists, otherwise return an empty dict.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_table_schema" title="bigquery.client.BigQueryClient.get_table_schema"><code class="xref py py-obj docutils literal"><span class="pre">get_table_schema</span></code></a>(dataset,&nbsp;table)</td>
+<td>Return the table schema.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.get_tables" title="bigquery.client.BigQueryClient.get_tables"><code class="xref py py-obj docutils literal"><span class="pre">get_tables</span></code></a>(dataset_id,&nbsp;app_id,&nbsp;start_time,&nbsp;...)</td>
+<td>Retrieve a list of tables that are related to the given app id and are inside the range of start and end times.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.import_data_from_uris" title="bigquery.client.BigQueryClient.import_data_from_uris"><code class="xref py py-obj docutils literal"><span class="pre">import_data_from_uris</span></code></a>(source_uris,&nbsp;dataset,&nbsp;...)</td>
+<td>Imports data into a BigQuery table from cloud storage.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.patch_dataset" title="bigquery.client.BigQueryClient.patch_dataset"><code class="xref py py-obj docutils literal"><span class="pre">patch_dataset</span></code></a>(dataset_id[,&nbsp;friendly_name,&nbsp;...])</td>
+<td>Updates information in an existing dataset.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.patch_table" title="bigquery.client.BigQueryClient.patch_table"><code class="xref py py-obj docutils literal"><span class="pre">patch_table</span></code></a>(dataset,&nbsp;table,&nbsp;schema)</td>
+<td>Patch an existing table in the dataset.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.push_rows" title="bigquery.client.BigQueryClient.push_rows"><code class="xref py py-obj docutils literal"><span class="pre">push_rows</span></code></a>(dataset,&nbsp;table,&nbsp;rows[,&nbsp;...])</td>
+<td>Upload rows to BigQuery table.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.query" title="bigquery.client.BigQueryClient.query"><code class="xref py py-obj docutils literal"><span class="pre">query</span></code></a>(query[,&nbsp;max_results,&nbsp;timeout,&nbsp;...])</td>
+<td>Submit a query to BigQuery.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.schema_from_record" title="bigquery.client.BigQueryClient.schema_from_record"><code class="xref py py-obj docutils literal"><span class="pre">schema_from_record</span></code></a>(record)</td>
+<td>Given a dict representing a record instance to be inserted into BigQuery, calculate the schema.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.update_dataset" title="bigquery.client.BigQueryClient.update_dataset"><code class="xref py py-obj docutils literal"><span class="pre">update_dataset</span></code></a>(dataset_id[,&nbsp;friendly_name,&nbsp;...])</td>
+<td>Updates information in an existing dataset.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.update_table" title="bigquery.client.BigQueryClient.update_table"><code class="xref py py-obj docutils literal"><span class="pre">update_table</span></code></a>(dataset,&nbsp;table,&nbsp;schema)</td>
+<td>Update an existing table in the dataset.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.wait_for_job" title="bigquery.client.BigQueryClient.wait_for_job"><code class="xref py py-obj docutils literal"><span class="pre">wait_for_job</span></code></a>(job[,&nbsp;interval,&nbsp;timeout])</td>
+<td>Waits until the job indicated by job_resource is done or has failed</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bigquery.client.BigQueryClient.write_to_table" title="bigquery.client.BigQueryClient.write_to_table"><code class="xref py py-obj docutils literal"><span class="pre">write_to_table</span></code></a>(query[,&nbsp;dataset,&nbsp;table,&nbsp;...])</td>
+<td>Write query result to table.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.check_dataset">
+<code class="descname">check_dataset</code><span class="sig-paren">(</span><em>dataset_id</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.check_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check to see if a dataset exists.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>Dataset unique id</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">bool</p>
+<blockquote class="last">
+<div><p>True if dataset at <cite>dataset_id</cite> exists, else Fasle</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.check_job">
+<code class="descname">check_job</code><span class="sig-paren">(</span><em>job_id</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.check_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the state and number of results of a query by job id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>job_id</strong> : str</p>
+<blockquote>
+<div><p>The job id of the query to check.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">tuple</p>
+<blockquote class="last">
+<div><p>(<code class="docutils literal"><span class="pre">bool</span></code>, <code class="docutils literal"><span class="pre">int</span></code>) Whether or not the query has completed and the
+total number of rows included in the query table if it has
+completed (else 0)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.check_table">
+<code class="descname">check_table</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.check_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check to see if a table exists.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset to check</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The name of the table</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">bool</p>
+<blockquote class="last">
+<div><p>True if table exists, else False</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.create_dataset">
+<code class="descname">create_dataset</code><span class="sig-paren">(</span><em>dataset_id</em>, <em>friendly_name=None</em>, <em>description=None</em>, <em>access=None</em>, <em>location=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.create_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new BigQuery dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>Unique <code class="docutils literal"><span class="pre">str</span></code> identifying the dataset with the project (the
+referenceID of the dataset, not the integer id of the dataset)</p>
+</div></blockquote>
+<p><strong>friendly_name: str, optional</strong></p>
+<blockquote>
+<div><p>A human readable name</p>
+</div></blockquote>
+<p><strong>description: str, optional</strong></p>
+<blockquote>
+<div><p>Longer string providing a description</p>
+</div></blockquote>
+<p><strong>access</strong> : list, optional</p>
+<blockquote>
+<div><p>Indicating access permissions (see
+<a class="reference external" href="https://developers.google.com/bigquery/docs/reference/v2/datasets#resource">https://developers.google.com/bigquery/docs/reference/v2/datasets#resource</a>)</p>
+</div></blockquote>
+<p><strong>location</strong> : str, optional</p>
+<blockquote>
+<div><p>Indicating where dataset should be stored: EU or US (see
+<a class="reference external" href="https://developers.google.com/bigquery/docs/reference/v2/datasets#resource">https://developers.google.com/bigquery/docs/reference/v2/datasets#resource</a>)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p><code class="docutils literal"><span class="pre">bool</span></code> indicating if dataset was created or not, or response
+from BigQuery if swallow_results is set for False</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.create_table">
+<code class="descname">create_table</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em>, <em>schema</em>, <em>expiration_time=None</em>, <em>time_partitioning=False</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.create_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new table in the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset to create the table in</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The name of the table to create</p>
+</div></blockquote>
+<p><strong>schema</strong> : dict</p>
+<blockquote>
+<div><p>The table schema</p>
+</div></blockquote>
+<p><strong>expiration_time</strong> : float, optional</p>
+<blockquote>
+<div><p>The expiry time in milliseconds since the epoch.</p>
+</div></blockquote>
+<p><strong>time_partitioning</strong> : bool, optional</p>
+<blockquote>
+<div><p>Create a time partitioning.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p>If the table was successfully created, or response from BigQuery
+if swallow_results is set to False</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.create_view">
+<code class="descname">create_view</code><span class="sig-paren">(</span><em>dataset</em>, <em>view</em>, <em>query</em>, <em>use_legacy_sql=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.create_view" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new view in the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset to create the view in</p>
+</div></blockquote>
+<p><strong>view</strong> : str</p>
+<blockquote>
+<div><p>The name of the view to create</p>
+</div></blockquote>
+<p><strong>query</strong> : dict</p>
+<blockquote>
+<div><p>A query that BigQuery executes when the view is referenced.</p>
+</div></blockquote>
+<p><strong>use_legacy_sql</strong> : bool, optional</p>
+<blockquote>
+<div><p>If False, the query will use BigQuery&#8217;s standard SQL
+(<a class="reference external" href="https://cloud.google.com/bigquery/sql-reference/">https://cloud.google.com/bigquery/sql-reference/</a>)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p>bool indicating if the view was successfully created or not,
+or response from BigQuery if swallow_results is set to False.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.dataset_resource">
+<code class="descname">dataset_resource</code><span class="sig-paren">(</span><em>ref_id</em>, <em>friendly_name=None</em>, <em>description=None</em>, <em>access=None</em>, <em>location=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.dataset_resource" title="Permalink to this definition">¶</a></dt>
+<dd><p>See
+<a class="reference external" href="https://developers.google.com/bigquery/docs/reference/v2/datasets#resource">https://developers.google.com/bigquery/docs/reference/v2/datasets#resource</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>ref_id</strong> : str</p>
+<blockquote>
+<div><p>Dataset id (the reference id, not the integer id)</p>
+</div></blockquote>
+<p><strong>friendly_name</strong> : str, optional</p>
+<blockquote>
+<div><p>An optional descriptive name for the dataset</p>
+</div></blockquote>
+<p><strong>description</strong> : str, optional</p>
+<blockquote>
+<div><p>An optional description for the dataset</p>
+</div></blockquote>
+<p><strong>access</strong> : list, optional</p>
+<blockquote>
+<div><p>Indicating access permissions</p>
+</div></blockquote>
+<p><strong>location: str, optional, &#8216;EU&#8217; or &#8216;US&#8217;</strong></p>
+<blockquote>
+<div><p>An optional geographical location for the dataset(EU or US)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>Representing BigQuery dataset resource</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.delete_dataset">
+<code class="descname">delete_dataset</code><span class="sig-paren">(</span><em>dataset_id</em>, <em>delete_contents=False</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.delete_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete a BigQuery dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>Unique <code class="docutils literal"><span class="pre">str</span></code> identifying the datset with the project (the
+referenceId of the dataset)</p>
+</div></blockquote>
+<p><strong>delete_contents</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True, forces the deletion of the dataset even when the dataset
+contains data (Default = False)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict[</p>
+<blockquote>
+<div><p>ool indicating if the delete was successful or not, or response
+from BigQuery if swallow_results is set for False</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>HttpError</strong></p>
+<blockquote class="last">
+<div><p>404 when dataset with dataset_id does not exist</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.delete_table">
+<code class="descname">delete_table</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.delete_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete a table from the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset to delete the table from.</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The name of the table to delete</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p>bool indicating if the table was successfully deleted or not,
+or response from BigQuery if swallow_results is set for False.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.export_data_to_uris">
+<code class="descname">export_data_to_uris</code><span class="sig-paren">(</span><em>destination_uris</em>, <em>dataset</em>, <em>table</em>, <em>job=None</em>, <em>compression=None</em>, <em>destination_format=None</em>, <em>print_header=None</em>, <em>field_delimiter=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.export_data_to_uris" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export data from a BigQuery table to cloud storage. Optional arguments
+that are not specified are determined by BigQuery as described:
+<a class="reference external" href="https://developers.google.com/bigquery/docs/reference/v2/jobs">https://developers.google.com/bigquery/docs/reference/v2/jobs</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>destination_urls</strong> : Union[str, list]</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">str</span></code> or <code class="docutils literal"><span class="pre">list</span></code> of <code class="docutils literal"><span class="pre">str</span></code> objects representing the URIs on
+cloud storage of the form: gs://bucket/filename</p>
+</div></blockquote>
+<p><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>String id of the dataset</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>String id of the table</p>
+</div></blockquote>
+<p><strong>job</strong> : str, optional</p>
+<blockquote>
+<div><p>String identifying the job (a unique jobid is automatically
+generated if not provided)</p>
+</div></blockquote>
+<p><strong>compression</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_COMPRESSION_* constants</p>
+</div></blockquote>
+<p><strong>destination_format</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_DESTination_FORMAT_* constants</p>
+</div></blockquote>
+<p><strong>print_header</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether or not to print the header</p>
+</div></blockquote>
+<p><strong>field_delimiter</strong> : str, optional</p>
+<blockquote>
+<div><p>Character separating fields in delimited file</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote>
+<div><p>A BigQuery job resource</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>JobInsertException</strong></p>
+<blockquote class="last">
+<div><p>On http/auth failures or error in result</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_all_tables">
+<code class="descname">get_all_tables</code><span class="sig-paren">(</span><em>dataset_id</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_all_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a list of tables for the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>The dataset to retrieve table data for.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="docutils literal"><span class="pre">list</span></code> with all table names</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_dataset">
+<code class="descname">get_dataset</code><span class="sig-paren">(</span><em>dataset_id</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a dataset if it exists, otherwise return an empty dict.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>Dataset unique id</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>Contains dataset object if it exists, else empty</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_datasets">
+<code class="descname">get_datasets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_datasets" title="Permalink to this definition">¶</a></dt>
+<dd><p>List all datasets in the project.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>Dataset resources</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_query_results">
+<code class="descname">get_query_results</code><span class="sig-paren">(</span><em>job_id</em>, <em>offset=None</em>, <em>limit=None</em>, <em>page_token=None</em>, <em>timeout=0</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_query_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the query job indicated by the given job id. This is direct
+mapping to bigquery api
+<a class="reference external" href="https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults">https://cloud.google.com/bigquery/docs/reference/v2/jobs/getQueryResults</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>job_id</strong> : str</p>
+<blockquote>
+<div><p>The job id of the query to check</p>
+</div></blockquote>
+<p><strong>offset</strong> : optional</p>
+<blockquote>
+<div><p>The index the result set should start at.</p>
+</div></blockquote>
+<p><strong>limit</strong> : int, optional</p>
+<blockquote>
+<div><p>The maximum number of results to retrieve.</p>
+</div></blockquote>
+<p><strong>page_token</strong> : optional</p>
+<blockquote>
+<div><p>Page token, returned by previous call, to request the next page of
+results.</p>
+</div></blockquote>
+<p><strong>timeout</strong> : float, optional</p>
+<blockquote>
+<div><p>Timeout in seconds</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">out</p>
+<blockquote class="last">
+<div><p>The query reply</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_query_rows">
+<code class="descname">get_query_rows</code><span class="sig-paren">(</span><em>job_id</em>, <em>offset=None</em>, <em>limit=None</em>, <em>timeout=0</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_query_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a list of rows from a query table by job id.
+This method will append results from multiple pages together. If you
+want to manually page through results, you can use <cite>get_query_results</cite>
+method directly.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>job_id</strong> : str</p>
+<blockquote>
+<div><p>The job id that references a BigQuery query.</p>
+</div></blockquote>
+<p><strong>offset</strong> : int, optional</p>
+<blockquote>
+<div><p>The offset of the rows to pull from BigQuery</p>
+</div></blockquote>
+<p><strong>limit</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of rows to retrieve from a query table.</p>
+</div></blockquote>
+<p><strong>timeout</strong> : float, optional</p>
+<blockquote>
+<div><p>Timeout in seconds.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>A <code class="docutils literal"><span class="pre">list</span></code> of <code class="docutils literal"><span class="pre">dict</span></code> objects that represent table rows.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_query_schema">
+<code class="descname">get_query_schema</code><span class="sig-paren">(</span><em>job_id</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_query_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the schema of a query by job id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>job_id</strong> : str</p>
+<blockquote>
+<div><p>The job_id that references a BigQuery query</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>A <code class="docutils literal"><span class="pre">list</span></code> of <code class="docutils literal"><span class="pre">dict</span></code> objects that represent the schema.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_table">
+<code class="descname">get_table</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a table if it exists, otherwise return an empty dict.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset that the table is in</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The name of the table</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>Containing the table object if it exists, else empty</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_table_schema">
+<code class="descname">get_table_schema</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_table_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the table schema.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset containing the <cite>table</cite>.</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The table to get the schema for</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>A <code class="docutils literal"><span class="pre">list</span></code> of <code class="docutils literal"><span class="pre">dict</span></code> objects that represent the table schema. If
+the table doesn&#8217;t exist, None is returned.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.get_tables">
+<code class="descname">get_tables</code><span class="sig-paren">(</span><em>dataset_id</em>, <em>app_id</em>, <em>start_time</em>, <em>end_time</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.get_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a list of tables that are related to the given app id
+and are inside the range of start and end times.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>The BigQuery dataset id to consider.</p>
+</div></blockquote>
+<p><strong>app_id</strong> : str</p>
+<blockquote>
+<div><p>The appspot name</p>
+</div></blockquote>
+<p><strong>start_time</strong> : Union[datetime, int]</p>
+<blockquote>
+<div><p>The datetime or unix time after which records will be fetched.</p>
+</div></blockquote>
+<p><strong>end_time</strong> : Union[datetime, int]</p>
+<blockquote>
+<div><p>The datetime or unix time up to which records will be fetched.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>A <code class="docutils literal"><span class="pre">list</span></code> of table names.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.import_data_from_uris">
+<code class="descname">import_data_from_uris</code><span class="sig-paren">(</span><em>source_uris</em>, <em>dataset</em>, <em>table</em>, <em>schema=None</em>, <em>job=None</em>, <em>source_format=None</em>, <em>create_disposition=None</em>, <em>write_disposition=None</em>, <em>encoding=None</em>, <em>ignore_unknown_values=None</em>, <em>max_bad_records=None</em>, <em>allow_jagged_rows=None</em>, <em>allow_quoted_newlines=None</em>, <em>field_delimiter=None</em>, <em>quote=None</em>, <em>skip_leading_rows=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.import_data_from_uris" title="Permalink to this definition">¶</a></dt>
+<dd><p>Imports data into a BigQuery table from cloud storage. Optional
+arguments that are not specified are determined by BigQuery as
+described:</p>
+<blockquote>
+<div><a class="reference external" href="https://developers.google.com/bigquery/docs/reference/v2/jobs">https://developers.google.com/bigquery/docs/reference/v2/jobs</a></div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>source_urls</strong> : list</p>
+<blockquote>
+<div><p>A <code class="docutils literal"><span class="pre">list</span></code> of <code class="docutils literal"><span class="pre">str</span></code> objects representing the urls on cloud
+storage of the form: gs://bucket/filename</p>
+</div></blockquote>
+<p><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>String id of the dataset</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>String id of the table</p>
+</div></blockquote>
+<p><strong>job</strong> : str, optional</p>
+<blockquote>
+<div><p>Identifies the job (a unique job id is automatically generated if
+not provided)</p>
+</div></blockquote>
+<p><strong>schema</strong> : list, optional</p>
+<blockquote>
+<div><p>Represents the BigQuery schema</p>
+</div></blockquote>
+<p><strong>source_format</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_SOURCE_FORMAT_* constants</p>
+</div></blockquote>
+<p><strong>create_disposition</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_CREATE_* constants</p>
+</div></blockquote>
+<p><strong>write_disposition</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_WRITE_* constants</p>
+</div></blockquote>
+<p><strong>encoding</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_ENCODING_* constants</p>
+</div></blockquote>
+<p><strong>ignore_unknown_values</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether or not to ignore unknown values</p>
+</div></blockquote>
+<p><strong>max_bad_records</strong> : int, optional</p>
+<blockquote>
+<div><p>Maximum number of bad records</p>
+</div></blockquote>
+<p><strong>allow_jagged_rows</strong> : bool, optional</p>
+<blockquote>
+<div><p>For csv only</p>
+</div></blockquote>
+<p><strong>allow_quoted_newlines</strong> : bool, optional</p>
+<blockquote>
+<div><p>For csv only</p>
+</div></blockquote>
+<p><strong>field_delimiter</strong> : str, optional</p>
+<blockquote>
+<div><p>For csv only</p>
+</div></blockquote>
+<p><strong>quote</strong> : str, optional</p>
+<blockquote>
+<div><p>Quote character for csv only</p>
+</div></blockquote>
+<p><strong>skip_leading_rows</strong> : int, optional</p>
+<blockquote>
+<div><p>For csv only</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote>
+<div><p>A BigQuery job response</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>JobInsertException</strong></p>
+<blockquote class="last">
+<div><p>on http/auth failures or error in result</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.patch_dataset">
+<code class="descname">patch_dataset</code><span class="sig-paren">(</span><em>dataset_id</em>, <em>friendly_name=None</em>, <em>description=None</em>, <em>access=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.patch_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates information in an existing dataset. The update method
+replaces the entire dataset resource, whereas the patch method only
+replaces fields that are provided in the submitted dataset resource.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>Unique string idenfitying the dataset with the project (the
+referenceId of the dataset)</p>
+</div></blockquote>
+<p><strong>friendly_name</strong> : str, optional</p>
+<blockquote>
+<div><p>An optional descriptive name for the dataset.</p>
+</div></blockquote>
+<p><strong>description</strong> : str, optional</p>
+<blockquote>
+<div><p>An optional description of the dataset.</p>
+</div></blockquote>
+<p><strong>access</strong> : list, optional</p>
+<blockquote>
+<div><p>Indicating access permissions.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p><code class="docutils literal"><span class="pre">bool</span></code> indicating if the patch was successful or not, or response
+from BigQuery if swallow_results is set for False.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.patch_table">
+<code class="descname">patch_table</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em>, <em>schema</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.patch_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Patch an existing table in the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset to patch the table in</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The name of the table to patch</p>
+</div></blockquote>
+<p><strong>schema</strong> : dict</p>
+<blockquote>
+<div><p>The table schema</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p>Bool indicating if the table was successfully patched or not,
+or response from BigQuery if swallow_results is set to False</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.push_rows">
+<code class="descname">push_rows</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em>, <em>rows</em>, <em>insert_id_key=None</em>, <em>skip_invalid_rows=None</em>, <em>ignore_unknown_values=None</em>, <em>template_suffix=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.push_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upload rows to BigQuery table.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset to upload to</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The name of the table to insert rows into</p>
+</div></blockquote>
+<p><strong>rows</strong> : list</p>
+<blockquote>
+<div><p>A <code class="docutils literal"><span class="pre">list</span></code> of rows (<code class="docutils literal"><span class="pre">dict</span></code> objects) to add to the table</p>
+</div></blockquote>
+<p><strong>insert_id_key</strong> : str, optional</p>
+<blockquote>
+<div><p>Key for insertId in row.
+You can use dot separated key for nested column.</p>
+</div></blockquote>
+<p><strong>skip_invalid_rows</strong> : bool, optional</p>
+<blockquote>
+<div><p>Insert all valid rows of a request, even if invalid rows exist.</p>
+</div></blockquote>
+<p><strong>ignore_unknown_values</strong> : bool, optional</p>
+<blockquote>
+<div><p>Accept rows that contain values that do not match the schema.</p>
+</div></blockquote>
+<p><strong>template_suffix</strong> : str, optional</p>
+<blockquote>
+<div><p>Inserts the rows into an {table}{template_suffix}.
+If table {table}{template_suffix} doesn&#8217;t exist, create from {table}.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p>bool indicating if insert succeeded or not, or response
+from BigQuery if swallow_results is set for False.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.query">
+<code class="descname">query</code><span class="sig-paren">(</span><em>query</em>, <em>max_results=None</em>, <em>timeout=0</em>, <em>dry_run=False</em>, <em>use_legacy_sql=None</em>, <em>external_udf_uris=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit a query to BigQuery.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>query</strong> : str</p>
+<blockquote>
+<div><p>BigQuery query string</p>
+</div></blockquote>
+<p><strong>max_results</strong> : int, optional</p>
+<blockquote>
+<div><p>The maximum number of rows to return per page of results.</p>
+</div></blockquote>
+<p><strong>timeout</strong> : float, optional</p>
+<blockquote>
+<div><p>How long to wait for the query to complete, in seconds before
+the request times out and returns.</p>
+</div></blockquote>
+<p><strong>dry_run</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True, the query isn&#8217;t actually run. A valid query will return an
+empty response, while an invalid one will return the same error
+message it would if it wasn&#8217;t a dry run.</p>
+</div></blockquote>
+<p><strong>use_legacy_sql</strong> : bool, optional. Default True.</p>
+<blockquote>
+<div><p>If False, the query will use BigQuery&#8217;s standard SQL (<a class="reference external" href="https://cloud.google.com/bigquery/sql-reference/">https://cloud.google.com/bigquery/sql-reference/</a>)</p>
+</div></blockquote>
+<p><strong>external_udf_uris</strong> : list, optional</p>
+<blockquote>
+<div><p>Contains external UDF URIs. If given, URIs must be Google Cloud
+Storage and have .js extensions.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">tuple</p>
+<blockquote>
+<div><p>(job id, query results) if the query completed. If dry_run is True,
+job id will be None and results will be empty if the query is valid
+or a <code class="docutils literal"><span class="pre">dict</span></code> containing the response if invalid.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>BigQueryTimeoutException</strong></p>
+<blockquote class="last">
+<div><p>on timeout</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="bigquery.client.BigQueryClient.schema_from_record">
+<em class="property">classmethod </em><code class="descname">schema_from_record</code><span class="sig-paren">(</span><em>record</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.schema_from_record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dict representing a record instance to be inserted into
+BigQuery, calculate the schema.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>record</strong> : dict</p>
+<blockquote>
+<div><p>representing a record to be inserted into big query,
+where all keys are <code class="docutils literal"><span class="pre">str</span></code> objects (representing column names in
+the record) and all values are of type <code class="docutils literal"><span class="pre">int</span></code>, <code class="docutils literal"><span class="pre">str</span></code>,
+<code class="docutils literal"><span class="pre">unicode</span></code>, <code class="docutils literal"><span class="pre">float</span></code>, <code class="docutils literal"><span class="pre">bool</span></code>, <code class="docutils literal"><span class="pre">datetime</span></code>, or <code class="docutils literal"><span class="pre">dict</span></code>. A
+<code class="docutils literal"><span class="pre">dict</span></code> value represents a record, and must conform to the same
+restrictions as record.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>BigQuery schema</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Results are undefined if a different value type is provided for a
+repeated field: E.g.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">{</span> <span class="n">rfield</span><span class="p">:</span> <span class="p">[</span> <span class="p">{</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="s2">&quot;a string&quot;</span><span class="p">}</span> <span class="p">]</span> <span class="p">}</span> <span class="c1"># undefined!</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.update_dataset">
+<code class="descname">update_dataset</code><span class="sig-paren">(</span><em>dataset_id</em>, <em>friendly_name=None</em>, <em>description=None</em>, <em>access=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.update_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates information in an existing dataset. The update method
+replaces the entire dataset resource, whereas the patch method only
+replaces fields that are provided in the submitted dataset resource.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset_id</strong> : str</p>
+<blockquote>
+<div><p>Unique <code class="docutils literal"><span class="pre">str</span></code> identifying the dataset with the project (the
+referencedId of the dataset)</p>
+</div></blockquote>
+<p><strong>friendly_name</strong> : str, optional</p>
+<blockquote>
+<div><p>An optional descriptive name for the dataset.</p>
+</div></blockquote>
+<p><strong>description</strong> : str, optional</p>
+<blockquote>
+<div><p>An optional description of the dataset.</p>
+</div></blockquote>
+<p><strong>access</strong> : list, optional</p>
+<blockquote>
+<div><p>Indicating access permissions</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p><code class="docutils literal"><span class="pre">bool</span></code> indicating if the update was successful or not, or
+response from BigQuery if swallow_results is set for False.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.update_table">
+<code class="descname">update_table</code><span class="sig-paren">(</span><em>dataset</em>, <em>table</em>, <em>schema</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.update_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update an existing table in the dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : str</p>
+<blockquote>
+<div><p>The dataset to update the table in</p>
+</div></blockquote>
+<p><strong>table</strong> : str</p>
+<blockquote>
+<div><p>The name of the table to update</p>
+</div></blockquote>
+<p><strong>schema</strong> : dict</p>
+<blockquote>
+<div><p>Table schema</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Union[bool, dict]</p>
+<blockquote class="last">
+<div><p>bool indicating if the table was successfully updated or not,
+or response from BigQuery if swallow_results is set to False.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.wait_for_job">
+<code class="descname">wait_for_job</code><span class="sig-paren">(</span><em>job</em>, <em>interval=5</em>, <em>timeout=60</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.wait_for_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Waits until the job indicated by job_resource is done or has failed</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>job</strong> : Union[dict, str]</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">dict</span></code> representing a BigQuery job resource, or a <code class="docutils literal"><span class="pre">str</span></code>
+representing the BigQuery job id</p>
+</div></blockquote>
+<p><strong>interval</strong> : float, optional</p>
+<blockquote>
+<div><p>Polling interval in seconds, default = 5</p>
+</div></blockquote>
+<p><strong>timeout</strong> : float, optional</p>
+<blockquote>
+<div><p>Timeout in seconds, default = 60</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote>
+<div><p>Final state of the job resouce, as described here:
+<a class="reference external" href="https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#get">https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/python/latest/bigquery_v2.jobs.html#get</a></p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>Union[JobExecutingException, BigQueryTimeoutException]</strong></p>
+<blockquote class="last">
+<div><p>On http/auth failures or timeout</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bigquery.client.BigQueryClient.write_to_table">
+<code class="descname">write_to_table</code><span class="sig-paren">(</span><em>query</em>, <em>dataset=None</em>, <em>table=None</em>, <em>external_udf_uris=None</em>, <em>allow_large_results=None</em>, <em>use_query_cache=None</em>, <em>priority=None</em>, <em>create_disposition=None</em>, <em>write_disposition=None</em>, <em>use_legacy_sql=None</em>, <em>maximum_billing_tier=None</em>, <em>flatten=None</em><span class="sig-paren">)</span><a class="headerlink" href="#bigquery.client.BigQueryClient.write_to_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write query result to table. If dataset or table is not provided,
+Bigquery will write the result to temporary table. Optional arguments
+that are not specified are determined by BigQuery as described:
+<a class="reference external" href="https://developers.google.com/bigquery/docs/reference/v2/jobs">https://developers.google.com/bigquery/docs/reference/v2/jobs</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>query</strong> : str</p>
+<blockquote>
+<div><p>BigQuery query string</p>
+</div></blockquote>
+<p><strong>dataset</strong> : str, optional</p>
+<blockquote>
+<div><p>String id of the dataset</p>
+</div></blockquote>
+<p><strong>table</strong> : str, optional</p>
+<blockquote>
+<div><p>String id of the table</p>
+</div></blockquote>
+<p><strong>external_udf_uris</strong> : list, optional</p>
+<blockquote>
+<div><p>Contains external UDF URIs. If given, URIs must be Google Cloud
+Storage and have .js extensions.</p>
+</div></blockquote>
+<p><strong>allow_large_results</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether or not to allow large results</p>
+</div></blockquote>
+<p><strong>use_query_cache</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether or not to use query cache</p>
+</div></blockquote>
+<p><strong>priority</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_PRIORITY_* constants</p>
+</div></blockquote>
+<p><strong>create_disposition</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_CREATE_* constants</p>
+</div></blockquote>
+<p><strong>write_disposition</strong> : str, optional</p>
+<blockquote>
+<div><p>One of the JOB_WRITE_* constants</p>
+</div></blockquote>
+<p><strong>use_legacy_sql: bool, optional</strong></p>
+<blockquote>
+<div><p>If False, the query will use BigQuery&#8217;s standard SQL
+(<a class="reference external" href="https://cloud.google.com/bigquery/sql-reference/">https://cloud.google.com/bigquery/sql-reference/</a>)</p>
+</div></blockquote>
+<p><strong>maximum_billing_tier</strong> : integer, optional</p>
+<blockquote>
+<div><p>Limits the billing tier for this job. Queries that have resource
+usage beyond this tier will fail (without incurring a charge). If
+unspecified, this will be set to your project default. For more
+information,
+see <a class="reference external" href="https://cloud.google.com/bigquery/pricing#high-compute">https://cloud.google.com/bigquery/pricing#high-compute</a></p>
+</div></blockquote>
+<p><strong>flatten</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether or not to flatten nested and repeated fields
+in query results</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote>
+<div><p>A BigQuery job resource</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>JobInsertException</strong></p>
+<blockquote class="last">
+<div><p>On http/auth failures or error in result</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="Welcome to BigQuery-Python’s documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.11.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Tyler Treat.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.
+    </div>
+  </body>
+</html>
