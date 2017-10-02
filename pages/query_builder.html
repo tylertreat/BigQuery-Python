@@ -1,33 +1,32 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>query_builder &mdash; BigQuery-Python 1.11.1 documentation</title>
-    
+    <title>query_builder &#8212; BigQuery-Python 1.13.0 documentation</title>
     <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.11.1',
+        VERSION:     '1.13.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="BigQuery-Python 1.11.1 documentation" href="../index.html" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="schema_builder" href="schema_builder.html" /> 
   </head>
-  <body role="document">
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +39,7 @@
         <li class="right" >
           <a href="schema_builder.html" title="schema_builder"
              accesskey="N">next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.11.1 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.13.0 documentation</a> &#187;</li> 
       </ul>
     </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -51,15 +50,15 @@
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="../_sources/pages/query_builder.txt"
+      <li><a href="../_sources/pages/query_builder.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
@@ -96,26 +95,26 @@ parameters.</p>
 <blockquote>
 <div><p>The keys function as column names and the values function as options to
 apply to the select field such as alias and format.  For example,
-select[&#8216;start_time&#8217;] might have the form
-{&#8216;alias&#8217;: &#8216;StartTime&#8217;, &#8216;format&#8217;: &#8216;INTEGER-FORMAT_UTC_USEC&#8217;}, which
-would be represented as &#8216;SEC_TO_TIMESTAMP(INTEGER(start_time)) as
-StartTime&#8217; in a query. Pass <cite>None</cite> to select all.</p>
+select[‘start_time’] might have the form
+{‘alias’: ‘StartTime’, ‘format’: ‘INTEGER-FORMAT_UTC_USEC’}, which
+would be represented as ‘SEC_TO_TIMESTAMP(INTEGER(start_time)) as
+StartTime’ in a query. Pass <cite>None</cite> to select all.</p>
 </div></blockquote>
 <p><strong>conditions</strong> : list, optional</p>
 <blockquote>
 <div><p>a <code class="docutils literal"><span class="pre">list</span></code> of <code class="docutils literal"><span class="pre">dict</span></code> objects to filter results by.  Each dict should
-have the keys &#8216;field&#8217;, &#8216;type&#8217;, and &#8216;comparators&#8217;. The first two map to
-strings representing the field (e.g. &#8216;foo&#8217;) and type (e.g. &#8216;FLOAT&#8217;).
-&#8216;comparators&#8217; maps to another <code class="docutils literal"><span class="pre">dict</span></code> containing the keys &#8216;condition&#8217;,
-&#8216;negate&#8217;, and &#8216;value&#8217;.
-If &#8216;comparators&#8217; = {&#8216;condition&#8217;: &#8216;&gt;=&#8217;, &#8216;negate&#8217;: False, &#8216;value&#8217;: 1},
-this example will be rdnered as &#8216;foo &gt;= FLOAT(&#8216;1&#8217;)&#8217; in the query.
+have the keys ‘field’, ‘type’, and ‘comparators’. The first two map to
+strings representing the field (e.g. ‘foo’) and type (e.g. ‘FLOAT’).
+‘comparators’ maps to another <code class="docutils literal"><span class="pre">dict</span></code> containing the keys ‘condition’,
+‘negate’, and ‘value’.
+If ‘comparators’ = {‘condition’: ‘&gt;=’, ‘negate’: False, ‘value’: 1},
+this example will be rendered as ‘foo &gt;= FLOAT(‘1’)’ in the query.
 <code class="docutils literal"><span class="pre">list</span></code> of field names to group by</p>
 </div></blockquote>
 <p><strong>order_by</strong> : dict, optional</p>
 <blockquote>
-<div><p>Keys = {&#8216;field&#8217;, &#8216;direction&#8217;}. <cite>dict</cite> should be formatted as
-{&#8216;field&#8217;:&#8217;TimeStamp, &#8216;direction&#8217;:&#8217;desc&#8217;} or similar</p>
+<div><p>Keys = {‘field’, ‘direction’}. <cite>dict</cite> should be formatted as
+{‘field’:’TimeStamp, ‘direction’:’desc’} or similar</p>
 </div></blockquote>
 <p><strong>limit</strong> : int, optional</p>
 <blockquote>
@@ -153,12 +152,12 @@ this example will be rdnered as &#8216;foo &gt;= FLOAT(&#8216;1&#8217;)&#8217; i
         <li class="right" >
           <a href="schema_builder.html" title="schema_builder"
              >next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.11.1 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">BigQuery-Python 1.13.0 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &copy; Copyright 2016, Tyler Treat.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.
+        &#169; Copyright 2016, Tyler Treat.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
     </div>
   </body>
 </html>
