@@ -198,6 +198,26 @@ class BigQueryClient(object):
         self.num_retries = num_retries
         self.cache = {}
 
+    def _get_project_id(self, project_id=None):
+        """ Get new project_id
+
+            Default is self.project_id, which is the project client authenticate to.
+            A new project_id is specified when client wants to authenticate to 1 project,
+            but run jobs in a different project.
+
+        Parameters
+        ----------
+        project_id : str
+            BigQuery project_id
+
+        Returns
+        -------
+        project_id: BigQuery project_id
+        """
+        if project_id is None:
+            project_id = self.project_id
+        return project_id
+
     def _submit_query_job(self, query_data):
         """ Submit a query job to BigQuery.
 
@@ -252,6 +272,27 @@ class BigQueryClient(object):
             raise BigQueryTimeoutException()
 
         return job_id, [self._transform_row(row, schema) for row in rows]
+
+    def _get_job_reference(self, job_id):
+        """ Get job reference from job_id
+            For more details, see:
+            https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#resource
+
+        Parameters
+        ----------
+        job_id: 
+            Id of the job
+
+        Returns
+        -------
+        job_reference: json of job_reference       
+        """
+        job_reference = {
+            "projectId": self.project_id,
+            "jobId": job_id
+            }
+
+        return job_reference
 
     def _insert_job(self, body_object):
         """ Submit a job to BigQuery
@@ -362,7 +403,7 @@ class BigQueryClient(object):
 
         return query_reply['schema']['fields']
 
-    def get_table_schema(self, dataset, table):
+    def get_table_schema(self, dataset, table, project_id=None):
         """Return the table schema.
 
         Parameters
@@ -371,6 +412,8 @@ class BigQueryClient(object):
             The dataset containing the `table`.
         table : str
             The table to get the schema for
+        project_id: str, optional
+            The project of the dataset.
 
         Returns
         -------
@@ -380,8 +423,9 @@ class BigQueryClient(object):
         """
 
         try:
+            project_id = self._get_project_id(project_id)
             result = self.bigquery.tables().get(
-                projectId=self.project_id,
+                projectId=project_id,
                 tableId=table,
                 datasetId=dataset).execute(num_retries=self.num_retries)
         except HttpError as e:
@@ -458,29 +502,33 @@ class BigQueryClient(object):
             records += [self._transform_row(row, schema) for row in rows]
         return records[:limit] if limit else records
 
-    def check_dataset(self, dataset_id):
+    def check_dataset(self, dataset_id, project_id=None):
         """Check to see if a dataset exists.
 
         Parameters
         ----------
         dataset_id : str
             Dataset unique id
+        project_id: str, optional
+            The project the dataset is in
 
         Returns
         -------
         bool
             True if dataset at `dataset_id` exists, else Fasle
-        """
-        dataset = self.get_dataset(dataset_id)
+        """       
+        dataset = self.get_dataset(dataset_id, project_id)
         return bool(dataset)
 
-    def get_dataset(self, dataset_id):
+    def get_dataset(self, dataset_id, project_id=None):
         """Retrieve a dataset if it exists, otherwise return an empty dict.
 
         Parameters
         ----------
         dataset_id : str
             Dataset unique id
+        project_id: str, optional
+            The project the dataset is in
 
         Returns
         -------
@@ -488,15 +536,16 @@ class BigQueryClient(object):
             Contains dataset object if it exists, else empty
         """
         try:
+            project_id = self._get_project_id(project_id)
             dataset = self.bigquery.datasets().get(
-                projectId=self.project_id, datasetId=dataset_id).execute(
+                projectId=project_id, datasetId=dataset_id).execute(
                 num_retries=self.num_retries)
         except HttpError:
             dataset = {}
 
         return dataset
 
-    def check_table(self, dataset, table):
+    def check_table(self, dataset, table, project_id=None):
         """Check to see if a table exists.
 
         Parameters
@@ -505,16 +554,18 @@ class BigQueryClient(object):
             The dataset to check
         table : str
             The name of the table
+        project_id: str, optional
+            The project the table is in
 
         Returns
         -------
         bool
             True if table exists, else False
         """
-        table = self.get_table(dataset, table)
+        table = self.get_table(dataset, table, project_id)
         return bool(table)
 
-    def get_table(self, dataset, table):
+    def get_table(self, dataset, table, project_id=None):
         """ Retrieve a table if it exists, otherwise return an empty dict.
 
         Parameters
@@ -523,6 +574,8 @@ class BigQueryClient(object):
             The dataset that the table is in
         table : str
             The name of the table
+        project_id: str, optional
+            The project that the table is in
 
         Returns
         -------
@@ -530,15 +583,16 @@ class BigQueryClient(object):
             Containing the table object if it exists, else empty
         """
         try:
+            project_id = self._get_project_id(project_id)
             table = self.bigquery.tables().get(
-                projectId=self.project_id, datasetId=dataset,
+                projectId=project_id, datasetId=dataset,
                 tableId=table).execute(num_retries=self.num_retries)
         except HttpError:
             table = {}
 
         return table
 
-    def create_table(self, dataset, table, schema,
+    def create_table(self, dataset, table, schema, project_id=None,
                      expiration_time=None, time_partitioning=False):
         """Create a new table in the dataset.
 
@@ -550,6 +604,8 @@ class BigQueryClient(object):
             The name of the table to create
         schema : dict
             The table schema
+        project_id: str, optional
+            The project to create the table in
         expiration_time : int or double, optional
             The expiry time in milliseconds since the epoch.
         time_partitioning : bool, optional
@@ -561,12 +617,13 @@ class BigQueryClient(object):
             If the table was successfully created, or response from BigQuery
             if swallow_results is set to False
         """
+        project_id = self._get_project_id(project_id)
 
         body = {
             'schema': {'fields': schema},
             'tableReference': {
                 'tableId': table,
-                'projectId': self.project_id,
+                'projectId': project_id,
                 'datasetId': dataset
             }
         }
@@ -579,7 +636,7 @@ class BigQueryClient(object):
 
         try:
             table = self.bigquery.tables().insert(
-                projectId=self.project_id,
+                projectId=project_id,
                 datasetId=dataset,
                 body=body
             ).execute(num_retries=self.num_retries)
@@ -589,14 +646,14 @@ class BigQueryClient(object):
                 return table
 
         except HttpError as e:
-            logger.error(('Cannot create table {0}.{1}\n'
-                          'Http Error: {2}').format(dataset, table, e.content))
+            logger.error(('Cannot create table {0}.{1}.{2}\n'
+                          'Http Error: {3}').format(project_id, dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
                 return {}
 
-    def update_table(self, dataset, table, schema):
+    def update_table(self, dataset, table, schema, project_id=None):
         """Update an existing table in the dataset.
 
         Parameters
@@ -607,6 +664,8 @@ class BigQueryClient(object):
             The name of the table to update
         schema : dict
             Table schema
+        project_id: str, optional
+            The project to update the table in
 
         Returns
         -------
@@ -614,19 +673,20 @@ class BigQueryClient(object):
             bool indicating if the table was successfully updated or not,
             or response from BigQuery if swallow_results is set to False.
         """
+        project_id = self._get_project_id(project_id)
 
         body = {
             'schema': {'fields': schema},
             'tableReference': {
                 'tableId': table,
-                'projectId': self.project_id,
+                'projectId': project_id,
                 'datasetId': dataset
             }
         }
 
         try:
             result = self.bigquery.tables().update(
-                projectId=self.project_id,
+                projectId=project_id,
                 tableId= table,
                 datasetId=dataset,
                 body=body
@@ -637,14 +697,14 @@ class BigQueryClient(object):
                 return result
 
         except HttpError as e:
-            logger.error(('Cannot update table {0}.{1}\n'
-                          'Http Error: {2}').format(dataset, table, e.content))
+            logger.error(('Cannot update table {0}.{1}.{2}\n'
+                          'Http Error: {3}').format(project_id, dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
                 return {}
 
-    def patch_table(self, dataset, table, schema):
+    def patch_table(self, dataset, table, schema, project_id=None):
         """Patch an existing table in the dataset.
 
         Parameters
@@ -655,6 +715,8 @@ class BigQueryClient(object):
             The name of the table to patch
         schema : dict
             The table schema
+        project_id: str, optional
+            The project to patch the table in
 
         Returns
         -------
@@ -662,19 +724,20 @@ class BigQueryClient(object):
             Bool indicating if the table was successfully patched or not,
             or response from BigQuery if swallow_results is set to False
         """
+        project_id = self._get_project_id(project_id)
 
         body = {
             'schema': {'fields': schema},
             'tableReference': {
                 'tableId': table,
-                'projectId': self.project_id,
+                'projectId': project_id,
                 'datasetId': dataset
             }
         }
 
         try:
             result = self.bigquery.tables().patch(
-                projectId=self.project_id,
+                projectId=project_id,
                 datasetId=dataset,
                 body=body
             ).execute(num_retries=self.num_retries)
@@ -684,14 +747,14 @@ class BigQueryClient(object):
                 return result
 
         except HttpError as e:
-            logger.error(('Cannot patch table {0}.{1}\n'
-                          'Http Error: {2}').format(dataset, table, e.content))
+            logger.error(('Cannot patch table {0}.{1}.{2}\n'
+                          'Http Error: {3}').format(project_id, dataset, table, e.content))
             if self.swallow_results:
                 return False
             else:
                 return {}
 
-    def create_view(self, dataset, view, query, use_legacy_sql=None):
+    def create_view(self, dataset, view, query, project_id=None, use_legacy_sql=None):
         """Create a new view in the dataset.
 
         Parameters
@@ -702,6 +765,8 @@ class BigQueryClient(object):
             The name of the view to create
         query : dict
             A query that BigQuery executes when the view is referenced.
+        project_id: str, optional
+            The project to create the view in
         use_legacy_sql : bool, optional
             If False, the query will use BigQuery's standard SQL
             (https://cloud.google.com/bigquery/sql-reference/)
@@ -712,11 +777,12 @@ class BigQueryClient(object):
             bool indicating if the view was successfully created or not,
             or response from BigQuery if swallow_results is set to False.
         """
+        project_id = self._get_project_id(project_id)
 
         body = {
             'tableReference': {
                 'tableId': view,
-                'projectId': self.project_id,
+                'projectId': project_id,
                 'datasetId': dataset
             },
             'view': {
@@ -729,7 +795,7 @@ class BigQueryClient(object):
 
         try:
             view = self.bigquery.tables().insert(
-                projectId=self.project_id,
+                projectId=project_id,
                 datasetId=dataset,
                 body=body
             ).execute(num_retries=self.num_retries)
@@ -746,7 +812,7 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def delete_table(self, dataset, table):
+    def delete_table(self, dataset, table, project_id=None):
         """Delete a table from the dataset.
 
         Parameters
@@ -755,6 +821,8 @@ class BigQueryClient(object):
             The dataset to delete the table from.
         table : str
             The name of the table to delete
+        project_id: str, optional
+            String id of the project
 
         Returns
         -------
@@ -764,8 +832,9 @@ class BigQueryClient(object):
         """
 
         try:
+            project_id = self._get_project_id(project_id)
             response = self.bigquery.tables().delete(
-                projectId=self.project_id,
+                projectId=project_id,
                 datasetId=dataset,
                 tableId=table
             ).execute(num_retries=self.num_retries)
@@ -782,7 +851,7 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def get_tables(self, dataset_id, app_id, start_time, end_time):
+    def get_tables(self, dataset_id, app_id, start_time, end_time, project_id=None):
         """Retrieve a list of tables that are related to the given app id
         and are inside the range of start and end times.
 
@@ -796,6 +865,8 @@ class BigQueryClient(object):
             The datetime or unix time after which records will be fetched.
         end_time : Union[datetime, int]
             The datetime or unix time up to which records will be fetched.
+        project_id: str, optional
+            String id of the project
 
         Returns
         -------
@@ -809,7 +880,7 @@ class BigQueryClient(object):
         if isinstance(end_time, datetime):
             end_time = calendar.timegm(end_time.utctimetuple())
 
-        every_table = self._get_all_tables(dataset_id)
+        every_table = self._get_all_tables(dataset_id, project_id)
         app_tables = every_table.get(app_id, {})
 
         return self._filter_tables_by_time(app_tables, start_time, end_time)
@@ -820,6 +891,7 @@ class BigQueryClient(object):
             dataset,
             table,
             schema=None,
+            project_id=None,
             job=None,
             source_format=None,
             create_disposition=None,
@@ -848,11 +920,13 @@ class BigQueryClient(object):
             String id of the dataset
         table : str
             String id of the table
-        job : str, optional
-            Identifies the job (a unique job id is automatically generated if
-            not provided)
         schema : list, optional
             Represents the BigQuery schema
+        project_id: str, optional
+            String id of the project
+        job : str, optional
+            Identifies the job (a unique job id is automatically generated if
+            not provided)        
         source_format : str, optional
             One of the JOB_SOURCE_FORMAT_* constants
         create_disposition : str, optional
@@ -889,9 +963,11 @@ class BigQueryClient(object):
         source_uris = source_uris if isinstance(source_uris, list) \
             else [source_uris]
 
+        project_id = self._get_project_id(project_id)
+
         configuration = {
             "destinationTable": {
-                "projectId": self.project_id,
+                "projectId": project_id,
                 "tableId": table,
                 "datasetId": dataset
             },
@@ -963,10 +1039,7 @@ class BigQueryClient(object):
             "configuration": {
                 'load': configuration
             },
-            "jobReference": {
-                "projectId": self.project_id,
-                "jobId": job
-            }
+            "jobReference": self._get_job_reference(job)
         }
 
         logger.debug("Creating load job %s" % body)
@@ -979,6 +1052,7 @@ class BigQueryClient(object):
             destination_uris,
             dataset,
             table,
+            project_id=None,
             job=None,
             compression=None,
             destination_format=None,
@@ -999,6 +1073,8 @@ class BigQueryClient(object):
             String id of the dataset
         table : str
             String id of the table
+        project_id: str, optional
+            String id of the project
         job : str, optional
             String identifying the job (a unique jobid is automatically
             generated if not provided)
@@ -1024,9 +1100,11 @@ class BigQueryClient(object):
         destination_uris = destination_uris \
             if isinstance(destination_uris, list) else [destination_uris]
 
+        project_id = self._get_project_id(project_id)
+
         configuration = {
             "sourceTable": {
-                "projectId": self.project_id,
+                "projectId": project_id,
                 "tableId": table,
                 "datasetId": dataset
             },
@@ -1057,10 +1135,7 @@ class BigQueryClient(object):
             "configuration": {
                 'extract': configuration
             },
-            "jobReference": {
-                "projectId": self.project_id,
-                "jobId": job
-            }
+            "jobReference": self._get_job_reference(job_id)
         }
 
         logger.info("Creating export job %s" % body)
@@ -1073,6 +1148,7 @@ class BigQueryClient(object):
             query,
             dataset=None,
             table=None,
+            project_id=None,
             external_udf_uris=None,
             allow_large_results=None,
             use_query_cache=None,
@@ -1097,6 +1173,8 @@ class BigQueryClient(object):
             String id of the dataset
         table : str, optional
             String id of the table
+        project_id: str, optional
+            String id of the project
         external_udf_uris : list, optional
             Contains external UDF URIs. If given, URIs must be Google Cloud
             Storage and have .js extensions.
@@ -1138,9 +1216,11 @@ class BigQueryClient(object):
             "query": query,
         }
 
+        project_id = self._get_project_id(project_id)
+
         if dataset and table:
             configuration['destinationTable'] = {
-                "projectId": self.project_id,
+                "projectId": project_id,
                 "tableId": table,
                 "datasetId": dataset
             }
@@ -1233,7 +1313,7 @@ class BigQueryClient(object):
 
         return job_resource
 
-    def push_rows(self, dataset, table, rows, insert_id_key=None,
+    def push_rows(self, dataset, table, rows, project_id=None, insert_id_key=None,
                   skip_invalid_rows=None, ignore_unknown_values=None,
                   template_suffix=None):
         """Upload rows to BigQuery table.
@@ -1244,6 +1324,8 @@ class BigQueryClient(object):
             The dataset to upload to
         table : str
             The name of the table to insert rows into
+        project_id: str, optional
+            The project to upload to
         rows : list
             A ``list`` of rows (``dict`` objects) to add to the table
         insert_id_key : str, optional
@@ -1292,8 +1374,9 @@ class BigQueryClient(object):
             data['templateSuffix'] = template_suffix
 
         try:
+            project_id = self._get_project_id(project_id)
             response = table_data.insertAll(
-                projectId=self.project_id,
+                projectId=project_id,
                 datasetId=dataset,
                 tableId=table,
                 body=data
@@ -1325,19 +1408,21 @@ class BigQueryClient(object):
                     }]
                 }
 
-    def get_all_tables(self, dataset_id):
+    def get_all_tables(self, dataset_id, project_id=None):
         """Retrieve a list of tables for the dataset.
 
         Parameters
         ----------
         dataset_id : str
             The dataset to retrieve table data for.
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
 
         Returns
         -------
         A ``list`` with all table names
         """
-        tables_data = self._get_all_tables_for_dataset(dataset_id)
+        tables_data = self._get_all_tables_for_dataset(dataset_id, project_id)
 
         tables = []
         for table in tables_data.get('tables', []):
@@ -1346,7 +1431,7 @@ class BigQueryClient(object):
                 tables.append(table_name)
         return tables
 
-    def _get_all_tables(self, dataset_id, cache=False):
+    def _get_all_tables(self, dataset_id, project_id=None, cache=False):
         """Retrieve the list of tables for dataset, that respect the formats:
             * appid_YYYY_MM
             * YYYY_MM_appid
@@ -1355,6 +1440,8 @@ class BigQueryClient(object):
         ----------
         dataset_id : str
             The dataset to retrieve table names for
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
         cache : bool, optional
             To use cached value or not (default False). Timeout value equals
             CACHE_TIMEOUT.
@@ -1371,24 +1458,28 @@ class BigQueryClient(object):
                 do_fetch = False
 
         if do_fetch:
-            result = self._get_all_tables_for_dataset(dataset_id)
+            result = self._get_all_tables_for_dataset(dataset_id, project_id)
             self.cache[dataset_id] = (datetime.now(), result)
 
         return self._parse_table_list_response(result)
 
-    def _get_all_tables_for_dataset(self, dataset_id):
+    def _get_all_tables_for_dataset(self, dataset_id, project_id=None):
         """Retrieve a list of all tables for the dataset.
 
         Parameters
         ----------
         dataset_id : str
             The dataset to retrieve table names for
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
 
         Returns
         -------
         dict
             A ``dict`` containing tables key with all tables
         """
+        project_id = self._get_project_id(project_id)
+
         result = self.bigquery.tables().list(
             projectId=self.project_id,
             datasetId=dataset_id).execute(num_retries=self.num_retries)
@@ -1682,7 +1773,7 @@ class BigQueryClient(object):
     #
     # DataSet manipulation methods
     #
-    def create_dataset(self, dataset_id, friendly_name=None, description=None,
+    def create_dataset(self, dataset_id, project_id=None, friendly_name=None, description=None,
                        access=None, location=None):
         """Create a new BigQuery dataset.
 
@@ -1691,6 +1782,8 @@ class BigQueryClient(object):
         dataset_id : str
             Unique ``str`` identifying the dataset with the project (the
             referenceID of the dataset, not the integer id of the dataset)
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
         friendly_name: str, optional
             A human readable name
         description: str, optional
@@ -1708,15 +1801,19 @@ class BigQueryClient(object):
             ``bool`` indicating if dataset was created or not, or response
             from BigQuery if swallow_results is set for False
         """
-        try:
+        project_id = self._get_project_id(project_id)
+
+        try:            
             datasets = self.bigquery.datasets()
-            dataset_data = self.dataset_resource(dataset_id,
+            dataset_data = self.dataset_resource(dataset_id,                                                 
+                                                 project_id=project_id,
                                                  friendly_name=friendly_name,
                                                  description=description,
                                                  access=access,
-                                                 location=location)
+                                                 location=location
+                                                 )
 
-            response = datasets.insert(projectId=self.project_id,
+            response = datasets.insert(projectId=project_id,
                                        body=dataset_data).execute(
                 num_retries=self.num_retries)
             if self.swallow_results:
@@ -1731,31 +1828,40 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def get_datasets(self):
+    def get_datasets(self, project_id=None):
         """List all datasets in the project.
+        
+        Parameters
+        ----------
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
 
         Returns
         -------
         list
             Dataset resources
         """
-        try:
+        project_id = self._get_project_id(project_id)
+
+        try:            
             datasets = self.bigquery.datasets()
-            request = datasets.list(projectId=self.project_id)
+            request = datasets.list(projectId=project_id)
             result = request.execute(num_retries=self.num_retries)
             return result.get('datasets', [])
         except HttpError as e:
             logger.error("Cannot list datasets: {0}".format(e))
             return None
 
-    def delete_dataset(self, dataset_id, delete_contents=False):
+    def delete_dataset(self, dataset_id, project_id=None, delete_contents=False):
         """Delete a BigQuery dataset.
 
         Parameters
         ----------
         dataset_id : str
-            Unique ``str`` identifying the datset with the project (the
+            Unique ``str`` identifying the dataset with the project (the
             referenceId of the dataset)
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
         delete_contents : bool, optional
             If True, forces the deletion of the dataset even when the dataset
             contains data (Default = False)
@@ -1771,9 +1877,11 @@ class BigQueryClient(object):
         HttpError
             404 when dataset with dataset_id does not exist
         """
-        try:
+        project_id = self._get_project_id(project_id)
+
+        try:            
             datasets = self.bigquery.datasets()
-            request = datasets.delete(projectId=self.project_id,
+            request = datasets.delete(projectId=project_id,
                                       datasetId=dataset_id,
                                       deleteContents=delete_contents)
             response = request.execute(num_retries=self.num_retries)
@@ -1789,7 +1897,7 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def update_dataset(self, dataset_id, friendly_name=None, description=None,
+    def update_dataset(self, dataset_id, project_id=None, friendly_name=None, description=None,
                        access=None):
         """Updates information in an existing dataset. The update method
         replaces the entire dataset resource, whereas the patch method only
@@ -1800,6 +1908,8 @@ class BigQueryClient(object):
         dataset_id : str
             Unique ``str`` identifying the dataset with the project (the
             referencedId of the dataset)
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
         friendly_name : str, optional
             An optional descriptive name for the dataset.
         description : str, optional
@@ -1813,11 +1923,13 @@ class BigQueryClient(object):
             ``bool`` indicating if the update was successful or not, or
             response from BigQuery if swallow_results is set for False.
         """
-        try:
+        project_id = self._get_project_id(project_id)
+
+        try:            
             datasets = self.bigquery.datasets()
-            body = self.dataset_resource(dataset_id, friendly_name,
+            body = self.dataset_resource(dataset_id, project_id, friendly_name,
                                          description, access)
-            request = datasets.update(projectId=self.project_id,
+            request = datasets.update(projectId=project_id,
                                       datasetId=dataset_id,
                                       body=body)
             response = request.execute(num_retries=self.num_retries)
@@ -1833,7 +1945,7 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def patch_dataset(self, dataset_id, friendly_name=None, description=None,
+    def patch_dataset(self, dataset_id, project_id=None, friendly_name=None, description=None,
                       access=None):
         """Updates information in an existing dataset. The update method
         replaces the entire dataset resource, whereas the patch method only
@@ -1844,6 +1956,8 @@ class BigQueryClient(object):
         dataset_id : str
             Unique string idenfitying the dataset with the project (the
             referenceId of the dataset)
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
         friendly_name : str, optional
             An optional descriptive name for the dataset.
         description : str, optional
@@ -1857,11 +1971,13 @@ class BigQueryClient(object):
             ``bool`` indicating if the patch was successful or not, or response
             from BigQuery if swallow_results is set for False.
         """
-        try:
+        project_id = self._get_project_id(project_id)
+        
+        try:            
             datasets = self.bigquery.datasets()
-            body = self.dataset_resource(dataset_id, friendly_name,
+            body = self.dataset_resource(dataset_id, project_id, friendly_name,
                                          description, access)
-            request = datasets.patch(projectId=self.project_id,
+            request = datasets.patch(projectId=project_id,
                                      datasetId=dataset_id, body=body)
             response = request.execute(num_retries=self.num_retries)
             if self.swallow_results:
@@ -1875,7 +1991,7 @@ class BigQueryClient(object):
             else:
                 return {}
 
-    def dataset_resource(self, ref_id, friendly_name=None, description=None,
+    def dataset_resource(self, ref_id, project_id=None, friendly_name=None, description=None,
                          access=None, location=None):
         """See
         https://developers.google.com/bigquery/docs/reference/v2/datasets#resource
@@ -1884,6 +2000,8 @@ class BigQueryClient(object):
         ----------
         ref_id : str
             Dataset id (the reference id, not the integer id)
+        project_id: str
+            Unique ``str`` identifying the BigQuery project contains the dataset
         friendly_name : str, optional
             An optional descriptive name for the dataset
         description : str, optional
@@ -1898,10 +2016,11 @@ class BigQueryClient(object):
         dict
             Representing BigQuery dataset resource
         """
+        project_id = self._get_project_id(project_id)
         data = {
             "datasetReference": {
                 "datasetId": ref_id,
-                "projectId": self.project_id
+                "projectId": project_id
             }
         }
         if friendly_name:
