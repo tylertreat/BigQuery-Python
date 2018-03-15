@@ -2904,18 +2904,18 @@ class TestUpdateDataset(unittest.TestCase):
         self.mock_datasets.update.return_value.execute.side_effect = [{
             'status': 'foo'}, {'status': 'bar'}]
 
-        actual = self.client.update_dataset(self.dataset,
-                                            self.friendly_name,
-                                            self.description,
-                                            self.access)
+        actual = self.client.update_dataset(self.dataset,                                           
+                                            friendly_name=self.friendly_name,
+                                            description=self.description,
+                                            access=self.access)
         self.assertTrue(actual)
 
         self.client.swallow_results = False
 
-        actual = self.client.update_dataset(self.dataset,
-                                            self.friendly_name,
-                                            self.description,
-                                            self.access)
+        actual = self.client.update_dataset(self.dataset,                                            
+                                            friendly_name=self.friendly_name,
+                                            description=self.description,
+                                            access=self.access)
 
         self.assertEqual(actual, {'status': 'bar'})
 
