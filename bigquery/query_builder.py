@@ -241,6 +241,8 @@ def _render_condition(field, field_type, comparators):
             else:
                 value = _render_condition_value(value, field_type)
             value = "(" + value + ")"
+        elif condition == "IS NULL" or condition == "IS NOT NULL":
+            return field + " " + condition
         elif condition == "BETWEEN":
             if isinstance(value, (tuple, list, set)) and len(value) == 2:
                 value = ' AND '.join(
