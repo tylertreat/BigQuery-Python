@@ -175,8 +175,13 @@ def _get_bq_service(credentials=None, service_url=None):
     assert credentials, 'Must provide ServiceAccountCredentials'
 
     http = credentials.authorize(Http())
-    service = build('bigquery', 'v2', http=http,
-                    discoveryServiceUrl=service_url)
+    service = build(
+        'bigquery',
+        'v2',
+        http=http,
+        discoveryServiceUrl=service_url,
+        cache_discovery=False
+    )
 
     return service
 
