@@ -67,8 +67,13 @@ class TestGetClient(unittest.TestCase):
             scopes=BIGQUERY_SCOPE_READ_ONLY)
         self.assertTrue(
             mock_cred.from_p12_keyfile_buffer.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
-                                           discoveryServiceUrl=mock_service_url)
+        mock_build.assert_called_once_with(
+            'bigquery',
+            'v2',
+            http=mock_http,
+            discoveryServiceUrl=mock_service_url,
+            cache_discovery=False
+        )
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
@@ -101,8 +106,13 @@ class TestGetClient(unittest.TestCase):
             service_account, mock.ANY, scopes=BIGQUERY_SCOPE)
         self.assertTrue(
             mock_cred.from_p12_keyfile_buffer.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
-                                           discoveryServiceUrl=mock_service_url)
+        mock_build.assert_called_once_with(
+            'bigquery',
+            'v2',
+            http=mock_http,
+            discoveryServiceUrl=mock_service_url,
+            cache_discovery=False
+        )
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
@@ -136,8 +146,13 @@ class TestGetClient(unittest.TestCase):
                                                            scopes=BIGQUERY_SCOPE)
         self.assertTrue(
             mock_cred.from_p12_keyfile.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
-                                           discoveryServiceUrl=mock_service_url)
+        mock_build.assert_called_once_with(
+            'bigquery',
+            'v2',
+            http=mock_http,
+            discoveryServiceUrl=mock_service_url,
+            cache_discovery=False
+        )
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
@@ -172,8 +187,13 @@ class TestGetClient(unittest.TestCase):
                                                                  scopes=BIGQUERY_SCOPE)
         self.assertTrue(
             mock_cred.from_json_keyfile_dict.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
-                                           discoveryServiceUrl=mock_service_url)
+        mock_build.assert_called_once_with(
+            'bigquery',
+            'v2',
+            http=mock_http,
+            discoveryServiceUrl=mock_service_url,
+            cache_discovery=False
+        )
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(project_id, bq_client.project_id)
 
@@ -208,8 +228,13 @@ class TestGetClient(unittest.TestCase):
                                                                  scopes=BIGQUERY_SCOPE)
         self.assertTrue(
             mock_cred.from_json_keyfile_dict.return_value.authorize.called)
-        mock_build.assert_called_once_with('bigquery', 'v2', http=mock_http,
-                                           discoveryServiceUrl=mock_service_url)
+        mock_build.assert_called_once_with(
+            'bigquery',
+            'v2',
+            http=mock_http,
+            discoveryServiceUrl=mock_service_url,
+            cache_discovery=False
+        )
         self.assertEquals(mock_bq, bq_client.bigquery)
         self.assertEquals(json_key['project_id'], bq_client.project_id)
 
