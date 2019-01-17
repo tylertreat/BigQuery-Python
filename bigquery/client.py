@@ -1487,13 +1487,13 @@ class BigQueryClient(object):
         project_id = self._get_project_id(project_id)
 
         result = self.bigquery.tables().list(
-            projectId=self.project_id,
+            projectId=project_id,
             datasetId=dataset_id).execute(num_retries=self.num_retries)
 
         page_token = result.get('nextPageToken')
         while page_token:
             res = self.bigquery.tables().list(
-                projectId=self.project_id,
+                projectId=project_id,
                 datasetId=dataset_id,
                 pageToken=page_token
             ).execute(num_retries=self.num_retries)
