@@ -173,7 +173,7 @@ The client provides an API for inserting data into a BigQuery table. The last pa
 ```python
 # Insert data into table.
 rows =  [
-    {'one': 'ein', 'two': 'zwei'}
+    {'one': 'ein', 'two': 'zwei'},
     {'id': 'NzAzYmRiY', 'one': 'uno', 'two': 'dos'},
     {'id': 'NzAzYmRiY', 'one': 'ein', 'two': 'zwei'} # duplicate entry
 ]
