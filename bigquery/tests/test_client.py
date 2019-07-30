@@ -1913,9 +1913,6 @@ class TestPatchTable(unittest.TestCase):
         self.client = client.BigQueryClient(self.mock_bq_service, self.project)
         self.body = {
             'schema': {'fields': self.schema},
-            'tableReference': {
-                'tableId': self.table, 'projectId': self.project,
-                'datasetId': self.dataset}
         }
         self.expiration_time = 1437513693000
 
@@ -1941,7 +1938,8 @@ class TestPatchTable(unittest.TestCase):
         self.client.swallow_results = True
 
         self.mock_tables.patch.assert_called_with(
-            projectId=self.project, datasetId=self.dataset, body=self.body)
+            projectId=self.project, datasetId=self.dataset,
+            tableId=self.table, body=self.body)
 
         self.mock_tables.patch.return_value.execute. \
             assert_called_with(num_retries=0)
@@ -1968,7 +1966,8 @@ class TestPatchTable(unittest.TestCase):
         self.client.swallow_results = True
 
         self.mock_tables.patch.assert_called_with(
-            projectId=self.project, datasetId=self.dataset, body=self.body)
+            projectId=self.project, datasetId=self.dataset,
+            tableId=self.table, body=self.body)
 
         self.mock_tables.patch.return_value.execute. \
             assert_called_with(num_retries=0)
