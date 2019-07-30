@@ -735,17 +735,13 @@ class BigQueryClient(object):
 
         body = {
             'schema': {'fields': schema},
-            'tableReference': {
-                'tableId': table,
-                'projectId': project_id,
-                'datasetId': dataset
-            }
         }
 
         try:
             result = self.bigquery.tables().patch(
                 projectId=project_id,
                 datasetId=dataset,
+                tableId=table,
                 body=body
             ).execute(num_retries=self.num_retries)
             if self.swallow_results:
