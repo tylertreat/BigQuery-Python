@@ -297,7 +297,9 @@ class TestQuery(unittest.TestCase):
 
         mock_query_job.execute.return_value = {
             'jobReference': expected_job_ref,
-            'jobComplete': True
+            'jobComplete': True,
+            'cacheHit': False,
+            'totalBytesProcessed': 0
         }
 
         self.mock_job_collection.query.return_value = mock_query_job
@@ -329,6 +331,8 @@ class TestQuery(unittest.TestCase):
         mock_query_job.execute.return_value = {
             'jobReference': expected_job_ref,
             'jobComplete': True,
+            'cacheHit': False,
+            'totalBytesProcessed': 0
         }
 
         self.mock_job_collection.query.return_value = mock_query_job
@@ -357,6 +361,8 @@ class TestQuery(unittest.TestCase):
         mock_query_job.execute.return_value = {
             'jobReference': expected_job_ref,
             'jobComplete': True,
+            'cacheHit': False,
+            'totalBytesProcessed': 0
         }
 
         self.mock_job_collection.query.return_value = mock_query_job
@@ -382,6 +388,8 @@ class TestQuery(unittest.TestCase):
         mock_query_job.execute.return_value = {
             'jobReference': expected_job_ref,
             'jobComplete': False,
+            'cacheHit': False,
+            'totalBytesProcessed': 0
         }
 
         self.mock_job_collection.query.return_value = mock_query_job
@@ -400,6 +408,8 @@ class TestQuery(unittest.TestCase):
         mock_query_job.execute.return_value = {
             'jobReference': expected_job_ref,
             'jobComplete': False,
+            'cacheHit': False,
+            'totalBytesProcessed': 0
         }
 
         self.mock_job_collection.query.return_value = mock_query_job
@@ -409,14 +419,18 @@ class TestQuery(unittest.TestCase):
         self.assertEquals(results, [])
 
     def test_query_dry_run_valid(self):
-        """Ensure that None and an empty list is returned from the query when
+        """Ensure that None and [cacheHit, totalBytesProcessed] is returned from the query when
         dry_run is True and the query is valid.
         """
 
         mock_query_job = mock.Mock()
 
-        mock_query_job.execute.return_value = {'jobReference': {},
-                                               'jobComplete': True}
+        mock_query_job.execute.return_value = {
+            'jobReference': {},
+            'jobComplete': True, 
+            'cacheHit': False,
+            'totalBytesProcessed': 0
+        }
 
         self.mock_job_collection.query.return_value = mock_query_job
 
@@ -428,7 +442,7 @@ class TestQuery(unittest.TestCase):
                   'dryRun': True}
         )
         self.assertIsNone(job_id)
-        self.assertEqual([], results)
+        self.assertEqual([False, 0], results)
 
     def test_query_dry_run_invalid(self):
         """Ensure that None and a dict is returned from the query when dry_run
@@ -468,6 +482,8 @@ class TestQuery(unittest.TestCase):
             'schema': {'fields': [{'name': 'foo', 'type': 'INTEGER'}]},
             'rows': [{'f': [{'v': 10}]}],
             'jobComplete': True,
+            'cacheHit': False,
+            'totalBytesProcessed': 0
         }
 
         self.mock_job_collection.query.return_value = mock_query_job
@@ -491,7 +507,9 @@ class TestQuery(unittest.TestCase):
 
         mock_query_job.execute.return_value = {
             'jobReference': expected_job_ref,
-            'jobComplete': True
+            'jobComplete': True,
+            'cacheHit': False,
+            'totalBytesProcessed': 0
         }
 
         self.mock_job_collection.query.return_value = mock_query_job
@@ -873,7 +891,7 @@ class TestImportDataFromURIs(unittest.TestCase):
         body = {
             "jobReference": {
                 "projectId": self.project_id,
-                "jobId": "job"
+                "jobId": "job",
             },
             "configuration": {
                 "load": {
