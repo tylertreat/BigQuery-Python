@@ -243,7 +243,7 @@ class BigQueryClient(object):
         -------
         tuple
             job id and query results if query completed. If dry_run is True,
-            job id will be None and results will be empty if the query is valid
+            job id will be None and results will be [cacheHit and totalBytesProcessed] if the query is valid
             or a dict containing the response if invalid.
 
         Raises
@@ -269,13 +269,17 @@ class BigQueryClient(object):
         schema = query_reply.get('schema', {'fields': None})['fields']
         rows = query_reply.get('rows', [])
         job_complete = query_reply.get('jobComplete', False)
+        cache_hit = query_reply['cacheHit']
+        total_bytes_processed = query_reply['totalBytesProcessed']
 
         # raise exceptions if it's not an async query
         # and job is not completed after timeout
         if not job_complete and query_data.get("timeoutMs", False):
             logger.error('BigQuery job %s timeout' % job_id)
             raise BigQueryTimeoutException()
-
+        
+        if query_data.get("dryRun", True):
+            return job_id, [cache_hit, total_bytes_processed]
         return job_id, [self._transform_row(row, schema) for row in rows]
 
     def _get_job_reference(self, job_id):
@@ -345,8 +349,8 @@ class BigQueryClient(object):
             How long to wait for the query to complete, in seconds before
             the request times out and returns.
         dry_run : bool, optional
-            If True, the query isn't actually run. A valid query will return an
-            empty response, while an invalid one will return the same error
+            If True, the query isn't actually run. A valid query will return 
+            cache hit, and total bytes processed, while an invalid one will return the same error
             message it would if it wasn't a dry run.
         use_legacy_sql : bool, optional. Default True.
             If False, the query will use BigQuery's standard SQL (https://cloud.google.com/bigquery/sql-reference/)
@@ -359,7 +363,7 @@ class BigQueryClient(object):
         -------
         tuple
             (job id, query results) if the query completed. If dry_run is True,
-            job id will be None and results will be empty if the query is valid
+            job id will be None and results will be [cacheHit and totalBytesProcessed] if the query is valid
             or a ``dict`` containing the response if invalid.
 
         Raises
