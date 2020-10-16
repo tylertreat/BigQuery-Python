@@ -9,7 +9,7 @@ This client provides an API for retrieving and inserting BigQuery data by wrappi
 
 # Installation
 
-`pip install bigquery-python`
+`pip install big query-python`
 
 # Basic Usage
 
