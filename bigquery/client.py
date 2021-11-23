@@ -227,7 +227,7 @@ class BigQueryClient(object):
         """ Submit a query job to BigQuery.
 
             This is similar to BigQueryClient.query, but gives the user
-            direct access to the query method on the offical BigQuery
+            direct access to the query method on the official BigQuery
             python client.
 
             For fine-grained control over a query job, see:
@@ -306,7 +306,7 @@ class BigQueryClient(object):
     def _insert_job(self, body_object):
         """ Submit a job to BigQuery
 
-            Direct proxy to the insert() method of the offical BigQuery
+            Direct proxy to the insert() method of the official BigQuery
             python client.
 
             Able to submit load, link, query, copy, or extract jobs.
