@@ -700,6 +700,7 @@ class BigQueryClient(object):
                 projectId=project_id,
                 tableId= table,
                 datasetId=dataset,
+                tableId=table,
                 body=body
             ).execute(num_retries=self.num_retries)
             if self.swallow_results:
